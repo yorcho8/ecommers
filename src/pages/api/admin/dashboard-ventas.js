@@ -32,8 +32,6 @@ function getPrivilegedUser(cookies) {
     return null;
   }
 }
-  }
-}
 
 function normalizeText(value) {
   return String(value || "").trim().toLowerCase();
