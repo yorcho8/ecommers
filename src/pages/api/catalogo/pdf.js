@@ -1,8 +1,8 @@
 // src/pages/api/catalogo/pdf.js
 import { createClient } from "@libsql/client";
 import "dotenv/config";
-import puppeteer from "puppeteer";
-
+import chromium from '@sparticuz/chromium';
+import puppeteer from 'puppeteer-core';
 const db = createClient({
   url: process.env.ECOMERS_DATABASE_URL,
   authToken: process.env.ECOMERS_AUTH_TOKEN,
