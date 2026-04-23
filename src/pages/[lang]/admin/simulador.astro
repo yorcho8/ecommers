@@ -1,0 +1,934 @@
+﻿---
+// src/pages/simulador.astro
+// Simulador de costos para vendedores - GO2026
+const title = "Simulador de Ganancias | Grupo Ortiz";
+---
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{title}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:        #0a0c10;
+      --surface:   #111318;
+      --card:      #161a22;
+      --border:    #252a35;
+      --border-hi: #2e3545;
+      --text:      #e8eaf0;
+      --muted:     #6b7280;
+      --accent:    #22d87a;
+      --accent-dim:#16a055;
+      --warn:      #f59e0b;
+      --danger:    #ef4444;
+      --blue:      #3b82f6;
+      --mono:      'Space Mono', monospace;
+      --sans:      'Outfit', sans-serif;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--sans);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* -- GRID BACKGROUND -- */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image:
+        linear-gradient(var(--border) 1px, transparent 1px),
+        linear-gradient(90deg, var(--border) 1px, transparent 1px);
+      background-size: 48px 48px;
+      opacity: 0.35;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* -- GLOW -- */
+    .glow-orb {
+      position: fixed;
+      width: 600px;
+      height: 600px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(34,216,122,0.06) 0%, transparent 70%);
+      top: -150px;
+      right: -150px;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* -- LAYOUT -- */
+    .page-wrap {
+      position: relative;
+      z-index: 1;
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 0 24px 80px;
+    }
+
+    /* -- HEADER -- */
+    header {
+      padding: 48px 0 40px;
+      display: flex;
+      align-items: flex-start;
+      gap: 20px;
+    }
+    .header-badge {
+      background: rgba(34,216,122,0.1);
+      border: 1px solid rgba(34,216,122,0.3);
+      color: var(--accent);
+      font-family: var(--mono);
+      font-size: 11px;
+      letter-spacing: 0.15em;
+      padding: 4px 10px;
+      border-radius: 4px;
+      white-space: nowrap;
+      margin-top: 6px;
+    }
+    .header-text h1 {
+      font-size: clamp(28px, 4vw, 42px);
+      font-weight: 800;
+      line-height: 1.1;
+      letter-spacing: -0.02em;
+    }
+    .header-text h1 span { color: var(--accent); }
+    .header-text p {
+      color: var(--muted);
+      margin-top: 10px;
+      font-size: 15px;
+      max-width: 520px;
+      line-height: 1.6;
+    }
+
+    /* -- MAIN GRID -- */
+    .sim-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+      align-items: start;
+    }
+    @media (max-width: 768px) {
+      .sim-grid { grid-template-columns: 1fr; }
+    }
+
+    /* -- CARDS -- */
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 28px;
+      transition: border-color 0.2s;
+    }
+    .card:hover { border-color: var(--border-hi); }
+    .card-title {
+      font-size: 11px;
+      font-family: var(--mono);
+      letter-spacing: 0.12em;
+      color: var(--muted);
+      text-transform: uppercase;
+      margin-bottom: 22px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .card-title::before {
+      content: '';
+      display: block;
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--accent);
+      flex-shrink: 0;
+    }
+
+    /* -- INPUT SECTION -- */
+    .input-group {
+      margin-bottom: 24px;
+    }
+    label {
+      display: block;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--muted);
+      margin-bottom: 10px;
+      letter-spacing: 0.02em;
+    }
+    label strong { color: var(--text); }
+
+    .price-input-wrap {
+      position: relative;
+      display: flex;
+      align-items: center;
+    }
+    .currency-prefix {
+      position: absolute;
+      left: 16px;
+      font-family: var(--mono);
+      font-size: 20px;
+      color: var(--accent);
+      font-weight: 700;
+      pointer-events: none;
+      user-select: none;
+    }
+    input[type="number"] {
+      width: 100%;
+      background: var(--surface);
+      border: 1.5px solid var(--border);
+      border-radius: 10px;
+      color: var(--text);
+      font-family: var(--mono);
+      font-size: 28px;
+      font-weight: 700;
+      padding: 16px 16px 16px 42px;
+      outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s;
+      -moz-appearance: textfield;
+    }
+    input[type="number"]::-webkit-outer-spin-button,
+    input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; }
+    input[type="number"]:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(34,216,122,0.12);
+    }
+
+    /* -- SLIDER -- */
+    .slider-wrap {
+      margin-top: 8px;
+    }
+    .slider-track {
+      position: relative;
+      height: 4px;
+      background: var(--border);
+      border-radius: 4px;
+      margin: 12px 0 6px;
+    }
+    .slider-fill {
+      position: absolute;
+      left: 0;
+      top: 0;
+      height: 100%;
+      background: var(--accent);
+      border-radius: 4px;
+      transition: width 0.05s;
+    }
+    input[type="range"] {
+      position: absolute;
+      top: -8px;
+      left: 0;
+      width: 100%;
+      height: 20px;
+      opacity: 0;
+      cursor: pointer;
+    }
+    .slider-labels {
+      display: flex;
+      justify-content: space-between;
+      font-size: 11px;
+      color: var(--muted);
+      font-family: var(--mono);
+    }
+
+    /* -- REGIME SELECTOR -- */
+    .regime-opts {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+    .regime-btn {
+      background: var(--surface);
+      border: 1.5px solid var(--border);
+      border-radius: 10px;
+      padding: 14px 16px;
+      cursor: pointer;
+      transition: all 0.2s;
+      text-align: left;
+    }
+    .regime-btn:hover { border-color: var(--border-hi); }
+    .regime-btn.active {
+      border-color: var(--accent);
+      background: rgba(34,216,122,0.06);
+    }
+    .regime-btn .rb-name {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 4px;
+    }
+    .regime-btn .rb-rate {
+      font-family: var(--mono);
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--accent);
+    }
+    .regime-btn .rb-desc {
+      font-size: 11px;
+      color: var(--muted);
+      margin-top: 4px;
+      line-height: 1.4;
+    }
+
+    /* -- IVA TOGGLE -- */
+    .toggle-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 14px 18px;
+      cursor: pointer;
+      transition: border-color 0.2s;
+      user-select: none;
+    }
+    .toggle-row:hover { border-color: var(--border-hi); }
+    .toggle-row-text .tr-title { font-size: 14px; font-weight: 600; }
+    .toggle-row-text .tr-sub { font-size: 12px; color: var(--muted); margin-top: 2px; }
+    .toggle {
+      width: 44px;
+      height: 24px;
+      background: var(--border);
+      border-radius: 12px;
+      position: relative;
+      transition: background 0.2s;
+      flex-shrink: 0;
+    }
+    .toggle.on { background: var(--accent); }
+    .toggle::after {
+      content: '';
+      position: absolute;
+      width: 18px;
+      height: 18px;
+      background: white;
+      border-radius: 50%;
+      top: 3px;
+      left: 3px;
+      transition: transform 0.2s;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.3);
+    }
+    .toggle.on::after { transform: translateX(20px); }
+
+    /* -- BREAKDOWN -- */
+    .breakdown-list { list-style: none; }
+    .breakdown-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 13px 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .breakdown-item:last-child { border-bottom: none; }
+    .bi-left { display: flex; align-items: center; gap: 10px; }
+    .bi-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 2px;
+      flex-shrink: 0;
+    }
+    .bi-label { font-size: 14px; color: var(--text); }
+    .bi-sublabel { font-size: 11px; color: var(--muted); margin-top: 2px; }
+    .bi-value {
+      font-family: var(--mono);
+      font-size: 15px;
+      font-weight: 700;
+      text-align: right;
+    }
+    .bi-pct {
+      font-size: 11px;
+      color: var(--muted);
+      font-family: var(--mono);
+      margin-top: 2px;
+      text-align: right;
+    }
+    .c-danger  { background: var(--danger); }
+    .c-warn    { background: var(--warn); }
+    .c-blue    { background: var(--blue); }
+    .c-muted   { background: #4b5563; }
+    .t-danger  { color: var(--danger); }
+    .t-warn    { color: var(--warn); }
+    .t-blue    { color: var(--blue); }
+
+    /* -- NET RESULT -- */
+    .net-card {
+      background: linear-gradient(135deg, rgba(34,216,122,0.08) 0%, rgba(34,216,122,0.03) 100%);
+      border: 1.5px solid rgba(34,216,122,0.3);
+      border-radius: 16px;
+      padding: 28px;
+    }
+    .net-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-bottom: 24px;
+    }
+    .net-label {
+      font-size: 11px;
+      font-family: var(--mono);
+      letter-spacing: 0.12em;
+      color: var(--accent-dim);
+      text-transform: uppercase;
+      margin-bottom: 8px;
+    }
+    .net-amount {
+      font-family: var(--mono);
+      font-size: clamp(32px, 5vw, 48px);
+      font-weight: 700;
+      color: var(--accent);
+      line-height: 1;
+      letter-spacing: -0.02em;
+    }
+    .net-margin-badge {
+      background: rgba(34,216,122,0.12);
+      border: 1px solid rgba(34,216,122,0.25);
+      border-radius: 8px;
+      padding: 8px 14px;
+      text-align: center;
+    }
+    .net-margin-badge .mb-num {
+      font-family: var(--mono);
+      font-size: 22px;
+      font-weight: 700;
+      color: var(--accent);
+    }
+    .net-margin-badge .mb-label {
+      font-size: 11px;
+      color: var(--muted);
+      margin-top: 2px;
+    }
+
+    /* -- DONUT -- */
+    .donut-wrap {
+      display: flex;
+      align-items: center;
+      gap: 24px;
+      margin-top: 8px;
+      flex-wrap: wrap;
+    }
+    .donut-svg { flex-shrink: 0; }
+    .donut-legend { flex: 1; min-width: 160px; }
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+    .legend-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 3px;
+      flex-shrink: 0;
+    }
+    .legend-name { font-size: 13px; color: var(--muted); flex: 1; }
+    .legend-pct {
+      font-family: var(--mono);
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--text);
+    }
+
+    /* -- INFO BOX -- */
+    .info-box {
+      background: rgba(59,130,246,0.06);
+      border: 1px solid rgba(59,130,246,0.2);
+      border-radius: 10px;
+      padding: 14px 16px;
+      display: flex;
+      gap: 12px;
+      align-items: flex-start;
+    }
+    .info-icon { font-size: 16px; flex-shrink: 0; line-height: 1.4; }
+    .info-text { font-size: 12px; color: var(--muted); line-height: 1.6; }
+    .info-text strong { color: var(--text); }
+
+    /* -- QUICK EXAMPLES -- */
+    .quick-row {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-top: 8px;
+    }
+    .quick-btn {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 6px 14px;
+      font-family: var(--mono);
+      font-size: 13px;
+      color: var(--muted);
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .quick-btn:hover {
+      border-color: var(--accent);
+      color: var(--accent);
+      background: rgba(34,216,122,0.04);
+    }
+
+    /* -- ANIM -- */
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(16px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .card, .net-card {
+      animation: fadeUp 0.4s ease both;
+    }
+    .card:nth-child(1) { animation-delay: 0.05s; }
+    .card:nth-child(2) { animation-delay: 0.1s; }
+    .net-card          { animation-delay: 0.15s; }
+
+    /* -- DISCLAIMER -- */
+    .disclaimer {
+      margin-top: 32px;
+      text-align: center;
+      font-size: 12px;
+      color: var(--muted);
+      line-height: 1.6;
+      max-width: 680px;
+      margin-inline: auto;
+    }
+    .disclaimer a { color: var(--accent); text-decoration: none; }
+  </style>
+</head>
+<body>
+  <div class="glow-orb"></div>
+
+  <div class="page-wrap">
+    <!-- HEADER -->
+    <header>
+      <div class="header-badge">SIMULADOR v1.0</div>
+      <div class="header-text">
+        <h1>Calcula tus <span>ganancias reales</span></h1>
+        <p>Simula cuánto recibes por cada venta después de IVA, ISR y comisiones de plataforma. Sin sorpresas.</p>
+      </div>
+    </header>
+
+    <!-- QUICK AMOUNTS -->
+    <div style="margin-bottom:20px;">
+      <span style="font-size:12px;color:var(--muted);margin-right:10px;">Ejemplos rápidos:</span>
+      <div class="quick-row" id="quickBtns">
+        <button class="quick-btn" data-val="199">$199</button>
+        <button class="quick-btn" data-val="499">$499</button>
+        <button class="quick-btn" data-val="999">$999</button>
+        <button class="quick-btn" data-val="1999">$1,999</button>
+        <button class="quick-btn" data-val="4999">$4,999</button>
+        <button class="quick-btn" data-val="9999">$9,999</button>
+      </div>
+    </div>
+
+    <!-- MAIN GRID -->
+    <div class="sim-grid">
+
+      <!-- LEFT: INPUTS -->
+      <div>
+        <div class="card">
+          <div class="card-title">Configurar producto</div>
+
+          <!-- PRECIO -->
+          <div class="input-group">
+            <label><strong>Precio de venta al público (MXN)</strong></label>
+            <div class="price-input-wrap">
+              <span class="currency-prefix">$</span>
+              <input type="number" id="precioInput" value="999" min="0" step="1" placeholder="0" />
+            </div>
+            <div class="slider-wrap">
+              <div class="slider-track">
+                <div class="slider-fill" id="sliderFill"></div>
+                <input type="range" id="precioSlider" min="0" max="10000" step="50" value="999" />
+              </div>
+              <div class="slider-labels">
+                <span>$0</span>
+                <span>$10,000</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- IVA TOGGLE -->
+          <div class="input-group">
+            <label><strong>¿El precio incluye IVA?</strong></label>
+            <div class="toggle-row" id="ivaToggleRow">
+              <div class="toggle-row-text">
+                <div class="tr-title" id="ivaToggleTitle">Sí, el precio incluye IVA (16%)</div>
+                <div class="tr-sub" id="ivaToggleSub">El IVA ya está dentro del precio que pusiste</div>
+              </div>
+              <div class="toggle on" id="ivaToggle"></div>
+            </div>
+          </div>
+
+          <!-- RÉGIMEN -->
+          <div class="input-group">
+            <label><strong>Régimen fiscal del vendedor</strong></label>
+            <div class="regime-opts">
+              <button class="regime-btn active" data-regime="resico" id="btn-resico">
+                <div class="rb-name">RESICO</div>
+                <div class="rb-rate">1.5%</div>
+                <div class="rb-desc">Régimen Simplificado de Confianza. Ingresos hasta $3.5M/año.</div>
+              </button>
+              <button class="regime-btn" data-regime="pf" id="btn-pf">
+                <div class="rb-name">Persona Física</div>
+                <div class="rb-rate">20%</div>
+                <div class="rb-desc">Actividad empresarial / honorarios. Retención estándar SAT.</div>
+              </button>
+              <button class="regime-btn" data-regime="pm" id="btn-pm">
+                <div class="rb-name">Persona Moral</div>
+                <div class="rb-rate">30%</div>
+                <div class="rb-desc">Régimen general corporativo. ISR sobre utilidad fiscal.</div>
+              </button>
+              <button class="regime-btn" data-regime="noregistrado" id="btn-noregistrado">
+                <div class="rb-name">Sin RFC activo</div>
+                <div class="rb-rate">35%</div>
+                <div class="rb-desc">Retención máxima por ley. Se recomienda regularizarse.</div>
+              </button>
+            </div>
+          </div>
+
+          <div class="info-box">
+            <span class="info-icon">💡</span>
+            <div class="info-text">
+              <strong>Nota:</strong> Las tasas de ISR mostradas son retenciones aproximadas que aplica la plataforma al liquidar. El cálculo real depende de tu declaración anual y deducciones. Consulta a un contador.
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- RIGHT: BREAKDOWN -->
+      <div style="display:flex;flex-direction:column;gap:24px;">
+
+        <!-- DESGLOSE -->
+        <div class="card">
+          <div class="card-title">Desglose de descuentos</div>
+          <ul class="breakdown-list" id="breakdownList">
+            <!-- Se llena con JS -->
+          </ul>
+        </div>
+
+        <!-- RESULTADO NETO -->
+        <div class="net-card">
+          <div class="net-top">
+            <div>
+              <div class="net-label">Tu ganancia estimada</div>
+              <div class="net-amount" id="netAmount">$0.00</div>
+              <div style="font-size:12px;color:var(--muted);margin-top:8px;" id="netSubtitle">por venta realizada</div>
+            </div>
+            <div class="net-margin-badge">
+              <div class="mb-num" id="netMargin">0%</div>
+              <div class="mb-label">del precio<br>de lista</div>
+            </div>
+          </div>
+
+          <!-- DONUT -->
+          <div class="donut-wrap">
+            <svg class="donut-svg" width="110" height="110" viewBox="0 0 110 110" id="donutSvg">
+              <circle cx="55" cy="55" r="40" fill="none" stroke="var(--border)" stroke-width="16"/>
+              <circle id="d-neto"     cx="55" cy="55" r="40" fill="none" stroke="var(--accent)"  stroke-width="16" stroke-dasharray="0 251.2" stroke-dashoffset="0"   transform="rotate(-90 55 55)" style="transition:stroke-dasharray .4s"/>
+              <circle id="d-iva"      cx="55" cy="55" r="40" fill="none" stroke="var(--blue)"    stroke-width="16" stroke-dasharray="0 251.2" stroke-dashoffset="0"   transform="rotate(-90 55 55)" style="transition:stroke-dasharray .4s"/>
+              <circle id="d-isr"      cx="55" cy="55" r="40" fill="none" stroke="var(--warn)"    stroke-width="16" stroke-dasharray="0 251.2" stroke-dashoffset="0"   transform="rotate(-90 55 55)" style="transition:stroke-dasharray .4s"/>
+              <circle id="d-comision" cx="55" cy="55" r="40" fill="none" stroke="var(--danger)"  stroke-width="16" stroke-dasharray="0 251.2" stroke-dashoffset="0"   transform="rotate(-90 55 55)" style="transition:stroke-dasharray .4s"/>
+            </svg>
+            <div class="donut-legend">
+              <div class="legend-item">
+                <div class="legend-dot" style="background:var(--accent)"></div>
+                <span class="legend-name">Tu ganancia</span>
+                <span class="legend-pct" id="leg-neto">&mdash;</span>
+              </div>
+              <div class="legend-item">
+                <div class="legend-dot" style="background:var(--blue)"></div>
+                <span class="legend-name">IVA (SAT)</span>
+                <span class="legend-pct" id="leg-iva">&mdash;</span>
+              </div>
+              <div class="legend-item">
+                <div class="legend-dot" style="background:var(--warn)"></div>
+                <span class="legend-name">ISR retenido</span>
+                <span class="legend-pct" id="leg-isr">&mdash;</span>
+              </div>
+              <div class="legend-item">
+                <div class="legend-dot" style="background:var(--danger)"></div>
+                <span class="legend-name">Comisión GO</span>
+                <span class="legend-pct" id="leg-com">&mdash;</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div><!-- /right col -->
+    </div><!-- /grid -->
+
+    <p class="disclaimer">
+      ⚠️ Este simulador es informativo. Los cálculos son estimaciones basadas en las tasas fiscales vigentes en México (SAT 2024). Los montos reales pueden variar según tu situación fiscal particular. <strong>Recomendamos consultar con un contador público certificado.</strong>
+    </p>
+  </div>
+
+  <script>
+    // --- CONSTANTES ---
+    const COMISION_GO  = 0.08;
+    const IVA_TASA     = 0.16;
+    const IVA_COMISION = 0.16;
+
+    // --- TIPOS ---
+    interface RegimenInfo {
+      label: string;
+      tasa: number;
+      color: string;
+    }
+    interface Resultado {
+      precioLista:   number;
+      precioSinIva:  number;
+      ivaProducto:   number;
+      comisionBase:  number;
+      ivaComision:   number;
+      comisionTotal: number;
+      isrTasa:       number;
+      isrMonto:      number;
+      neto:          number;
+      pctIva:        number;
+      pctComision:   number;
+      pctIsr:        number;
+      pctNeto:       number;
+    }
+
+    // --- RÉGIMENES ---
+    const REGIMENES: Record<string, RegimenInfo> = {
+      resico:       { label: "RESICO",         tasa: 0.015, color: "var(--warn)"   },
+      pf:           { label: "Persona Física", tasa: 0.20,  color: "var(--warn)"   },
+      pm:           { label: "Persona Moral",  tasa: 0.30,  color: "var(--warn)"   },
+      noregistrado: { label: "Sin RFC activo", tasa: 0.35,  color: "var(--danger)" },
+    };
+
+    // --- ESTADO ---
+    let precio:      number  = 999;
+    let ivaIncluido: boolean = true;
+    let regimen:     string  = "resico";
+
+    // --- ELEMENTOS (con non-null assertion) ---
+    const precioInput    = document.getElementById("precioInput")    as HTMLInputElement;
+    const precioSlider   = document.getElementById("precioSlider")   as HTMLInputElement;
+    const sliderFill     = document.getElementById("sliderFill")     as HTMLElement;
+    const ivaToggleRow   = document.getElementById("ivaToggleRow")   as HTMLElement;
+    const ivaToggle      = document.getElementById("ivaToggle")      as HTMLElement;
+    const ivaToggleTitle = document.getElementById("ivaToggleTitle") as HTMLElement;
+    const ivaToggleSub   = document.getElementById("ivaToggleSub")   as HTMLElement;
+
+    // --- HELPERS ---
+    const fmt = (v: number): string =>
+      new Intl.NumberFormat("es-MX", {
+        style: "currency", currency: "MXN", minimumFractionDigits: 2,
+      }).format(v);
+
+    const fmtPct = (v: number): string => v.toFixed(1) + "%";
+
+    function elText(id: string, value: string): void {
+      const el = document.getElementById(id);
+      if (el) el.textContent = value;
+    }
+
+    // --- CÁLCULO CENTRAL ---
+    function calcular(precioLista: number): Resultado {
+      if (!precioLista || precioLista <= 0) {
+        return {
+          precioLista: 0, precioSinIva: 0, ivaProducto: 0,
+          comisionBase: 0, ivaComision: 0, comisionTotal: 0,
+          isrTasa: 0, isrMonto: 0, neto: 0,
+          pctIva: 0, pctComision: 0, pctIsr: 0, pctNeto: 0,
+        };
+      }
+
+      const precioSinIva  = ivaIncluido ? precioLista / (1 + IVA_TASA) : precioLista;
+      const ivaProducto   = precioLista - precioSinIva;
+      const comisionBase  = precioSinIva * COMISION_GO;
+      const ivaComision   = comisionBase * IVA_COMISION;
+      const comisionTotal = comisionBase + ivaComision;
+      const isrTasa       = REGIMENES[regimen].tasa;
+      const isrMonto      = precioSinIva * isrTasa;
+      const neto          = precioSinIva - comisionBase - ivaComision - isrMonto;
+
+      return {
+        precioLista, precioSinIva, ivaProducto,
+        comisionBase, ivaComision, comisionTotal,
+        isrTasa, isrMonto, neto,
+        pctIva:      ivaProducto   / precioLista * 100,
+        pctComision: comisionTotal / precioLista * 100,
+        pctIsr:      isrMonto      / precioLista * 100,
+        pctNeto:     neto          / precioLista * 100,
+      };
+    }
+
+    // --- RENDER ---
+    function render(): void {
+      const r = calcular(precio);
+
+      const list = document.getElementById("breakdownList");
+      if (list) {
+        const rows = [
+          {
+            label: "Precio de lista",
+            sub:   ivaIncluido ? "Lo que paga el comprador" : "Precio base sin IVA",
+            value: fmt(r.precioLista),
+            pct:   "100%",
+            dot:   "var(--text)",
+            cls:   "var(--text)",
+            bold:  true,
+          },
+          {
+            label: "IVA del producto (16%)",
+            sub:   "Se transfiere al SAT",
+            value: "\u2212" + fmt(r.ivaProducto),
+            pct:   "\u2212" + fmtPct(r.pctIva),
+            dot:   "var(--blue)",
+            cls:   "var(--blue)",
+            bold:  false,
+          },
+          {
+            label: `Comisión GO2026 (${COMISION_GO * 100}% + IVA)`,
+            sub:   `Base: ${fmt(r.comisionBase)} + IVA comisión: ${fmt(r.ivaComision)}`,
+            value: "\u2212" + fmt(r.comisionTotal),
+            pct:   "\u2212" + fmtPct(r.pctComision),
+            dot:   "var(--danger)",
+            cls:   "var(--danger)",
+            bold:  false,
+          },
+          {
+            label: `ISR retenido · ${REGIMENES[regimen].label}`,
+            sub:   `Tasa: ${(REGIMENES[regimen].tasa * 100).toFixed(1)}% sobre ingreso sin IVA`,
+            value: "\u2212" + fmt(r.isrMonto),
+            pct:   "\u2212" + fmtPct(r.pctIsr),
+            dot:   "var(--warn)",
+            cls:   "var(--warn)",
+            bold:  false,
+          },
+        ];
+
+        list.innerHTML = rows.map(row => `
+          <li class="breakdown-item">
+            <div class="bi-left">
+              <div class="bi-dot" style="background:${row.dot}"></div>
+              <div>
+                <div class="bi-label" style="${row.bold ? "font-weight:700" : ""}">${row.label}</div>
+                <div class="bi-sublabel">${row.sub}</div>
+              </div>
+            </div>
+            <div>
+              <div class="bi-value" style="color:${row.cls}">${row.value}</div>
+              <div class="bi-pct">${row.pct}</div>
+            </div>
+          </li>
+        `).join("");
+      }
+
+      elText("netAmount",  r.neto > 0 ? fmt(r.neto) : "$0.00");
+      elText("netMargin",  r.neto > 0 ? fmtPct(r.pctNeto) : "0%");
+      elText("netSubtitle", r.neto > 0
+        ? `por cada venta de ${fmt(r.precioLista)}`
+        : "ingresa un precio para calcular");
+
+      const na = document.getElementById("netAmount") as HTMLElement | null;
+      if (na) {
+        if (r.pctNeto > 40)      na.style.color = "var(--accent)";
+        else if (r.pctNeto > 25) na.style.color = "var(--warn)";
+        else                     na.style.color = "var(--danger)";
+      }
+
+      elText("leg-neto", r.neto > 0 ? fmtPct(r.pctNeto)    : "\u2014");
+      elText("leg-iva",  r.neto > 0 ? fmtPct(r.pctIva)     : "\u2014");
+      elText("leg-isr",  r.neto > 0 ? fmtPct(r.pctIsr)     : "\u2014");
+      elText("leg-com",  r.neto > 0 ? fmtPct(r.pctComision) : "\u2014");
+
+      updateDonut(r);
+
+      const pct = Math.min((precio / 10000) * 100, 100);
+      sliderFill.style.width = pct + "%";
+    }
+
+    function updateDonut(r: Resultado): void {
+      const C = 251.2;
+
+      if (!r.precioLista) {
+        ["d-neto", "d-iva", "d-isr", "d-comision"].forEach(id => {
+          const el = document.getElementById(id);
+          if (el) {
+            el.setAttribute("stroke-dasharray",  `0 ${C}`);
+            el.setAttribute("stroke-dashoffset", "0");
+          }
+        });
+        return;
+      }
+
+      const segs = [
+        { id: "d-neto",     pct: Math.max(r.pctNeto, 0) / 100 },
+        { id: "d-iva",      pct: r.pctIva      / 100 },
+        { id: "d-isr",      pct: r.pctIsr      / 100 },
+        { id: "d-comision", pct: r.pctComision  / 100 },
+      ];
+
+      let offset = 0;
+      segs.forEach(seg => {
+        const len = seg.pct * C;
+        const el  = document.getElementById(seg.id);
+        if (el) {
+          el.setAttribute("stroke-dasharray",  `${len} ${C - len}`);
+          el.setAttribute("stroke-dashoffset", `${-offset}`);
+        }
+        offset += len;
+      });
+    }
+
+    // --- EVENTOS ---
+    precioInput.addEventListener("input", (e: Event) => {
+      const target = e.target as HTMLInputElement;
+      precio = parseFloat(target.value) || 0;
+      precioSlider.value = String(Math.min(precio, 10000));
+      render();
+    });
+
+    precioSlider.addEventListener("input", (e: Event) => {
+      const target = e.target as HTMLInputElement;
+      precio = parseFloat(target.value);
+      precioInput.value = String(precio);
+      render();
+    });
+
+    ivaToggleRow.addEventListener("click", () => {
+      ivaIncluido = !ivaIncluido;
+      ivaToggle.classList.toggle("on", ivaIncluido);
+      ivaToggleTitle.textContent = ivaIncluido
+        ? "Sí, el precio incluye IVA (16%)"
+        : "No, el precio no incluye IVA";
+      ivaToggleSub.textContent = ivaIncluido
+        ? "El IVA ya está dentro del precio que pusiste"
+        : "Se agregará el 16% de IVA al precio base";
+      render();
+    });
+
+    document.querySelectorAll<HTMLButtonElement>(".regime-btn").forEach(btn => {
+      btn.addEventListener("click", () => {
+        regimen = btn.dataset.regime ?? "resico";
+        document.querySelectorAll(".regime-btn").forEach(b => b.classList.remove("active"));
+        btn.classList.add("active");
+        render();
+      });
+    });
+
+    document.querySelectorAll<HTMLButtonElement>(".quick-btn").forEach(btn => {
+      btn.addEventListener("click", () => {
+        precio = parseFloat((btn.dataset.val ?? "0").replace(",", ""));
+        precioInput.value  = String(precio);
+        precioSlider.value = String(Math.min(precio, 10000));
+        render();
+      });
+    });
+
+    // --- INIT ---
+    render();
+  </script>
+</body>
+</html>

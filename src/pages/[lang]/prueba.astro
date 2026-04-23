@@ -1,0 +1,368 @@
+---
+// src/pages/index.astro
+---
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NEXUS | Infraestructuras y Energia</title>
+    <!-- SRI hash prevents loading a tampered version of remixicon from the CDN.
+         Hash was computed from remixicon@3.5.0/fonts/remixicon.css at publish time. -->
+    <link
+      href="https://cdn.jsdelivr.net/npm/remixicon@3.5.0/fonts/remixicon.css"
+      rel="stylesheet"
+      integrity="sha384-2+8OcleUOxnP/2cYXK9FBoMe12ojS0iPrrJy9Um4ICFk2AXl8iODUaIoUKI6TmGj"
+      crossorigin="anonymous"
+    >
+</head>
+<body>
+    <div id="main">
+        <nav>
+            <a href="#">NEXUS</a>
+            <div class="cntr-nav">
+                <a href="#">Inicio</a>
+                <a href="#">Infraestructuras</a>
+                <a href="#">Energía</a>
+                <a href="#">Contacto</a>
+            </div>
+            <i class="ri-menu-fill"></i>
+        </nav>
+        <div class="one">
+            <h1>ORTIZ</h1>
+            <img id="orange-cut" src="/public/images/orange.png" alt="">
+            <img id="fanta" src="/public/images/c.png" alt="">
+            <img id="orange" src="/public/images/orange.webp" alt="">
+            <img id="leaf" src="/public/images/leaf.webp" alt="">
+            <img id="leaf2" src="/public/images/leaf2.png" alt="">
+            <img id="leaf3" src="/public/images/coconoutleaf.png" alt="">
+        </div>
+        <div class="two">
+            <div class="lft-two">
+                <svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+                    <path fill="#e04428" d="M41.5,-59.5C49.8,-51.1,49.7,-33.6,50.7,-19.2C51.7,-4.7,53.8,6.7,52.4,18.9C51.1,31.1,46.3,44.1,36.9,52.9C27.6,61.8,13.8,66.5,-2.5,70C-18.8,73.4,-37.7,75.6,-52.5,68.5C-67.3,61.5,-78.2,45.2,-84.5,27.1C-90.9,9,-92.7,-10.8,-80.5,-19.3C-68.3,-27.8,-42.1,-24.8,-26.3,-30.8C-10.6,-36.8,-5.3,-51.7,5.7,-59.5C16.6,-67.3,33.2,-68,41.5,-59.5Z" transform="translate(100 100)" />
+                  </svg>
+            </div>
+            <div class="rght-two">
+                <h1>Soluciones Globales</h1>
+                <p>En NEXUS ejecutamos grandes proyectos de infraestructura y energia renovable en todo el mundo. Con mas de 90 anios de experiencia, apostamos por la sostenibilidad, la innovacion y la eficiencia en la construccion de concesiones, plantas fotovoltaicas y lineas de transmision. Transformamos ideas en realidades tangibles.</p>
+            </div>
+        </div>
+        <div class="three">
+            <div class="card">
+                <img class="lemon lemon1" src="/Assets/lemon.webp" alt="">
+                <img id="cocacola" src="/Assets/cocacola.png" alt="">
+                <h1>Energía</h1>
+                <button>Ver Proyectos</button>
+            </div>
+            <div class="card">
+                <h1>Concesiones</h1>
+                <button>Ver Obras</button>
+            </div>
+            <div class="card">
+                <img class="lemon lemon2" src="/Assets/lemon.webp" alt="">
+                <img id="pepsi" src="/Assets/pepsi.png" alt="">
+                <h1>Servicios</h1>
+                <button>Saber más</button>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
+
+<script>
+    // SCRIPT ORIGINAL (GSAP) MANTENIDO INTACTO
+    // Esto asegura que las animaciones de las botellas y frutas sigan funcionando igual.
+    import gsap from "gsap";
+    import ScrollTrigger from "gsap/ScrollTrigger";
+
+    gsap.registerPlugin(ScrollTrigger);
+
+    // Timeline 1
+    var tl = gsap.timeline({scrollTrigger:{
+        trigger: ".two",
+        start: "0% 95%",
+        end: "70% 50%",
+        scrub: true,
+    }})
+
+    tl.to("#fanta",{
+        top: "120%",
+        left: "0%"
+    }, 'orange')
+    tl.to("#orange-cut",{
+        top:"160%",
+        left: "23%"
+    }, 'orange')
+    tl.to("#orange",{
+        width: "15%",
+        top:"160%",
+        right: "10%"
+    }, 'orange')
+    tl.to("#leaf",{
+        top:"110%",
+        rotate: "130deg",
+        left: "70%"
+    }, 'orange')
+    tl.to("#leaf2",{
+        top:"110%",
+        rotate: "130deg",
+        left: "0%"
+    }, 'orange')
+
+    // Timeline 2
+    var tl2 = gsap.timeline({scrollTrigger:{
+        trigger: ".three",
+        start: "0% 95%",
+        end: "20% 50%",
+        scrub: true,
+    }})
+
+    tl2.from(".lemon1",{
+        rotate: "-90deg",
+        left: "-100%",
+        top: "110%"
+    }, 'ca')
+    tl2.from("#cocacola",{
+        rotate: "-90deg",
+        top: "110%",
+        left: "-100%",
+    }, 'ca')
+
+    tl2.from(".lemon2",{
+        rotate: "90deg",
+        left: "100%",
+        top: "110%"
+    }, 'ca')
+    tl2.from("#pepsi",{
+        rotate: "90deg",
+        top: "110%",
+        left: "100%",
+    }, 'ca')
+
+    tl2.to("#orange-cut",{
+        width:"18%",
+        left: "42%",
+        top: "204%"
+    }, 'ca')
+    tl2.to("#fanta",{
+        width:"35%", 
+        top: "210%",
+        left: "33%",
+    }, 'ca')
+</script>
+
+<style is:global>
+    /* ESTILOS ORIGINALES MANTENIDOS */
+    @font-face {
+        font-family: Product Sans;
+        src: url('/Fonts/Product Sans Regular.ttf');
+    }
+    @font-face {
+        font-family: Product Sans B;
+        src: url('/Fonts/Product Sans Bold.ttf');
+    }
+    *{
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+        font-family: Product Sans;
+    }
+    html , body{
+        height: 100%;
+        width: 100%;
+    }
+
+    body::-webkit-scrollbar {
+        display: none;
+    }
+
+    #main{
+        width: 100%;
+        height: 100vh;
+        background-color: orangered;
+    }
+
+    nav{
+        position: fixed;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        width: 100%;
+        height: 10vh;
+        padding: 0vw 10vw;
+        z-index: 99;
+    }
+
+    nav a, i{
+        font-size: 1vw;
+        text-decoration: none;
+        color: #fff;
+    }
+
+    .cntr-nav{
+        display: flex;
+        gap: 3vw;
+    }
+
+    nav i{
+        font-size: 1.5vw;
+    }
+
+    .one{
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 100%;
+        height: 100vh;
+        background:linear-gradient(150deg, rgb(255, 166, 0), rgb(255, 94, 0));
+    }
+
+    .one h1{
+        font-size: 25vw;
+        font-family: Product Sans B;
+        color: #fff;
+    }
+
+    #fanta{
+        position: absolute;
+        width: 40%;
+        z-index: 2;
+    }
+
+    #orange-cut{
+        position: absolute;
+        top: 10%;
+        left: 32%;
+        width: 15%;
+        z-index: 1;
+    }
+
+    #orange{
+        position: absolute;
+        width: 20%;
+        z-index: 3;
+        top: 55%;
+        right: 30%;
+    }
+
+    #leaf{
+        top: 10%;
+        left: 0%;
+        transform: rotate(60deg);
+        position: absolute;
+        width: 18%;
+    }
+
+    #leaf2{
+        top: 70%;
+        left: 80%;
+        transform: rotate(-90deg);
+        position: absolute;
+        width: 12%;
+    }
+
+    #leaf3{
+        position: absolute;
+        width: 20%;
+        top: 10%;
+        right: 0%;
+    }
+
+    .two{
+        display: flex;
+        width: 100%;
+        height: 100vh;
+        background:#4d231c ;
+    }
+
+    .lft-two, .rght-two{
+        display: flex;
+        align-items: flex-start;
+        justify-content: center;
+        flex-direction: column;
+        gap: 5vh;
+        width: 50%;
+        height: 100%;
+    }
+
+    .lft-two svg{
+        margin-top: 50vh;
+        width: 90%;
+        transform: rotateX(50deg);
+    }
+
+    .rght-two h1{
+        color: #fff;
+        font-size: 5vw;
+    }
+
+    .rght-two p{
+        font-size: 1vw;
+        color: #fff;
+        width: 80%;
+    }
+
+    .three{
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 5vw;
+        width: 100%;
+        height: 100vh;
+        background:linear-gradient(150deg, rgb(255, 166, 0), rgb(255, 94, 0));
+    }
+
+    .card{
+        position: relative;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-direction: column;
+        gap: 2vh;
+        width: 25vw;
+        height: 70vh;
+        margin-top: 10vh;
+        border-radius: 20px;
+        background-color: #fff;
+    }
+
+    .card h1{
+        margin-top: 40vh;
+        font-size: 3vw;
+    }
+
+    .card button{
+        font-size: 1vw;
+        border-radius: 50px;
+        border: none;
+        color: #fff;
+        background-color: rgb(255, 149, 0);
+        padding: 1vw 2vw;
+    }
+
+    #cocacola{
+        top: -15%;
+        position: absolute;
+        width: 60%;
+        left: 50%;
+        transform: translate(-50%, 0%);
+    }
+
+    #pepsi{
+        top: -15%;
+        position: absolute;
+        width: 85%;
+        left: 50%;
+        transform: translate(-50%, 0%);
+    }
+
+    .lemon{
+        top: -30%;
+        position: absolute;
+        left: 50%;
+        width: 25vw;
+        transform: translate(-50%, 0%);
+    }
+</style>

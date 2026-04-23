@@ -1,0 +1,1729 @@
+---
+// src/pages/[lang]/mi-cuenta/pedido/[id].astro
+import BaseLayout from "../../layouts/BaseLayout.astro";
+
+export function getStaticPaths() {
+  return [{ params: { lang: "es" } }];
+}
+
+const currentLang = "es";
+const cspNonce = Astro.locals?.cspNonce || "";
+
+const sessionRole = String(Astro.locals?.user?.rol || "").toLowerCase();
+---
+
+<BaseLayout title="Detalle del Pedido" currentLang={currentLang}>
+
+<main class="od-page" data-role={sessionRole}>
+
+  <!-- HEADER -->
+  <div class="od-header">
+    <a href={`/${currentLang}/mi-cuenta`} class="od-back">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
+      Mis pedidos
+    </a>
+    <div class="od-title-wrap">
+      <h1 class="od-title">Detalle del Pedido</h1>
+      <div id="od-order-badge" class="od-order-badge"></div>
+    </div>
+  </div>
+
+  <!-- LOADING -->
+  <div id="od-loading" class="od-loading">
+    <div class="od-spinner"></div>
+    <p>Cargando detalle…</p>
+  </div>
+
+  <!-- ERROR -->
+  <div id="od-error" class="od-error" hidden>
+    <span class="od-error-icon">⚠️</span>
+    <p id="od-error-msg">No se pudo cargar el pedido.</p>
+    <a href={`/${currentLang}/mi-cuenta`} class="od-btn-back">Volver a mis pedidos</a>
+  </div>
+
+  <!-- CONTENT -->
+  <div id="od-content" hidden>
+
+    <!-- TOP META BAR -->
+    <div class="od-meta-bar">
+      <div class="od-meta-item">
+        <span class="od-meta-label">Fecha</span>
+        <strong id="od-fecha"></strong>
+      </div>
+      <div class="od-meta-sep"></div>
+      <div class="od-meta-item">
+        <span class="od-meta-label">Estado</span>
+        <span id="od-estado-chip" class="od-estado-chip"></span>
+      </div>
+      <div class="od-meta-sep"></div>
+      <div class="od-meta-item">
+        <span class="od-meta-label">Total</span>
+        <strong id="od-total-top" class="od-total-top"></strong>
+      </div>
+      <div class="od-meta-sep"></div>
+      <div class="od-meta-item od-meta-item--action">
+        <button id="od-facturar-toggle" class="od-meta-action-btn" type="button">Facturar pedido</button>
+      </div>
+    </div>
+
+    <!-- GRID PRINCIPAL -->
+    <div class="od-grid">
+
+      <!-- ── IZQUIERDA ── -->
+      <div class="od-left">
+
+        <!-- PRODUCTOS -->
+        <section class="od-card">
+          <div class="od-card-head">
+            <span class="od-card-icon">📦</span>
+            <h2>Productos comprados</h2>
+          </div>
+          <div id="od-items" class="od-items"></div>
+        </section>
+
+        <!-- ENVÍO -->
+        <section class="od-card" id="od-ship-card">
+          <div class="od-card-head">
+            <span class="od-card-icon">🚚</span>
+            <h2>Información de Envío</h2>
+          </div>
+          <div id="od-envio" class="od-envio-body"></div>
+        </section>
+
+        <!-- NOTAS -->
+        <section class="od-card" id="od-notes-card" hidden>
+          <div class="od-card-head">
+            <span class="od-card-icon">✎</span>
+            <h2>Notas del pedido</h2>
+          </div>
+          <p id="od-notas" class="od-notas-text"></p>
+        </section>
+
+        <section class="od-card" id="od-claim-card">
+          <div class="od-card-head">
+            <span class="od-card-icon">⚠️</span>
+            <h2>Reportar fallo del producto</h2>
+          </div>
+          <div class="od-claim-wrap">
+            <p id="od-claim-status" class="od-claim-status">Validando elegibilidad del pedido...</p>
+            <p id="od-claim-feedback" class="od-claim-feedback" hidden></p>
+
+            <form id="od-claim-form" class="od-claim-form" hidden>
+              <label class="od-claim-field">
+                <span>Motivo del fallo</span>
+                <select id="od-claim-motivo" required>
+                  <option value="">Selecciona un motivo</option>
+                  <option value="llego_roto">Llegó roto</option>
+                  <option value="producto_incorrecto">Producto incorrecto</option>
+                  <option value="faltante">Faltante en el pedido</option>
+                  <option value="defecto_fabricacion">Defecto de fabricación</option>
+                  <option value="otro">Otro</option>
+                </select>
+              </label>
+
+              <label class="od-claim-field">
+                <span>Prioridad de la queja</span>
+                <select id="od-claim-priority" required>
+                  <option value="media">Media - faltante parcial o defecto moderado</option>
+                  <option value="alta">Alta - roto grave / producto inutilizable</option>
+                  <option value="baja">Baja - detalle menor</option>
+                </select>
+              </label>
+
+              <label class="od-claim-field">
+                <span>Descripción del fallo</span>
+                <textarea id="od-claim-desc" minlength="20" maxlength="2500" rows="4" placeholder="Describe exactamente cómo llegó el producto y qué problema presenta." required></textarea>
+              </label>
+
+              <label class="od-claim-field">
+                <span>Fotos de evidencia (obligatorio)</span>
+                <input id="od-claim-photos" type="file" accept="image/jpeg,image/png,image/webp" multiple required />
+                <small>Adjunta de 1 a 5 fotos. Formatos permitidos: JPG, PNG, WEBP. Máximo 8MB por foto.</small>
+              </label>
+
+              <button id="od-claim-submit" type="submit">Enviar reporte de fallo</button>
+            </form>
+
+            <div id="od-claim-history" class="od-claim-history"></div>
+          </div>
+        </section>
+
+      </div>
+
+      <!-- ── DERECHA ── -->
+      <div class="od-right">
+
+        <!-- RESUMEN DE COSTOS -->
+        <section class="od-card od-sticky-card">
+          <div class="od-card-head">
+            <span class="od-card-icon">🧾</span>
+            <h2>Resumen de costos</h2>
+          </div>
+          <div class="od-cost-lines">
+            <div class="od-cost-line">
+              <span>Subtotal productos</span>
+              <strong id="od-subtotal"></strong>
+            </div>
+            <div class="od-cost-line">
+              <span>Costo de envío</span>
+              <strong id="od-costo-envio"></strong>
+            </div>
+            <div class="od-cost-divider"></div>
+            <div class="od-cost-line od-cost-total">
+              <span>Total pagado</span>
+              <strong id="od-total-sum"></strong>
+            </div>
+          </div>
+        </section>
+
+        <!-- PAGO -->
+        <section class="od-card" id="od-pay-card">
+          <div class="od-card-head">
+            <span class="od-card-icon">💳</span>
+            <h2>Método de pago</h2>
+          </div>
+          <div id="od-pago" class="od-pago-body"></div>
+        </section>
+
+        <!-- DIRECCIÓN -->
+        <section class="od-card">
+          <div class="od-card-head">
+            <span class="od-card-icon">📍</span>
+            <h2>Dirección de entrega</h2>
+          </div>
+          <div id="od-direccion" class="od-direccion-body"></div>
+        </section>
+
+        <!-- FACTURA ELECTRÓNICA -->
+        <section class="od-card" id="od-factura-card" hidden>
+          <div class="od-card-head">
+            <span class="od-card-icon">🧾</span>
+            <h2>Factura Electrónica (CFDI)</h2>
+          </div>
+          <div id="od-factura-body" class="od-factura-body"></div>
+        </section>
+
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<!-- ── MODAL FACTURA ── -->
+<div id="od-fac-modal" class="od-fac-modal" hidden aria-modal="true" role="dialog" aria-labelledby="od-fac-title">
+  <div class="od-fac-backdrop" id="od-fac-backdrop"></div>
+  <div class="od-fac-box">
+    <button class="od-fac-close" id="od-fac-close" aria-label="Cerrar">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+    <div class="od-fac-box-head">
+      <span class="od-fac-box-icon">📄</span>
+      <h3 id="od-fac-title">Solicitar Factura Electrónica</h3>
+      <p>Ingresa tus datos fiscales para generar tu CFDI 4.0</p>
+    </div>
+    <form id="od-fac-form" class="od-fac-form" novalidate>
+      <label class="od-fac-field">
+        <span>RFC <em>*</em></span>
+        <input id="od-fac-rfc" type="text" maxlength="13" placeholder="XAXX010101000" autocomplete="off" spellcheck="false" />
+        <small>Persona moral: 12 caracteres · Persona física: 13 · Público en general: XAXX010101000</small>
+      </label>
+      <label class="od-fac-field">
+        <span>Razón social / Nombre completo <em>*</em></span>
+        <input id="od-fac-nombre" type="text" maxlength="254" placeholder="JUAN PEREZ GARCIA" />
+      </label>
+      <div class="od-fac-row-2">
+        <label class="od-fac-field">
+          <span>Uso del CFDI</span>
+          <select id="od-fac-uso">
+            <option value="G01">G01 — Adquisición de mercancias</option>
+            <option value="G03" selected>G03 — Gastos en general</option>
+            <option value="D01">D01 — Honorarios médicos</option>
+            <option value="I01">I01 — Construcciones</option>
+            <option value="S01">S01 — Sin efectos fiscales</option>
+          </select>
+        </label>
+        <label class="od-fac-field">
+          <span>CP fiscal</span>
+          <input id="od-fac-cp" type="text" maxlength="5" pattern="[0-9]{5}" placeholder="64000" />
+        </label>
+      </div>
+      <label class="od-fac-field">
+        <span>Régimen fiscal del receptor</span>
+        <select id="od-fac-regimen">
+          <option value="601" selected>601 — General de Ley Personas Morales</option>
+          <option value="603">603 — Personas Morales con Fines no Lucrativos</option>
+          <option value="605">605 — Sueldos y Salarios e Ingresos Asimilados</option>
+          <option value="606">606 — Arrendamiento</option>
+          <option value="612">612 — Personas Físicas con Actividades Empresariales</option>
+          <option value="616">616 — Sin obligaciones fiscales (→ UsoCFDI S01)</option>
+          <option value="625">625 — Actividades Vía Plataformas Tecnológicas</option>
+          <option value="626">626 — RESICO (Régimen Simplificado de Confianza)</option>
+        </select>
+      </label>
+      <p id="od-fac-error" class="od-fac-error" hidden></p>
+      <button type="submit" id="od-fac-submit" class="od-fac-submit-btn">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="12" x2="12" y2="18"/><line x1="9" y1="15" x2="15" y2="15"/></svg>
+        <span id="od-fac-submit-txt">Generar Factura</span>
+      </button>
+    </form>
+  </div>
+</div>
+
+<!-- ── MODAL CANCELAR FACTURA ── -->
+<div id="od-fac-cancel-modal" class="od-fac-modal" hidden aria-modal="true" role="dialog" aria-labelledby="od-fcc-title">
+  <div class="od-fac-backdrop" id="od-fcc-backdrop"></div>
+  <div class="od-fac-box" style="max-width:460px">
+    <button class="od-fac-close" id="od-fcc-close" aria-label="Cerrar">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+    <div class="od-fac-box-head">
+      <span class="od-fac-box-icon" style="font-size:2rem">⚠️</span>
+      <h3 id="od-fcc-title">Cancelar Factura Electrónica</h3>
+      <p>Esta acción es irreversible ante el SAT. Selecciona el motivo correcto.</p>
+    </div>
+    <div style="padding:0 1.5rem 1.5rem">
+      <label class="od-fac-field">
+        <span>Motivo SAT</span>
+        <select id="od-fcc-motivo">
+          <option value="02" selected>02 — Comprobante emitido con errores sin relación</option>
+          <option value="01">01 — Comprobante emitido con errores con relación</option>
+          <option value="03">03 — No se llevó a cabo la operación</option>
+          <option value="04">04 — Operación nominativa en factura global</option>
+        </select>
+      </label>
+      <label class="od-fac-field" id="od-fcc-folio-wrap" style="display:none;margin-top:.5rem">
+        <span>UUID del CFDI sustituto (motivo 01)</span>
+        <input id="od-fcc-folio" type="text" maxlength="36" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" />
+      </label>
+      <p id="od-fcc-error" class="od-fac-error" hidden></p>
+      <button type="button" id="od-fcc-submit" class="od-fac-submit-btn" style="background:linear-gradient(135deg,#c83250,#a0243e);margin-top:.75rem">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 6L6 18M6 6l12 12"/></svg>
+        <span id="od-fcc-submit-txt">Confirmar Cancelación</span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<script nonce={cspNonce} is:inline define:vars={{ currentLang }}>
+(function () {
+
+  // ── Utils ──
+  const $ = (id) => document.getElementById(id);
+  const fmt = (v) =>
+    `$${Number(v || 0).toLocaleString("es-MX", {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    })} MXN`;
+
+  function fmtDate(str) {
+    if (!str) return "—";
+    try {
+      return new Date(str).toLocaleDateString("es-MX", {
+        year: "numeric", month: "long", day: "numeric",
+      });
+    } catch { return str; }
+  }
+
+  function fmtDateShort(str) {
+    if (!str) return "—";
+    try {
+      return new Date(str).toLocaleDateString("es-MX", {
+        weekday: "short", month: "short", day: "numeric",
+      });
+    } catch { return str; }
+  }
+
+  // ── Estado chip ──
+  const ESTADO_MAP = {
+    pagado:      { label: "Pagado",      cls: "chip-green"  },
+    enviado:     { label: "Enviado",     cls: "chip-blue"   },
+    entregado:   { label: "Entregado",   cls: "chip-green"  },
+    cancelado:   { label: "Cancelado",   cls: "chip-red"    },
+    pendiente:   { label: "Pendiente",   cls: "chip-yellow" },
+    procesando:  { label: "Procesando",  cls: "chip-yellow" },
+    reembolsado: { label: "Reembolsado", cls: "chip-gray"   },
+    error_batch: { label: "Error",       cls: "chip-red"    },
+  };
+
+  const ENVIO_ESTADO_MAP = {
+    creado:    { label: "Guía generada", cls: "chip-blue",   icon: "📋" },
+    enviado:   { label: "En camino",     cls: "chip-blue",   icon: "🚚" },
+    entregado: { label: "Entregado",     cls: "chip-green",  icon: "✅" },
+    pendiente: { label: "Pendiente",     cls: "chip-yellow", icon: "⏳" },
+  };
+
+  function priorityClass(priority) {
+    var map = { alta: "is-high", media: "is-medium", baja: "is-low" };
+    return map[String(priority || "")] || "is-medium";
+  }
+
+  function priorityLabel(priority) {
+    var map = {
+      alta: "Alta · roto grave",
+      media: "Media · faltante parcial",
+      baja: "Baja · detalle menor",
+    };
+    return map[String(priority || "")] || "Media · faltante parcial";
+  }
+
+  function actionLabel(action) {
+    var map = {
+      creada: "Incidencia creada",
+      dictamen_aprobado: "Veredicto aprobado",
+      dictamen_rechazado: "Veredicto rechazado",
+      notificacion_fallida: "Fallo de notificacion",
+    };
+    return map[String(action || "")] || String(action || "Accion");
+  }
+
+  function setClaimFeedback(text, type) {
+    var box = $("od-claim-feedback");
+    if (!(box instanceof HTMLElement)) return;
+    var safeType = type === "success" ? "success" : "error";
+    box.hidden = !text;
+    box.textContent = text || "";
+    box.className = "od-claim-feedback " + (text ? ("is-" + safeType) : "");
+  }
+
+  function renderClaimHistory(items) {
+    const wrap = $("od-claim-history");
+    if (!wrap) return;
+    if (!Array.isArray(items) || !items.length) {
+      wrap.innerHTML = "";
+      return;
+    }
+
+    wrap.innerHTML = items.map(function (item) {
+      var imgs = Array.isArray(item.imagenes) ? item.imagenes : [];
+      var imagesHtml = imgs.length
+        ? '<div class="od-claim-images">' + imgs.map(function (url) { return '<a href="' + url + '" target="_blank" rel="noopener"><img src="' + url + '" alt="Evidencia" loading="lazy" /></a>'; }).join("") + '</div>'
+        : "";
+      var verdict = item.veredicto ? '<p class="od-claim-verdict">Veredicto: ' + item.veredicto + '</p>' : "";
+      var comment = item.comentarioVeredicto ? '<p class="od-claim-comment">' + item.comentarioVeredicto + '</p>' : "";
+      var logs = Array.isArray(item.bitacora) ? item.bitacora : [];
+      var logsHtml = logs.length
+        ? '<div class="od-claim-log"><h4>Bitacora</h4>' + logs.map(function (entry) {
+            var actor = entry.actorNombre || 'Sistema';
+            var role = entry.actorRol ? ' (' + entry.actorRol + ')' : '';
+            var detail = entry.detalle ? '<p>' + entry.detalle + '</p>' : '';
+            return '<article><header><strong>' + actionLabel(entry.accion) + '</strong><span>' + fmtDate(entry.fecha) + '</span></header><small>' + actor + role + '</small>' + detail + '</article>';
+          }).join('') + '</div>'
+        : '';
+
+      return (
+        '<article class="od-claim-item">' +
+          '<header><strong>' + (item.folio || "Incidencia") + '</strong><span>' + (item.estado || "pendiente") + '</span></header>' +
+          '<p class="od-claim-priority ' + priorityClass(item.prioridad) + '">' + priorityLabel(item.prioridad) + '</p>' +
+          '<p>' + (item.descripcion || "") + '</p>' +
+          imagesHtml +
+          verdict +
+          comment +
+          logsHtml +
+        '</article>'
+      );
+    }).join("");
+  }
+
+  async function loadClaimPanel(orderId) {
+    const status = $("od-claim-status");
+    const form = $("od-claim-form");
+    if (!status || !form) return;
+
+    status.textContent = "Validando elegibilidad del pedido...";
+    form.hidden = true;
+    setClaimFeedback("", "success");
+
+    try {
+      const res = await fetch(`/api/me/pedidos/${orderId}/incidencias`, { credentials: "include" });
+      const data = await res.json().catch(function () { return {}; });
+
+      if (!res.ok || !data?.success) {
+        status.textContent = data?.error || "No se pudo validar el reporte de fallos.";
+        renderClaimHistory([]);
+        return;
+      }
+
+      var eligibility = data?.eligibility || {};
+      status.textContent = eligibility.reason || "";
+      if (eligibility.isTestOverride) {
+        setClaimFeedback("Modo pruebas habilitado: como superusuario puedes reportar pedidos no entregados.", "success");
+      }
+
+      if (eligibility.canReport) {
+        var remaining = Number(eligibility.remainingDays || 0);
+        status.textContent = eligibility.isTestOverride
+          ? "Pruebas activas: reporte permitido sin estado entregado."
+          : "Puedes reportar este pedido. Días restantes: " + remaining + ".";
+        form.hidden = false;
+      }
+
+      renderClaimHistory(data?.incidencias || []);
+    } catch (e) {
+      status.textContent = "Error de red validando incidencias.";
+      renderClaimHistory([]);
+    }
+  }
+
+  // ── Obtener ID de la URL ──
+  function getOrderId() {
+    return new URLSearchParams(window.location.search).get("id");
+  }
+
+  // ── Render ──
+  function renderItems(items) {
+    const container = $("od-items");
+    if (!container) return;
+    container.innerHTML = "";
+    items.forEach((item, i) => {
+      const el = document.createElement("div");
+      el.className = "od-item";
+      el.style.animationDelay = `${i * 60}ms`;
+      const imgHTML = item.imagen
+        ? `<img src="${item.imagen}" alt="${item.nombre}" class="od-item-img" loading="lazy" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">`
+        : "";
+      const placeholderStyle = item.imagen ? "display:none" : "";
+      el.innerHTML = `
+        ${imgHTML}
+        <div class="od-item-placeholder" style="${placeholderStyle}">
+          <span>📦</span>
+        </div>
+        <div class="od-item-info">
+          <div class="od-item-name">${item.nombre}</div>
+          ${item.descripcion ? `<div class="od-item-desc">${item.descripcion.slice(0, 80)}${item.descripcion.length > 80 ? "…" : ""}</div>` : ""}
+          <div class="od-item-meta">
+            <span class="od-item-qty">× ${item.cantidad}</span>
+            <span class="od-item-unit">${fmt(item.precioUnitario)} c/u</span>
+          </div>
+        </div>
+        <div class="od-item-subtotal">${fmt(item.subtotal)}</div>
+      `;
+      container.appendChild(el);
+    });
+  }
+
+  function renderEnvio(envio, pedido) {
+    const container = $("od-envio");
+    if (!container) return;
+    if (!envio) {
+      container.innerHTML = `<p class="od-muted">Sin información de envío disponible.</p>`;
+      return;
+    }
+    const estadoInfo = ENVIO_ESTADO_MAP[envio.estado?.toLowerCase()] || { label: envio.estado, cls: "chip-gray", icon: "📦" };
+    const esGuiaReal = envio.guia && envio.guia !== "PENDIENTE";
+    container.innerHTML = `
+      <div class="od-envio-grid">
+        <div class="od-envio-row">
+          <span class="od-envio-label">Estado</span>
+          <span class="od-estado-chip ${estadoInfo.cls}">${estadoInfo.icon} ${estadoInfo.label}</span>
+        </div>
+        <div class="od-envio-row">
+          <span class="od-envio-label">Número de guía</span>
+          <span class="od-envio-val ${esGuiaReal ? "od-guia" : "od-muted"}">${envio.guia || "—"}</span>
+        </div>
+        ${envio.fechaEnvio ? `
+        <div class="od-envio-row">
+          <span class="od-envio-label">Fecha de envío</span>
+          <span class="od-envio-val">${fmtDate(envio.fechaEnvio)}</span>
+        </div>` : ""}
+        ${pedido.fechaEntregaEstimada ? `
+        <div class="od-envio-row">
+          <span class="od-envio-label">Entrega estimada</span>
+          <span class="od-envio-val od-highlight">${fmtDateShort(pedido.fechaEntregaEstimada)}</span>
+        </div>` : ""}
+        ${envio.fechaEntrega ? `
+        <div class="od-envio-row">
+          <span class="od-envio-label">Entregado el</span>
+          <span class="od-envio-val od-green">${fmtDate(envio.fechaEntrega)}</span>
+        </div>` : ""}
+      </div>
+      ${esGuiaReal ? `
+      <div class="od-track-hint">
+        <span>🔍</span>
+        <span>Usa el número de guía para rastrear tu paquete en el sitio del carrier.</span>
+      </div>` : ""}
+    `;
+  }
+
+  function renderPago(pago) {
+    const container = $("od-pago");
+    if (!container) return;
+    if (!pago) {
+      container.innerHTML = `<p class="od-muted">Sin información de pago.</p>`;
+      return;
+    }
+    const marca = (pago.marca || "Tarjeta").toUpperCase();
+    const last4 = pago.ultimos4 ? `•••• ${pago.ultimos4}` : "••••";
+    const tipoFin = pago.tipoFinanciamiento === "no_definido" ? null : pago.tipoFinanciamiento;
+    container.innerHTML = `
+      <div class="od-card-visual">
+        <div class="od-card-visual-inner">
+          <div class="od-card-brand">${marca}</div>
+          <div class="od-card-num">${last4}</div>
+          <div class="od-card-bottom">
+            <span>${pago.titular || ""}</span>
+            <span>${pago.vencimiento || ""}</span>
+          </div>
+        </div>
+      </div>
+      <div class="od-pago-details">
+        ${tipoFin ? `<div class="od-pago-row"><span>Tipo</span><span>${tipoFin}</span></div>` : ""}
+        <div class="od-pago-row"><span>Estado</span><span class="od-estado-chip chip-green" style="font-size:11px;padding:3px 8px">${pago.estado}</span></div>
+        <div class="od-pago-row"><span>Fecha</span><span>${fmtDate(pago.fecha)}</span></div>
+        ${pago.transaccion ? `<div class="od-pago-row od-txn"><span>ID transacción</span><span class="od-txn-id">${pago.transaccion.slice(0, 20)}…</span></div>` : ""}
+      </div>
+    `;
+  }
+
+  function renderDireccion(dir) {
+    const container = $("od-direccion");
+    if (!container) return;
+    container.innerHTML = `
+      <div class="od-dir-lines">
+        ${dir.nombre ? `<div class="od-dir-name">${dir.nombre}</div>` : ""}
+        <div class="od-dir-line">${dir.calle}</div>
+        <div class="od-dir-line">${dir.ciudad}, ${dir.estado}</div>
+        <div class="od-dir-line">CP ${dir.cp} — ${dir.pais}</div>
+      </div>
+    `;
+  }
+
+  // ── Load ──
+  async function loadOrder() {
+    const orderId = getOrderId();
+    if (!orderId) {
+      $("od-loading").hidden = true;
+      $("od-error-msg").textContent = "ID de pedido no encontrado en la URL.";
+      $("od-error").hidden = false;
+      return;
+    }
+
+    try {
+      const res = await fetch(`/api/pedidos/${orderId}`, { credentials: "include" });
+      const data = await res.json().catch(() => ({}));
+
+      $("od-loading").hidden = true;
+
+      if (res.status === 401) {
+        window.location.href = `/${currentLang}/login`;
+        return;
+      }
+      if (!res.ok || !data.success) {
+        $("od-error-msg").textContent = data.error || "No se pudo cargar el pedido.";
+        $("od-error").hidden = false;
+        return;
+      }
+
+      const p = data.pedido;
+
+      // Badge número
+      const badge = $("od-order-badge");
+      if (badge) badge.textContent = `#${p.numero}`;
+
+      // Meta bar
+      $("od-fecha").textContent = fmtDate(p.fecha);
+      const estadoInfo = ESTADO_MAP[p.estado?.toLowerCase()] || { label: p.estado, cls: "chip-gray" };
+      const estadoChip = $("od-estado-chip");
+      estadoChip.textContent = estadoInfo.label;
+      estadoChip.className = `od-estado-chip ${estadoInfo.cls}`;
+      $("od-total-top").textContent = fmt(p.total);
+
+      // Costos
+      $("od-subtotal").textContent = fmt(p.subtotalProductos);
+      $("od-costo-envio").textContent = p.costoEnvio === 0 ? "GRATIS" : fmt(p.costoEnvio);
+      $("od-total-sum").textContent = fmt(p.total);
+
+      // Items
+      renderItems(p.items);
+
+      // Envío
+      renderEnvio(p.envio, p);
+
+      // Pago
+      if (p.pago) renderPago(p.pago);
+      else $("od-pay-card").hidden = true;
+
+      // Dirección
+      renderDireccion(p.direccion);
+
+      // Notas
+      if (p.notasCliente) {
+        $("od-notas").textContent = p.notasCliente;
+        $("od-notes-card").hidden = false;
+      }
+
+      // Mostrar contenido
+      $("od-content").hidden = false;
+
+      await loadClaimPanel(p.id);
+      setupFacturaToggle(p);
+
+    } catch (err) {
+      console.error(err);
+      $("od-loading").hidden = true;
+      $("od-error-msg").textContent = "Error de conexión. Intenta de nuevo.";
+      $("od-error").hidden = false;
+    }
+  }
+
+  $("od-claim-form")?.addEventListener("submit", async function (ev) {
+    ev.preventDefault();
+
+    var orderId = getOrderId();
+    var motivoEl = $("od-claim-motivo");
+    var descEl = $("od-claim-desc");
+    var photosEl = $("od-claim-photos");
+    var priorityEl = $("od-claim-priority");
+    var statusEl = $("od-claim-status");
+    var submitBtn = $("od-claim-submit");
+
+    if (!(motivoEl instanceof HTMLSelectElement) || !(priorityEl instanceof HTMLSelectElement) || !(descEl instanceof HTMLTextAreaElement) || !(photosEl instanceof HTMLInputElement) || !(statusEl instanceof HTMLElement)) {
+      return;
+    }
+
+    const files = Array.from(photosEl.files || []);
+    if (!files.length) {
+      setClaimFeedback("Debes adjuntar al menos una foto del fallo.", "error");
+      return;
+    }
+
+    if (files.length > 5) {
+      setClaimFeedback("Solo puedes adjuntar hasta 5 fotos.", "error");
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append("motivo", motivoEl.value || "");
+    formData.append("prioridad", priorityEl.value || "media");
+    formData.append("descripcion", descEl.value || "");
+    files.forEach(function (file) { formData.append("fotos", file); });
+
+    if (submitBtn instanceof HTMLButtonElement) {
+      submitBtn.disabled = true;
+      submitBtn.textContent = "Enviando reporte...";
+    }
+
+    try {
+      const res = await fetch(`/api/me/pedidos/${orderId}/incidencias`, {
+        method: "POST",
+        credentials: "include",
+        body: formData,
+      });
+      const data = await res.json().catch(function () { return {}; });
+
+      if (!res.ok || !data?.success) {
+        setClaimFeedback(data?.error || "No se pudo enviar el reporte.", "error");
+        return;
+      }
+
+      setClaimFeedback(data?.message || ("Reporte enviado correctamente. Folio: " + (data?.incidencia?.folio || "N/A")), "success");
+      motivoEl.value = "";
+      priorityEl.value = "media";
+      descEl.value = "";
+      photosEl.value = "";
+      await loadClaimPanel(orderId);
+    } catch (e) {
+      setClaimFeedback("Error de red al enviar la incidencia.", "error");
+    } finally {
+      if (submitBtn instanceof HTMLButtonElement) {
+        submitBtn.disabled = false;
+        submitBtn.textContent = "Enviar reporte de fallo";
+      }
+    }
+  });
+
+  // ── Factura Electrónica ────────────────────────────────────────────────────
+
+  function setFacturaError(msg) {
+    var el = $("od-fac-error");
+    if (!el) return;
+    el.textContent = msg || "";
+    el.hidden = !msg;
+  }
+
+  function normalizeInvoiceText(v) {
+    return String(v || "")
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "");
+  }
+
+  function isBlockedInvoiceStatus(estado) {
+    var s = normalizeInvoiceText(estado);
+    return (
+      s.includes("cancel") ||
+      s.includes("devol") ||
+      s.includes("reembols") ||
+      s.includes("refund")
+    );
+  }
+
+  function setFacturaToggleText(text, action) {
+    var btn = $("od-facturar-toggle");
+    if (!btn) return;
+    btn.textContent = text;
+    btn.dataset.action = action || "view";
+  }
+
+  function openFacturaModal() {
+    var modal = $("od-fac-modal");
+    if (modal) { modal.hidden = false; document.body.style.overflow = "hidden"; }
+  }
+
+  function closeCancelModal() {
+    var modal = $("od-fac-cancel-modal");
+    if (modal) { modal.hidden = true; document.body.style.overflow = ""; }
+  }
+
+  function openInlineCancelFactura(/* body param kept for compat, no longer used */) {
+    // Reset modal fields
+    var motivoEl  = $("od-fcc-motivo");
+    var folioWrap = $("od-fcc-folio-wrap");
+    var folioEl   = $("od-fcc-folio");
+    var errEl     = $("od-fcc-error");
+    var submitBtn = $("od-fcc-submit");
+    var submitTxt = $("od-fcc-submit-txt");
+
+    if (motivoEl) {
+      motivoEl.value = "02";
+      motivoEl.onchange = function () {
+        if (folioWrap) folioWrap.style.display = this.value === "01" ? "" : "none";
+      };
+    }
+    if (folioWrap) folioWrap.style.display = "none";
+    if (folioEl)   folioEl.value = "";
+    if (errEl)     errEl.hidden = true;
+
+    if (submitBtn) {
+      submitBtn.disabled = false;
+      if (submitTxt) submitTxt.textContent = "Confirmar Cancelación";
+      submitBtn.onclick = async function () {
+        var motivo = $("od-fcc-motivo")?.value || "02";
+        var folio  = $("od-fcc-folio")?.value.trim() || null;
+        if (motivo === "01" && !folio) {
+          if (errEl) { errEl.textContent = "El motivo 01 requiere el UUID del CFDI sustituto"; errEl.hidden = false; }
+          return;
+        }
+        if (errEl) errEl.hidden = true;
+        submitBtn.disabled = true;
+        if (submitTxt) submitTxt.textContent = "Cancelando…";
+        try {
+          var res = await fetch("/api/me/pedidos/" + getOrderId() + "/factura", {
+            method: "DELETE",
+            credentials: "include",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ motivo, folioSustitucion: folio }),
+          });
+          var data = await res.json().catch(function () { return {}; });
+          if (!data.success) {
+            if (errEl) { errEl.textContent = data.error || "Error al cancelar"; errEl.hidden = false; }
+            return;
+          }
+          closeCancelModal();
+          await loadFactura(getOrderId());
+        } catch (err) {
+          if (errEl) { errEl.textContent = "Error de red: " + err.message; errEl.hidden = false; }
+        } finally {
+          submitBtn.disabled = false;
+          if (submitTxt) submitTxt.textContent = "Confirmar Cancelación";
+        }
+      };
+    }
+
+    var modal = $("od-fac-cancel-modal");
+    if (modal) { modal.hidden = false; document.body.style.overflow = "hidden"; }
+  }
+
+  function setupFacturaToggle(order) {
+    var orderId = order?.id;
+    var card = $("od-factura-card");
+    var body = $("od-factura-body");
+    var btn = $("od-facturar-toggle");
+    if (!card || !body || !btn) return;
+
+    var pageRole = String(document.querySelector(".od-page")?.dataset?.role || "").toLowerCase();
+    var isSuperuser = pageRole === "superusuario" || pageRole === "admin";
+
+    // Hide button for any cancelled / returned / refunded state across all fields
+    var estados = [
+      order?.estado,
+      order?.estadoPedido,
+      order?.pago?.estado,
+      order?.envio?.estado,
+      order?.devolucion?.estado,
+    ];
+    if (estados.some(isBlockedInvoiceStatus)) {
+      btn.hidden = true;
+      card.hidden = true;
+      return;
+    }
+
+    // Only show button once order is entregado; superusuario/admin can always see it for testing
+    var estadoNorm = normalizeInvoiceText(order?.estado || "");
+    if (!estadoNorm.includes("entregado") && !isSuperuser) {
+      btn.hidden = true;
+      card.hidden = true;
+      return;
+    }
+
+    btn.hidden = true; // hidden until invoice state is known
+    card.hidden = true;
+    setFacturaToggleText("Facturar pedido", "emit");
+
+    // Fetch invoice state before showing button — so text is ALWAYS correct on first render
+    fetch("/api/me/pedidos/" + orderId + "/factura", { credentials: "include" })
+      .then(function (r) { return r.ok ? r.json() : Promise.reject(); })
+      .then(function (d) {
+        if (d.success && d.factura) {
+          if (d.factura.estado === "vigente")        setFacturaToggleText("Cancelar factura", "cancel");
+          else if (d.factura.estado === "cancelada") setFacturaToggleText("Factura cancelada", "view");
+          // else factura null → keep "Facturar pedido"
+        }
+        btn.hidden = false;
+      })
+      .catch(function () { btn.hidden = false; }); // on error show default
+
+    var facturaLoaded = false;
+
+    btn.onclick = async function () {
+      var action = btn.dataset.action || "emit";
+      card.hidden = false;
+
+      if (!facturaLoaded) {
+        facturaLoaded = true;
+        body.innerHTML =
+          '<div style="padding:18px 20px;display:flex;justify-content:center">' +
+            '<div class="od-spinner" style="width:22px;height:22px;margin:0"></div>' +
+          '</div>';
+        await loadFactura(orderId);
+        // renderFactura has now run — trigger the action that caused the click
+        if (action === "emit") {
+          // Only open modal if the CTA was rendered (invoice doesn't exist yet)
+          if ($("od-fac-open-modal")) openFacturaModal();
+          // If no modal element: an existing invoice was revealed — nothing extra needed
+        } else if (action === "cancel") {
+          openInlineCancelFactura(body);
+        }
+        return;
+      }
+
+      // Already loaded — act immediately
+      if (action === "emit") {
+        openFacturaModal();
+      } else if (action === "cancel") {
+        var cancelBtnEl = $("od-fac-cancel-btn");
+        if (cancelBtnEl) cancelBtnEl.click();
+        else openInlineCancelFactura(body);
+      }
+    };
+  }
+
+  function renderFactura(data) {
+    var body = $("od-factura-body");
+    if (!body) return;
+    var orderId = getOrderId();
+
+    if (data.factura) {
+      var f = data.factura;
+      if (f.estado === "vigente") setFacturaToggleText("Cancelar factura", "cancel");
+      else if (f.estado === "cancelada") setFacturaToggleText("Factura cancelada", "view");
+      var uuidHtml = f.uuid
+        ? '<div class="od-fac-info-row"><span>UUID</span><code class="od-fac-uuid">' + f.uuid + '</code></div>'
+        : "";
+      var cancelBtn = f.estado === "vigente"
+        ? '<button class="od-fac-dl od-fac-dl-cancel" id="od-fac-cancel-btn" type="button" style="background:rgba(200,50,80,.1);color:#e87;border-color:rgba(200,50,80,.3)">' +
+            '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M18 6L6 18M6 6l12 12"/></svg>' +
+            ' Cancelar' +
+          '</button>'
+        : "";
+      body.innerHTML =
+        '<div class="od-fac-exists">' +
+          '<div class="od-fac-vigente-badge">' +
+            '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" width="14" height="14"><path d="M9 12l2 2 4-4"/><circle cx="12" cy="12" r="10"/></svg>' +
+            " " + (f.estado === "cancelada" ? "Factura cancelada" : "Factura vigente") +
+          "</div>" +
+          '<div class="od-fac-info">' +
+            '<div class="od-fac-info-row"><span>RFC</span><strong>' + f.rfcReceptor + "</strong></div>" +
+            '<div class="od-fac-info-row"><span>Receptor</span><strong>' + f.nombreReceptor + "</strong></div>" +
+            uuidHtml +
+            '<div class="od-fac-info-row"><span>Total</span><strong>' + fmt(f.total) + "</strong></div>" +
+            '<div class="od-fac-info-row"><span>Emitida</span><strong>' + fmtDate(f.fechaEmision) + "</strong></div>" +
+          "</div>" +
+          (f.estado !== "cancelada"
+            ? '<div class="od-fac-dl-row">' +
+                '<a href="/api/me/pedidos/' + orderId + '/factura?download=pdf" class="od-fac-dl od-fac-dl-pdf" target="_blank" rel="noopener">' +
+                  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>' +
+                  " PDF" +
+                "</a>" +
+                '<a href="/api/me/pedidos/' + orderId + '/factura?download=xml" class="od-fac-dl od-fac-dl-xml" target="_blank" rel="noopener">' +
+                  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>' +
+                  " XML" +
+                "</a>" +
+                cancelBtn +
+              "</div>"
+            : ""
+          ) +
+        "</div>";
+
+      // Wire cancel button — inline expansion
+      var cancelBtnEl = $("od-fac-cancel-btn");
+      if (cancelBtnEl) {
+        cancelBtnEl.onclick = function() {
+          openInlineCancelFactura(body);
+        };
+      }
+      return;
+    }
+
+    if (!data.canRequest) {
+      setFacturaToggleText("Facturacion no disponible", "view");
+      body.innerHTML =
+        '<div class="od-fac-pending">' +
+          '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" width="32" height="32"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>' +
+          "<p>" + (data.reason || "Disponible cuando el pedido sea entregado.") + "</p>" +
+        "</div>";
+      return;
+    }
+
+    setFacturaToggleText("Facturar pedido", "emit");
+
+    var testBadge = data.isTestOverride
+      ? '<span class="od-fac-test-badge">Modo pruebas activo</span>'
+      : "";
+    body.innerHTML =
+      '<div class="od-fac-cta">' +
+        testBadge +
+        '<p class="od-fac-cta-label">¿Necesitas comprobante fiscal para este pedido?</p>' +
+        '<button class="od-fac-cta-btn" id="od-fac-open-modal" type="button">' +
+          '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" width="17" height="17"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="12" x2="12" y2="18"/><line x1="9" y1="15" x2="15" y2="15"/></svg>' +
+          " Solicitar Factura Electrónica" +
+        "</button>" +
+      "</div>";
+
+    var openBtn = $("od-fac-open-modal");
+    if (openBtn) {
+      openBtn.addEventListener("click", function () {
+        openFacturaModal();
+      });
+    }
+  }
+
+  async function loadFactura(orderId) {
+    var body = $("od-factura-body");
+    if (!body) return;
+    try {
+      var res = await fetch("/api/me/pedidos/" + orderId + "/factura", { credentials: "include" });
+      var data = await res.json().catch(function () { return {}; });
+      if (!res.ok || !data.success) {
+        body.innerHTML = '<p class="od-muted" style="padding:14px 20px">No disponible en este momento.</p>';
+        return;
+      }
+      renderFactura(data);
+    } catch (e) {
+      body.innerHTML = '<p class="od-muted" style="padding:14px 20px">Error al cargar información de factura.</p>';
+    }
+  }
+
+  function descargarFactura(orderId, tipo) {
+    var t = (tipo === "xml") ? "xml" : "pdf";
+    var a = document.createElement("a");
+    a.href = "/api/me/pedidos/" + orderId + "/factura?download=" + t;
+    a.rel = "noopener";
+    a.style.display = "none";
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+  }
+
+  function closeFacturaModal() {
+    var modal = $("od-fac-modal");
+    if (modal) { modal.hidden = true; document.body.style.overflow = ""; }
+    setFacturaError("");
+  }
+
+  document.addEventListener("click", function (e) {
+    if (e.target) {
+      if (e.target.id === "od-fac-close" || e.target.closest?.("#od-fac-close")) closeFacturaModal();
+      if (e.target.id === "od-fac-backdrop") closeFacturaModal();
+      if (e.target.id === "od-fcc-close" || e.target.closest?.("#od-fcc-close")) closeCancelModal();
+      if (e.target.id === "od-fcc-backdrop") closeCancelModal();
+    }
+  });
+
+  document.addEventListener("keydown", function (e) {
+    if (e.key === "Escape") { closeFacturaModal(); closeCancelModal(); }
+  });
+
+  // Auto-sugerir régimen fiscal según longitud del RFC
+  document.addEventListener("input", function (e) {
+    if (!e.target || e.target.id !== "od-fac-rfc") return;
+    var rfc = e.target.value.trim().toUpperCase();
+    var regimenEl = $("od-fac-regimen");
+    if (!(regimenEl instanceof HTMLSelectElement)) return;
+    if (rfc.length === 12) regimenEl.value = "601"; // Persona Moral
+    else if (rfc.length === 13) regimenEl.value = "612"; // Persona Física
+  });
+
+  document.addEventListener("submit", async function (e) {
+    if (!e.target || e.target.id !== "od-fac-form") return;
+    e.preventDefault();
+
+    var orderId   = getOrderId();
+    var rfcEl     = $("od-fac-rfc");
+    var nombreEl  = $("od-fac-nombre");
+    var usoEl     = $("od-fac-uso");
+    var regimenEl = $("od-fac-regimen");
+    var cpEl      = $("od-fac-cp");
+    var submitBtn = $("od-fac-submit");
+    var submitTxt = $("od-fac-submit-txt");
+
+    if (!(rfcEl instanceof HTMLInputElement) || !(nombreEl instanceof HTMLInputElement)) return;
+
+    var rfc    = rfcEl.value.trim().toUpperCase().replace(/\s+/g, "");
+    var nombre = nombreEl.value.trim();
+
+    if (rfc.length < 12 || rfc.length > 13) {
+      setFacturaError("El RFC debe tener 12 caracteres (persona moral) o 13 (persona física).");
+      return;
+    }
+    if (nombre.length < 3) {
+      setFacturaError("Ingresa tu nombre o razón social completo.");
+      return;
+    }
+
+    setFacturaError("");
+    if (submitBtn instanceof HTMLButtonElement) submitBtn.disabled = true;
+    if (submitTxt instanceof HTMLElement) submitTxt.textContent = "Generando...";
+
+    try {
+      var res = await fetch("/api/me/pedidos/" + orderId + "/factura", {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          rfc,
+          nombre,
+          usoCfdi:       usoEl     instanceof HTMLSelectElement ? usoEl.value     : "G03",
+          regimenFiscal: regimenEl instanceof HTMLSelectElement ? regimenEl.value  : "616",
+          cpFiscal:      cpEl      instanceof HTMLInputElement  ? (cpEl.value.trim() || "64000") : "64000",
+        }),
+      });
+      var data = await res.json().catch(function () { return {}; });
+
+      if (!res.ok || !data.success) {
+        setFacturaError(data?.error || "No se pudo generar la factura. Verifica tus datos fiscales.");
+        return;
+      }
+
+      closeFacturaModal();
+      descargarFactura(orderId, "pdf");
+      await loadFactura(orderId);
+    } catch (err) {
+      setFacturaError("Error de red al generar la factura. Intenta de nuevo.");
+    } finally {
+      if (submitBtn instanceof HTMLButtonElement) submitBtn.disabled = false;
+      if (submitTxt instanceof HTMLElement) submitTxt.textContent = "Generar Factura";
+    }
+  });
+
+  loadOrder();
+})();
+</script>
+
+<style is:global>
+/* ─── VARIABLES ─── */
+.od-page {
+  --od-bg: #fffdf8;
+  --od-surface: #fff8f0;
+  --od-surface2: #ffe9d3;
+  --od-text: #1f2937;
+  --od-text2: #6b7280;
+  --od-border: #f3dcc2;
+  --od-accent: #f97316;
+  --od-accent2: #ea580c;
+  --od-green: #16a34a;
+  --od-green-bg: rgba(22,163,74,.09);
+  --od-blue: #2563eb;
+  --od-blue-bg: rgba(37,99,235,.08);
+  --od-yellow: #d97706;
+  --od-yellow-bg: rgba(217,119,6,.09);
+  --od-red: #dc2626;
+  --od-red-bg: rgba(220,38,38,.08);
+  --od-card-bg: rgba(255,255,255,.92);
+  --od-shadow: 0 8px 30px rgba(154,52,18,.12), 0 2px 8px rgba(0,0,0,.05);
+  --od-radius: 14px;
+  --od-font: var(--fuente-cuerpo, 'NeueMontreal', Arial, sans-serif);
+  --od-font-title: var(--fuente-titulos, 'NeueMontreal', 'SF Pro', sans-serif);
+
+  width: min(1200px, 94vw);
+  margin: auto;
+  padding: 80px 0 80px;
+  font-family: var(--od-font);
+  color: var(--od-text);
+  position: relative;
+}
+
+.od-page::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: -1;
+  background:
+    radial-gradient(circle at 10% 15%, rgba(249,115,22,.14), transparent 34%),
+    radial-gradient(circle at 80% 30%, rgba(59,130,246,.09), transparent 36%),
+    linear-gradient(180deg, #fffaf2 0%, #fff 42%, #fff8f1 100%);
+}
+
+html.dark .od-page {
+  --od-bg: #0f172a;
+  --od-surface: #131f33;
+  --od-surface2: #192740;
+  --od-text: #e5e7eb;
+  --od-text2: #9ca3af;
+  --od-border: #2e415b;
+  --od-card-bg: rgba(13,23,42,.86);
+  --od-shadow: 0 10px 30px rgba(2,6,23,.45), 0 2px 8px rgba(0,0,0,.2);
+}
+
+html.dark .od-page::before {
+  background:
+    radial-gradient(circle at 8% 15%, rgba(249,115,22,.19), transparent 32%),
+    radial-gradient(circle at 78% 25%, rgba(14,165,233,.16), transparent 34%),
+    linear-gradient(180deg, #0b1220 0%, #0f172a 100%);
+}
+
+/* ─── HEADER ─── */
+.od-header { margin-bottom: 28px; }
+.od-back {
+  display: inline-flex; align-items: center; gap: 6px;
+  color: var(--od-accent); text-decoration: none; font-weight: 600;
+  font-size: 13px; margin-bottom: 14px;
+  transition: gap .2s;
+}
+.od-back:hover { gap: 10px; }
+.od-title-wrap { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+.od-title {
+  margin: 0; font-size: clamp(2rem, 5vw, 3.2rem);
+  font-family: var(--od-font-title); letter-spacing: .02em; line-height: .92;
+}
+.od-order-badge {
+  background: var(--od-accent); color: #fff;
+  font-size: 13px; font-weight: 700;
+  padding: 4px 14px; border-radius: 20px;
+  letter-spacing: .04em;
+}
+
+/* ─── LOADING / ERROR ─── */
+.od-loading {
+  text-align: center; padding: 80px 20px;
+  color: var(--od-text2); font-size: 15px;
+}
+.od-spinner {
+  width: 40px; height: 40px; margin: 0 auto 16px;
+  border: 3px solid var(--od-border);
+  border-top-color: var(--od-accent);
+  border-radius: 50%;
+  animation: od-spin .8s linear infinite;
+}
+@keyframes od-spin { to { transform: rotate(360deg); } }
+.od-error {
+  text-align: center; padding: 60px 20px;
+  border: 1px dashed var(--od-border);
+  border-radius: var(--od-radius);
+  background: var(--od-surface);
+}
+.od-error-icon { font-size: 40px; display: block; margin-bottom: 12px; }
+.od-error p { color: var(--od-text2); margin-bottom: 20px; }
+.od-btn-back {
+  display: inline-block; padding: 10px 24px;
+  background: var(--od-accent); color: #fff;
+  border-radius: 24px; text-decoration: none;
+  font-weight: 700; font-size: 14px;
+}
+
+/* ─── META BAR ─── */
+.od-meta-bar {
+  display: flex; align-items: center; gap: 0;
+  background: var(--od-card-bg);
+  border: 1px solid var(--od-border);
+  border-radius: var(--od-radius);
+  padding: 16px 24px;
+  box-shadow: var(--od-shadow);
+  margin-bottom: 24px;
+  flex-wrap: wrap; gap: 12px;
+}
+.od-meta-item { display: flex; flex-direction: column; gap: 3px; }
+.od-meta-label { font-size: 11px; font-weight: 600; color: var(--od-text2); text-transform: uppercase; letter-spacing: .06em; }
+.od-meta-item strong { font-size: 15px; }
+.od-meta-item--action { margin-left: auto; justify-content: center; }
+.od-meta-action-btn {
+  display: inline-flex; align-items: center; justify-content: center;
+  border: 0; border-radius: 999px;
+  background: linear-gradient(135deg, #f97316, #ea580c);
+  color: #fff; font-size: 12px; font-weight: 800;
+  padding: 9px 14px; cursor: pointer;
+  box-shadow: 0 8px 20px rgba(249,115,22,.34);
+  transition: transform .15s ease, box-shadow .15s ease;
+}
+.od-meta-action-btn:hover { transform: translateY(-1px); box-shadow: 0 10px 24px rgba(249,115,22,.38); }
+.od-meta-sep { width: 1px; height: 36px; background: var(--od-border); margin: 0 20px; }
+.od-total-top { font-size: 18px !important; color: var(--od-accent); }
+
+/* ─── ESTADO CHIPS ─── */
+.od-estado-chip {
+  display: inline-flex; align-items: center; gap: 4px;
+  font-size: 12px; font-weight: 700;
+  padding: 4px 10px; border-radius: 20px;
+  letter-spacing: .03em;
+}
+.chip-green  { background: var(--od-green-bg);  color: var(--od-green); }
+.chip-blue   { background: var(--od-blue-bg);   color: var(--od-blue); }
+.chip-yellow { background: var(--od-yellow-bg); color: var(--od-yellow); }
+.chip-red    { background: var(--od-red-bg);    color: var(--od-red); }
+.chip-gray   { background: var(--od-surface2);  color: var(--od-text2); }
+
+/* ─── GRID ─── */
+.od-grid {
+  display: grid;
+  grid-template-columns: 1fr 340px;
+  gap: 20px;
+  align-items: start;
+}
+
+/* ─── CARDS ─── */
+.od-card {
+  background: var(--od-card-bg);
+  border: 1px solid var(--od-border);
+  border-radius: var(--od-radius);
+  box-shadow: var(--od-shadow);
+  backdrop-filter: blur(6px);
+  overflow: hidden;
+  margin-bottom: 16px;
+}
+.od-card-head {
+  display: flex; align-items: center; gap: 10px;
+  padding: 14px 20px;
+  border-bottom: 1px solid var(--od-border);
+  background: linear-gradient(180deg, rgba(249,115,22,.08), rgba(255,255,255,.02));
+}
+.od-card-icon { font-size: 18px; }
+.od-card-head h2 { margin: 0; font-size: 14px; font-weight: 700; letter-spacing: .02em; }
+.od-sticky-card { position: sticky; top: 88px; }
+
+/* ─── ITEMS ─── */
+.od-items { display: flex; flex-direction: column; }
+.od-item {
+  display: grid;
+  grid-template-columns: 80px 1fr auto;
+  gap: 16px;
+  align-items: center;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--od-border);
+  animation: od-item-in .35s ease both;
+  transition: background .15s;
+}
+.od-item:last-child { border-bottom: none; }
+.od-item:hover { background: var(--od-surface); }
+@keyframes od-item-in {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.od-item-img {
+  width: 80px; height: 80px;
+  object-fit: cover;
+  border-radius: 10px;
+  border: 1px solid var(--od-border);
+  display: block;
+}
+.od-item-placeholder {
+  width: 80px; height: 80px;
+  border-radius: 10px;
+  border: 1px solid var(--od-border);
+  background: var(--od-surface2);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 28px; color: var(--od-text2);
+  flex-shrink: 0;
+}
+.od-item-info { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.od-item-name { font-weight: 700; font-size: 14px; }
+.od-item-desc { font-size: 12px; color: var(--od-text2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.od-item-meta { display: flex; align-items: center; gap: 10px; margin-top: 4px; }
+.od-item-qty {
+  background: var(--od-surface2);
+  color: var(--od-text2);
+  font-size: 11px; font-weight: 700;
+  padding: 2px 8px; border-radius: 10px;
+}
+.od-item-unit { font-size: 12px; color: var(--od-text2); }
+.od-item-subtotal { font-weight: 700; font-size: 15px; white-space: nowrap; color: var(--od-text); }
+
+/* ─── ENVÍO ─── */
+.od-envio-body { padding: 16px 20px; display: flex; flex-direction: column; gap: 12px; }
+.od-envio-grid { display: flex; flex-direction: column; gap: 10px; }
+.od-envio-row { display: flex; align-items: center; justify-content: space-between; font-size: 13px; }
+.od-envio-label { color: var(--od-text2); font-weight: 600; font-size: 12px; }
+.od-envio-val { font-weight: 600; }
+.od-guia {
+  font-family: monospace; font-size: 13px;
+  background: var(--od-surface2); padding: 3px 8px; border-radius: 6px;
+  letter-spacing: .04em;
+}
+.od-highlight { color: var(--od-accent); font-weight: 700; }
+.od-green { color: var(--od-green); font-weight: 700; }
+.od-muted { color: var(--od-text2); font-size: 13px; }
+.od-track-hint {
+  display: flex; align-items: flex-start; gap: 8px;
+  background: var(--od-blue-bg); border-radius: 8px;
+  padding: 10px 12px; font-size: 12px; color: var(--od-blue);
+  line-height: 1.4;
+}
+
+/* ─── COSTOS ─── */
+.od-cost-lines { padding: 16px 20px; display: flex; flex-direction: column; gap: 2px; }
+.od-cost-line { display: flex; justify-content: space-between; align-items: center; padding: 7px 0; font-size: 14px; }
+.od-cost-divider { height: 1px; background: var(--od-border); margin: 8px 0; }
+.od-cost-total { font-size: 18px; font-weight: 700; }
+.od-cost-total strong { color: var(--od-accent); }
+
+/* ─── PAGO ─── */
+.od-pago-body { padding: 16px 20px; display: flex; flex-direction: column; gap: 14px; }
+.od-card-visual {
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+  border-radius: 12px;
+  padding: 18px 20px 16px;
+  color: #fff;
+  position: relative;
+  overflow: hidden;
+}
+.od-card-visual::before {
+  content: "";
+  position: absolute; top: -30px; right: -30px;
+  width: 120px; height: 120px;
+  border-radius: 50%;
+  background: rgba(255,255,255,.05);
+}
+.od-card-visual::after {
+  content: "";
+  position: absolute; bottom: -20px; right: 20px;
+  width: 80px; height: 80px;
+  border-radius: 50%;
+  background: rgba(255,255,255,.04);
+}
+.od-card-visual-inner { position: relative; z-index: 1; }
+.od-card-brand { font-size: 11px; font-weight: 800; letter-spacing: .12em; opacity: .7; text-transform: uppercase; margin-bottom: 10px; }
+.od-card-num { font-size: 18px; font-weight: 600; letter-spacing: .12em; margin-bottom: 12px; font-family: monospace; }
+.od-card-bottom { display: flex; justify-content: space-between; font-size: 11px; opacity: .75; }
+.od-pago-details { display: flex; flex-direction: column; gap: 8px; }
+.od-pago-row { display: flex; justify-content: space-between; align-items: center; font-size: 13px; }
+.od-pago-row span:first-child { color: var(--od-text2); }
+.od-txn-id { font-family: monospace; font-size: 11px; color: var(--od-text2); }
+
+/* ─── DIRECCIÓN ─── */
+.od-direccion-body { padding: 16px 20px; }
+.od-dir-name { font-weight: 700; font-size: 14px; margin-bottom: 4px; }
+.od-dir-line { font-size: 13px; color: var(--od-text2); line-height: 1.7; }
+
+/* ─── NOTAS ─── */
+.od-notas-text { padding: 16px 20px; margin: 0; font-size: 14px; color: var(--od-text2); font-style: italic; line-height: 1.6; }
+
+/* ─── INCIDENCIAS ─── */
+.od-claim-wrap { padding: 14px 20px 18px; display: grid; gap: 12px; }
+.od-claim-status { margin: 0; font-size: 13px; color: var(--od-text2); }
+.od-claim-feedback { margin: 0; font-size: 12px; font-weight: 700; border-radius: 8px; padding: 8px 10px; }
+.od-claim-feedback.is-success { background: rgba(22,163,74,.12); color: #15803d; border: 1px solid rgba(22,163,74,.35); }
+.od-claim-feedback.is-error { background: rgba(220,38,38,.1); color: #b91c1c; border: 1px solid rgba(220,38,38,.28); }
+.od-claim-form { display: grid; gap: 10px; }
+.od-claim-field { display: grid; gap: 6px; }
+.od-claim-field span { font-size: 12px; font-weight: 700; color: var(--od-text2); }
+.od-claim-field select,
+.od-claim-field textarea,
+.od-claim-field input[type="file"] {
+  width: 100%;
+  border: 1px solid var(--od-border);
+  border-radius: 10px;
+  background: rgba(255,255,255,.9);
+  color: var(--od-text);
+  padding: 10px 12px;
+  font-size: 13px;
+  transition: border-color .18s ease, box-shadow .18s ease;
+}
+.od-claim-field select:focus,
+.od-claim-field textarea:focus,
+.od-claim-field input[type="file"]:focus {
+  outline: none;
+  border-color: rgba(249,115,22,.55);
+  box-shadow: 0 0 0 4px rgba(249,115,22,.14);
+}
+.od-claim-field small { font-size: 11px; color: var(--od-text2); }
+.od-claim-form button {
+  border: 0;
+  border-radius: 10px;
+  padding: 10px 12px;
+  background: linear-gradient(135deg, var(--od-accent), var(--od-accent2));
+  color: #fff;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform .16s ease, box-shadow .16s ease;
+}
+.od-claim-form button:hover { transform: translateY(-1px); box-shadow: 0 8px 18px rgba(234,88,12,.28); }
+.od-claim-form button:disabled { opacity: .65; cursor: not-allowed; }
+
+html.dark .od-claim-field select,
+html.dark .od-claim-field textarea,
+html.dark .od-claim-field input[type="file"] {
+  background: rgba(15,23,42,.8);
+}
+
+.od-claim-history { display: grid; gap: 10px; }
+.od-claim-item {
+  border: 1px solid var(--od-border);
+  border-radius: 10px;
+  padding: 10px;
+  background: var(--od-surface);
+}
+.od-claim-item header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 12px;
+}
+.od-claim-item header strong { color: var(--od-text); }
+.od-claim-item header span { color: var(--od-accent); font-weight: 700; text-transform: capitalize; }
+.od-claim-item p { margin: 8px 0 0; font-size: 12px; color: var(--od-text2); white-space: pre-wrap; }
+.od-claim-priority {
+  margin: 8px 0 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 4px 8px;
+  border-radius: 999px;
+  border: 1px solid transparent;
+}
+.od-claim-priority::before {
+  content: "";
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+}
+.od-claim-priority.is-high { color: #b91c1c; background: rgba(239,68,68,.12); border-color: rgba(239,68,68,.35); }
+.od-claim-priority.is-high::before { background: #ef4444; }
+.od-claim-priority.is-medium { color: #b45309; background: rgba(245,158,11,.14); border-color: rgba(245,158,11,.35); }
+.od-claim-priority.is-medium::before { background: #f59e0b; }
+.od-claim-priority.is-low { color: #15803d; background: rgba(34,197,94,.14); border-color: rgba(34,197,94,.35); }
+.od-claim-priority.is-low::before { background: #22c55e; }
+.od-claim-images {
+  margin-top: 8px;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(92px, 1fr));
+  gap: 6px;
+}
+.od-claim-images a { display: block; border-radius: 8px; overflow: hidden; border: 1px solid var(--od-border); }
+.od-claim-images img { width: 100%; height: 92px; object-fit: cover; display: block; }
+.od-claim-verdict { color: #0ea5e9 !important; font-weight: 700; }
+.od-claim-comment { color: var(--od-text) !important; }
+.od-claim-log { margin-top: 8px; border: 1px solid var(--od-border); border-radius: 8px; padding: 8px; background: var(--od-card-bg); display: grid; gap: 7px; }
+.od-claim-log h4 { margin: 0; font-size: 11px; letter-spacing: .05em; text-transform: uppercase; color: var(--od-text2); }
+.od-claim-log article { border-top: 1px solid var(--od-border); padding-top: 7px; }
+.od-claim-log article:first-of-type { border-top: 0; padding-top: 0; }
+.od-claim-log header { display: flex; justify-content: space-between; gap: 8px; font-size: 11px; color: var(--od-text); }
+.od-claim-log small { font-size: 11px; color: var(--od-text2); }
+.od-claim-log p { margin: 4px 0 0; font-size: 11px; color: var(--od-text2); }
+
+/* ─── FACTURA ─── */
+.od-factura-body { padding: 0; min-height: 60px; }
+
+/* CTA */
+.od-fac-cta {
+  padding: 22px 20px 24px;
+  display: flex; flex-direction: column; align-items: center; gap: 10px;
+  text-align: center;
+}
+.od-fac-cta-label { margin: 0; font-size: 13px; color: var(--od-text2); }
+.od-fac-cta-btn {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 11px 22px;
+  background: linear-gradient(135deg, #f97316, #ea580c);
+  color: #fff; font-size: 13px; font-weight: 700;
+  border: 0; border-radius: 24px; cursor: pointer;
+  box-shadow: 0 6px 18px rgba(249,115,22,.32);
+  transition: transform .18s, box-shadow .18s;
+}
+.od-fac-cta-btn:hover { transform: translateY(-2px); box-shadow: 0 10px 26px rgba(249,115,22,.44); }
+.od-fac-test-badge {
+  background: rgba(245,158,11,.15); color: #b45309;
+  border: 1px solid rgba(245,158,11,.4);
+  font-size: 11px; font-weight: 700;
+  padding: 3px 10px; border-radius: 20px;
+}
+
+/* Pendiente */
+.od-fac-pending {
+  padding: 24px 20px;
+  display: flex; flex-direction: column; align-items: center; gap: 8px;
+  text-align: center; color: var(--od-text2);
+}
+.od-fac-pending svg { opacity: .4; }
+.od-fac-pending p { margin: 0; font-size: 13px; line-height: 1.5; }
+
+/* Factura existente */
+.od-fac-exists { padding: 16px 20px; display: flex; flex-direction: column; gap: 12px; }
+.od-fac-vigente-badge {
+  display: inline-flex; align-items: center; gap: 6px;
+  background: rgba(22,163,74,.12); color: #16a34a;
+  border: 1px solid rgba(22,163,74,.3);
+  font-size: 11px; font-weight: 700;
+  padding: 4px 12px; border-radius: 20px; align-self: flex-start;
+}
+.od-fac-info { display: flex; flex-direction: column; gap: 0; }
+.od-fac-info-row {
+  display: flex; align-items: flex-start; justify-content: space-between;
+  gap: 8px; font-size: 12px;
+  padding: 6px 0; border-bottom: 1px solid var(--od-border);
+}
+.od-fac-info-row:last-child { border-bottom: 0; }
+.od-fac-info-row span { color: var(--od-text2); font-weight: 600; font-size: 11px; white-space: nowrap; }
+.od-fac-info-row strong { font-size: 12px; text-align: right; word-break: break-all; }
+.od-fac-uuid {
+  font-family: monospace; font-size: 9.5px;
+  background: var(--od-surface2); padding: 2px 6px; border-radius: 4px;
+  word-break: break-all; text-align: right;
+}
+.od-fac-dl-row { display: flex; gap: 10px; }
+.od-fac-dl {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 8px 16px; font-size: 12px; font-weight: 700;
+  text-decoration: none; border-radius: 20px; border: 2px solid;
+  transition: background .15s, border-color .15s;
+  flex: 1; justify-content: center;
+}
+.od-fac-dl-pdf { color: #dc2626; border-color: rgba(220,38,38,.35); background: rgba(220,38,38,.06); }
+.od-fac-dl-pdf:hover { background: rgba(220,38,38,.14); border-color: #dc2626; }
+.od-fac-dl-xml { color: #d97706; border-color: rgba(217,119,6,.35); background: rgba(217,119,6,.07); }
+.od-fac-dl-xml:hover { background: rgba(217,119,6,.15); border-color: #d97706; }
+
+/* ─── INLINE CANCEL CONFIRM ─── */
+.od-fac-cancel-inline {
+  margin-top: 14px;
+  padding: 14px 16px;
+  background: rgba(220,38,38,.06);
+  border: 1.5px solid rgba(220,38,38,.25);
+  border-radius: 12px;
+  animation: od-fac-in .18s ease both;
+}
+.od-fac-cancel-inline__warning {
+  font-size: 12px; color: #b91c1c;
+  margin: 0 0 12px; line-height: 1.5;
+}
+.od-fac-cancel-inline__back {
+  padding: .45rem .9rem;
+  font-size: .8rem; font-weight: 600;
+  background: var(--od-surface2); border: 1px solid var(--od-border);
+  border-radius: 8px; cursor: pointer; color: var(--od-text2);
+  transition: background .15s;
+}
+.od-fac-cancel-inline__back:hover { background: var(--od-border); color: var(--od-text); }
+
+/* ─── MODAL ─── */
+.od-fac-modal {
+  position: fixed; inset: 0; z-index: 9000;
+  display: flex; align-items: center; justify-content: center;
+  padding: 16px;
+}
+.od-fac-modal[hidden] { display: none !important; }
+.od-fac-backdrop {
+  position: absolute; inset: 0;
+  background: rgba(0,0,0,.6);
+  backdrop-filter: blur(4px);
+}
+.od-fac-box {
+  position: relative; z-index: 1;
+  width: min(520px, 100%);
+  max-height: 92vh; overflow-y: auto;
+  background: var(--od-card-bg);
+  border: 1px solid var(--od-border);
+  border-radius: 20px;
+  box-shadow: 0 24px 64px rgba(0,0,0,.35), 0 6px 16px rgba(0,0,0,.15);
+  backdrop-filter: blur(12px);
+  animation: od-fac-in .22s cubic-bezier(.2,.8,.4,1) both;
+}
+@keyframes od-fac-in {
+  from { opacity: 0; transform: scale(.95) translateY(10px); }
+  to   { opacity: 1; transform: scale(1) translateY(0); }
+}
+.od-fac-close {
+  position: absolute; top: 14px; right: 14px;
+  width: 32px; height: 32px;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--od-surface2); border: 0;
+  border-radius: 50%; cursor: pointer; color: var(--od-text2);
+  transition: background .15s, color .15s;
+}
+.od-fac-close:hover { background: var(--od-border); color: var(--od-text); }
+.od-fac-box-head {
+  padding: 28px 28px 18px;
+  border-bottom: 1px solid var(--od-border);
+  text-align: center;
+}
+.od-fac-box-icon { font-size: 38px; display: block; margin-bottom: 10px; }
+.od-fac-box-head h3 { margin: 0 0 6px; font-size: 18px; font-weight: 800; }
+.od-fac-box-head p { margin: 0; font-size: 13px; color: var(--od-text2); }
+.od-fac-form { padding: 20px 28px 24px; display: flex; flex-direction: column; gap: 14px; }
+.od-fac-field { display: flex; flex-direction: column; gap: 5px; }
+.od-fac-field span { font-size: 12px; font-weight: 700; color: var(--od-text2); text-transform: uppercase; letter-spacing: .04em; }
+.od-fac-field em { color: var(--od-accent); font-style: normal; }
+.od-fac-field input,
+.od-fac-field select {
+  width: 100%; border: 1.5px solid var(--od-border);
+  border-radius: 10px; background: rgba(255,255,255,.9);
+  color: var(--od-text); padding: 10px 13px; font-size: 13px;
+  transition: border-color .18s, box-shadow .18s; box-sizing: border-box;
+}
+html.dark .od-fac-field input,
+html.dark .od-fac-field select { background: rgba(15,23,42,.8); }
+.od-fac-field input:focus,
+.od-fac-field select:focus {
+  outline: none;
+  border-color: rgba(249,115,22,.6);
+  box-shadow: 0 0 0 4px rgba(249,115,22,.14);
+}
+.od-fac-field small { font-size: 11px; color: var(--od-text2); line-height: 1.4; }
+.od-fac-row-2 { display: grid; grid-template-columns: 1fr 110px; gap: 12px; }
+.od-fac-error {
+  margin: 0; padding: 9px 12px;
+  background: rgba(220,38,38,.1); color: #b91c1c;
+  border: 1px solid rgba(220,38,38,.3);
+  border-radius: 8px; font-size: 12px; font-weight: 600; line-height: 1.4;
+}
+.od-fac-submit-btn {
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  padding: 13px 20px;
+  background: linear-gradient(135deg, #f97316, #ea580c);
+  color: #fff; font-size: 14px; font-weight: 700;
+  border: 0; border-radius: 12px; cursor: pointer;
+  box-shadow: 0 6px 20px rgba(249,115,22,.35);
+  transition: transform .15s, box-shadow .15s;
+  margin-top: 4px;
+}
+.od-fac-submit-btn:hover { transform: translateY(-1px); box-shadow: 0 10px 28px rgba(249,115,22,.45); }
+.od-fac-submit-btn:disabled { opacity: .6; cursor: not-allowed; transform: none; }
+
+/* ─── RESPONSIVE ─── */
+@media (max-width: 860px) {
+  .od-grid { grid-template-columns: 1fr; }
+  .od-sticky-card { position: static; }
+  .od-meta-sep { display: none; }
+  .od-meta-bar { gap: 16px; }
+  .od-item { grid-template-columns: 64px 1fr auto; gap: 12px; }
+  .od-item-img, .od-item-placeholder { width: 64px; height: 64px; }
+}
+@media (max-width: 540px) {
+  .od-item { grid-template-columns: 56px 1fr; }
+  .od-item-subtotal { grid-column: 2; justify-self: start; }
+}
+</style>
+
+</BaseLayout>

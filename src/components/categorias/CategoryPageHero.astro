@@ -1,0 +1,172 @@
+---
+interface Props {
+  currentLang: string;
+  totalProducts: number;
+}
+
+const { currentLang, totalProducts } = Astro.props;
+---
+
+<section class="catx-hero premium-shell fade-slide-in" aria-labelledby="catx-hero-title">
+  <div class="catx-hero__badge">Coleccion</div>
+  <h1 id="catx-hero-title" class="catx-hero__title">Categorias</h1>
+  <p class="catx-hero__lead">
+    Descubre lineas de producto con alta rotacion, especificaciones claras y una experiencia de compra optimizada para convertir.
+  </p>
+
+  <div class="catx-hero__meta" role="list" aria-label="Metricas de categoria">
+    <div class="catx-hero__metric" role="listitem">
+      <span>Categorias activas</span>
+      <strong>{totalProducts} categorias</strong>
+    </div>
+    <div class="catx-hero__metric" role="listitem">
+      <span>Tiempo de respuesta</span>
+      <strong>Eficaz</strong>
+    </div>
+    <div class="catx-hero__metric" role="listitem">
+      <span>Calidad operativa</span>
+      <strong>Soporte especializado</strong>
+    </div>
+  </div>
+
+  <div class="catx-hero__actions">
+    <a class="catx-btn catx-btn--primary" href={`/${currentLang}/productos/todos`}>Explorar productos</a>
+    <a class="catx-btn catx-btn--ghost" href={`/${currentLang}/descuentos`}>Ver descuentos</a>
+  </div>
+</section>
+
+<style>
+  .catx-hero {
+    padding: 24px 0 12px;
+    display: grid;
+    gap: 16px;
+  }
+
+  .catx-hero__badge {
+    width: fit-content;
+    border-radius: 999px;
+    border: 1px solid rgba(251, 140, 55, 0.4);
+    background: rgba(251, 140, 55, 0.12);
+    color: #ffccab;
+    padding: 6px 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    font-size: 0.68rem;
+    font-weight: 700;
+  }
+
+  .catx-hero__title {
+    margin: 0;
+    color: #f8f8fa;
+    font-size: clamp(2rem, 5vw, 3.8rem);
+    line-height: 1.02;
+    letter-spacing: -0.03em;
+    max-width: 13ch;
+  }
+
+  .catx-hero__lead {
+    margin: 0;
+    color: rgba(219, 219, 224, 0.82);
+    font-size: clamp(1rem, 1.4vw, 1.1rem);
+    line-height: 1.7;
+    max-width: 66ch;
+  }
+
+  .catx-hero__meta {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px;
+  }
+
+  .catx-hero__metric {
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 14px;
+    padding: 12px 14px;
+    background: rgba(255, 255, 255, 0.03);
+    display: grid;
+    gap: 5px;
+  }
+
+  .catx-hero__metric span {
+    color: rgba(206, 206, 214, 0.7);
+    font-size: 0.76rem;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+  }
+
+  .catx-hero__metric strong {
+    color: #fff;
+    font-size: 0.95rem;
+    font-weight: 650;
+  }
+
+  .catx-hero__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+
+  .catx-btn {
+    min-height: 50px;
+    padding: 0 24px;
+    border-radius: 16px;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 1rem;
+    letter-spacing: 0.01em;
+    transition: transform 180ms ease, box-shadow 180ms ease, border-color 180ms ease, filter 180ms ease;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .catx-btn--primary {
+    color: #fff;
+    border: 1px solid rgba(224, 163, 91, 0.64);
+    background: linear-gradient(130deg, #c9783a 0%, #a75a2c 56%, #e0a35b 100%);
+    box-shadow:
+      0 0 0 1px rgba(224, 163, 91, 0.34),
+      0 12px 28px rgba(201, 120, 58, 0.3);
+  }
+
+  .catx-btn--primary:hover {
+    transform: translateY(-1px);
+    filter: brightness(1.04);
+    box-shadow:
+      0 0 0 1px rgba(224, 163, 91, 0.62),
+      0 16px 34px rgba(201, 120, 58, 0.4);
+  }
+
+  .catx-btn--ghost {
+    color: #f6f6f8;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    background: rgba(255, 255, 255, 0.08);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  }
+
+  .catx-btn--ghost:hover {
+    transform: translateY(-1px);
+    border-color: rgba(224, 163, 91, 0.54);
+    background: rgba(255, 255, 255, 0.13);
+  }
+
+  .catx-btn:active {
+    transform: translateY(0) scale(0.99);
+  }
+
+  .catx-btn:focus-visible {
+    outline: none;
+    box-shadow:
+      0 0 0 2px rgba(255, 223, 186, 0.9),
+      0 0 0 5px rgba(201, 120, 58, 0.24),
+      0 14px 30px rgba(0, 0, 0, 0.34);
+  }
+
+  @media (max-width: 900px) {
+    .catx-hero__meta {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>

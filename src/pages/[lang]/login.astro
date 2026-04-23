@@ -1,0 +1,1685 @@
+---
+// src/pages/[lang]/login.astro
+import AuthLayout from "../../layouts/AuthLayout.astro";
+export function getStaticPaths() {
+  return [{ params: { lang: "es" } }];
+}
+
+const currentLang = "es";
+const cspNonce = Astro.locals.cspNonce;
+---
+
+<AuthLayout title={`Iniciar Sesión - NEXUS`} currentLang={currentLang}>
+
+<section class="login-section">
+  <div class="bg-particles" aria-hidden="true">
+    <span class="particle p1"></span>
+    <span class="particle p2"></span>
+    <span class="particle p3"></span>
+    <span class="particle p4"></span>
+    <span class="particle p5"></span>
+    <span class="particle p6"></span>
+    <span class="particle p7"></span>
+    <span class="particle p8"></span>
+  </div>
+
+  <div class="login-container">
+    <div class="login-header">
+      <span class="login-logo-text">NEXUS</span>
+      <h1 class="login-title">Iniciar Sesión</h1>
+      <p class="login-subtitle">Accede a tu cuenta para continuar</p>
+    </div>
+
+    <form class="login-form" id="login-form" method="post" action="/api/login" autocomplete="off">
+      <div class="form-group">
+        <label for="correo" class="form-label">Correo electrónico</label>
+        <div class="input-wrapper">
+          <svg class="input-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="2" y="4" width="20" height="16" rx="2"/>
+            <path d="M22 4L12 13 2 4"/>
+          </svg>
+          <input type="email" id="correo" name="correo" class="form-input" placeholder="tu@correo.com" required>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="contrasena" class="form-label">Contraseña</label>
+        <div class="input-wrapper">
+          <svg class="input-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+            <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+          </svg>
+          <input type="password" id="contrasena" name="contrasena" class="form-input" placeholder="••••••••" required>
+          <button type="button" id="toggle-password" class="eye-toggle" aria-label="Mostrar contraseña">
+            <svg id="eye-svg" class="eye-svg" width="32" height="32" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path id="eyelid-top" class="eyelid" d="M6,32 Q32,10 58,32" stroke="var(--eye-stroke)" stroke-width="3" fill="none" stroke-linecap="round"/>
+              <path id="eyelid-bottom" class="eyelid" d="M6,32 Q32,54 58,32" stroke="var(--eye-stroke)" stroke-width="3" fill="none" stroke-linecap="round"/>
+              <ellipse id="sclera" cx="32" cy="32" rx="18" ry="12" fill="#f0f0f0" stroke="var(--eye-stroke)" stroke-width="1.5"/>
+              <circle id="iris" cx="32" cy="32" r="8" fill="var(--iris-color)"/>
+              <circle id="pupil" cx="32" cy="32" r="3.8" fill="#0a0a0a"/>
+              <circle id="reflection" cx="29" cy="29.5" r="2" fill="rgba(255,255,255,0.85)"/>
+              <path id="eye-closed-line" class="eye-closed" d="M6,32 Q32,32 58,32" stroke="var(--eye-stroke)" stroke-width="3" fill="none" stroke-linecap="round" opacity="0"/>
+              <path id="lashes" class="lashes" d="M12,24 L10,20 M22,17 L21,12 M32,14 L32,9 M42,17 L43,12 M52,24 L54,20" stroke="var(--eye-stroke)" stroke-width="2" stroke-linecap="round" opacity="0.6"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      <div class="form-options">
+        <a href={`/${currentLang}/forgot-password`} class="forgot-link">¿Olvidaste tu contraseña?</a>
+      </div>
+
+      <button type="submit" class="btn-submit" id="submit-btn">
+        <span class="btn-text">Iniciar Sesión</span>
+        <svg class="btn-arrow" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M5 12h14M12 5l7 7-7 7"/>
+        </svg>
+      </button>
+    </form>
+
+    <div class="login-divider">
+      <span>o</span>
+    </div>
+
+    <div class="login-footer">
+      <p>¿No tienes cuenta? <a href={`/${currentLang}/register`} class="register-link">Regístrate aquí</a></p>
+      <p class="empresa-cta-row">¿Representas una empresa?
+        <button type="button" id="open-empresa-modal" class="empresa-cta-link">Registrar solicitud empresarial</button>
+      </p>
+    </div>
+  </div>
+
+  <section id="empresa-request-modal" class="empresa-request-modal" hidden>
+    <div id="empresa-request-overlay" class="empresa-request-overlay"></div>
+    <article class="empresa-request-panel" role="dialog" aria-modal="true" aria-labelledby="empresa-request-title">
+      <button id="empresa-request-close" class="empresa-request-close" type="button" aria-label="Cerrar">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
+      </button>
+      <h2 id="empresa-request-title">Solicitud de registro de empresa</h2>
+      <p class="empresa-request-subtitle">Completa los datos y documentos. El equipo superusuario revisara tu solicitud.</p>
+
+      <form id="empresa-request-form" class="empresa-request-form" novalidate>
+        <fieldset>
+          <legend>Empresa</legend>
+          <div class="empresa-grid">
+            <label>Nombre comercial *<input id="er-nombre" type="text" required /></label>
+            <label>RFC<input id="er-rfc" type="text" maxlength="13" /></label>
+            <label>Sitio web<input id="er-sitio" type="url" /></label>
+            <label class="empresa-col-full">Descripcion<input id="er-desc" type="text" /></label>
+          </div>
+        </fieldset>
+
+        <fieldset>
+          <legend>Datos fiscales SAT</legend>
+          <div class="empresa-grid">
+            <label class="empresa-col-full">Razon social *<input id="er-razon" type="text" required /></label>
+            <label>Regimen fiscal *
+              <select id="er-regimen" required>
+                <option value="">Seleccionar...</option>
+                <option value="601">601 - General de Ley Personas Morales</option>
+                <option value="603">603 - Personas Morales con Fines no Lucrativos</option>
+                <option value="606">606 - Arrendamiento</option>
+                <option value="612">612 - Personas Fisicas con Actividades Empresariales</option>
+                <option value="616">616 - Sin obligaciones fiscales</option>
+                <option value="621">621 - Incorporacion Fiscal</option>
+                <option value="622">622 - Actividades Agricolas, Ganaderas, Silvicolas y Pesqueras</option>
+                <option value="625">625 - Actividades Empresariales por Plataformas</option>
+                <option value="626">626 - RESICO</option>
+              </select>
+            </label>
+            <label>CP fiscal *<input id="er-cp-fiscal" type="text" maxlength="5" pattern="[0-9]{5}" required /></label>
+          </div>
+        </fieldset>
+
+        <fieldset>
+          <legend>Administrador</legend>
+          <div class="empresa-grid">
+            <label>Nombre *<input id="er-admin-nombre" type="text" required /></label>
+            <label>Apellido paterno *<input id="er-admin-apellido" type="text" required /></label>
+            <label>Apellido materno<input id="er-admin-apellido-m" type="text" /></label>
+            <label>Correo *<input id="er-admin-correo" type="email" required /></label>
+            <label>Telefono<input id="er-admin-tel" type="tel" /></label>
+          </div>
+        </fieldset>
+
+        <fieldset>
+          <legend>Documentos obligatorios</legend>
+          <div class="empresa-grid empresa-grid-files">
+            <label>Acta constitutiva *<input id="er-doc-acta" type="file" accept=".pdf,.jpg,.jpeg,.png,.webp" required /></label>
+            <label>INE representante *<input id="er-doc-ine" type="file" accept=".pdf,.jpg,.jpeg,.png,.webp" required /></label>
+            <label>Constancia fiscal *<input id="er-doc-constancia" type="file" accept=".pdf,.jpg,.jpeg,.png,.webp" required /></label>
+          </div>
+        </fieldset>
+
+        <fieldset>
+          <legend>Direccion de recoleccion</legend>
+          <div class="empresa-grid">
+            <label>Numero exterior *<input id="er-numero" type="number" min="1" required /></label>
+            <label>Codigo postal *<input id="er-cp" type="number" min="1" required /></label>
+            <label class="empresa-col-full">Calle *<input id="er-calle" type="text" required /></label>
+            <label>Ciudad *<input id="er-ciudad" type="text" required /></label>
+            <label>Estado/Provincia *<input id="er-provincia" type="text" required /></label>
+            <label>Pais *<input id="er-pais" type="text" value="Mexico" required /></label>
+          </div>
+        </fieldset>
+
+        <fieldset>
+          <legend>Verificacion biometrica del representante</legend>
+          <div class="empresa-grid">
+            <div class="empresa-col-full" style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">
+              <div>
+                <p id="er-kyc-status" style="font-size:12px;color:rgba(255,255,255,0.72);margin:0;">
+                  Estado KYC: pendiente
+                </p>
+                <small style="display:block;color:rgba(255,255,255,0.45);margin-top:4px;">
+                  Debes completar la validacion con camara antes de enviar la solicitud.
+                </small>
+              </div>
+              <button id="er-kyc-open" type="button" class="empresa-btn empresa-btn-primary">Iniciar verificacion</button>
+            </div>
+          </div>
+        </fieldset>
+
+        <p id="empresa-request-feedback" class="empresa-request-feedback" hidden></p>
+        <div class="empresa-request-actions">
+          <button id="empresa-request-cancel" type="button" class="empresa-btn empresa-btn-ghost">Cancelar</button>
+          <button id="empresa-request-submit" type="submit" class="empresa-btn empresa-btn-primary">Enviar solicitud</button>
+        </div>
+      </form>
+    </article>
+  </section>
+
+  <section id="login-modal" class="login-modal" hidden>
+    <div id="login-modal-panel" class="login-modal-panel" role="dialog" aria-modal="true" aria-labelledby="login-modal-title">
+      <button id="login-modal-close" class="login-modal-close" type="button" aria-label="Cerrar">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
+      </button>
+      <div class="modal-icon-wrap" id="modal-icon-wrap">
+        <svg class="modal-icon modal-icon--success" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
+        <svg class="modal-icon modal-icon--error" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M15 9l-6 6M9 9l6 6"/></svg>
+      </div>
+      <p id="login-modal-kicker" class="login-modal-kicker">Estado</p>
+      <h2 id="login-modal-title">Mensaje</h2>
+      <p id="login-modal-message" class="login-modal-message"></p>
+      <button id="login-modal-ok" class="login-modal-ok" type="button">Aceptar</button>
+    </div>
+  </section>
+
+  <section id="empresa-kyc-modal" class="empresa-request-modal" hidden>
+    <div id="empresa-kyc-overlay" class="empresa-request-overlay"></div>
+    <article class="empresa-request-panel" role="dialog" aria-modal="true" aria-labelledby="empresa-kyc-title" style="max-width:640px;">
+      <button id="empresa-kyc-close" class="empresa-request-close" type="button" aria-label="Cerrar">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
+      </button>
+      <h2 id="empresa-kyc-title">Prueba biometrica del representante</h2>
+      <p class="empresa-request-subtitle">Permite camara, centra tu rostro y toma una captura como evidencia de vida.</p>
+
+      <div style="display:grid;gap:12px;">
+        <video id="empresa-kyc-video" autoplay playsinline muted style="width:100%;min-height:220px;background:#0f131d;border:1px solid rgba(255,255,255,.12);border-radius:10px;object-fit:cover;"></video>
+        <canvas id="empresa-kyc-canvas" hidden></canvas>
+        <img id="empresa-kyc-preview" alt="Captura biometrica" hidden style="width:100%;max-height:220px;object-fit:cover;border-radius:10px;border:1px solid rgba(255,255,255,.12);" />
+        <input id="empresa-kyc-file" type="file" accept="image/*" hidden />
+
+        <label style="display:flex;align-items:center;gap:8px;font-size:12px;color:rgba(255,255,255,.75);">
+          <input id="empresa-kyc-confirm" type="checkbox" />
+          Confirmo que soy el representante legal y autorizo validacion biometrica.
+        </label>
+
+        <p id="empresa-kyc-feedback" class="empresa-request-feedback" hidden></p>
+
+        <div class="empresa-request-actions" style="margin-top:0;">
+          <button id="empresa-kyc-cancel" type="button" class="empresa-btn empresa-btn-ghost">Cancelar</button>
+          <button id="empresa-kyc-upload" type="button" class="empresa-btn empresa-btn-ghost">Subir selfie</button>
+          <button id="empresa-kyc-capture" type="button" class="empresa-btn empresa-btn-primary">Tomar captura</button>
+          <button id="empresa-kyc-accept" type="button" class="empresa-btn empresa-btn-primary" disabled>Usar esta verificacion</button>
+        </div>
+      </div>
+    </article>
+  </section>
+</section>
+
+<style>
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,700&family=Sora:wght@600;700;800&display=swap');
+
+:root {
+  --primary: #e8521a;
+  --primary-light: #ff7e3a;
+  --primary-glow: rgba(232, 82, 26, 0.35);
+  --bg-deep: #0b0e17;
+  --bg-card: #12151f;
+  --bg-input: #1a1e2e;
+  --border-subtle: rgba(255, 255, 255, 0.08);
+  --border-focus: rgba(232, 82, 26, 0.6);
+  --text-primary: #f3f5f9;
+  --text-secondary: rgba(255, 255, 255, 0.55);
+  --text-muted: rgba(255, 255, 255, 0.35);
+  --eye-stroke: #b0b8c8;
+  --iris-color: #e8521a;
+  --radius: 14px;
+  --transition: 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+.login-section {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-deep);
+  background-image:
+    radial-gradient(ellipse 80% 60% at 50% 0%, rgba(232, 82, 26, 0.08) 0%, transparent 60%),
+    radial-gradient(ellipse 60% 50% at 80% 100%, rgba(99, 59, 230, 0.06) 0%, transparent 50%);
+  padding: 1.5rem;
+  position: relative;
+  overflow: hidden;
+  font-family: 'DM Sans', sans-serif;
+  color: var(--text-primary);
+}
+
+.bg-particles { position: absolute; inset: 0; pointer-events: none; }
+.particle {
+  position: absolute;
+  border-radius: 50%;
+  opacity: 0.15;
+  animation: float-particle linear infinite;
+}
+.p1 { width: 6px; height: 6px; background: var(--primary); top: 12%; left: 8%;  animation-duration: 18s; }
+.p2 { width: 4px; height: 4px; background: #7c5cf7;        top: 28%; left: 82%; animation-duration: 22s; animation-delay: -4s; }
+.p3 { width: 8px; height: 8px; background: var(--primary); top: 65%; left: 15%; animation-duration: 25s; animation-delay: -8s; }
+.p4 { width: 5px; height: 5px; background: #5ca8f7;        top: 80%; left: 70%; animation-duration: 20s; animation-delay: -2s; }
+.p5 { width: 3px; height: 3px; background: var(--primary-light); top: 45%; left: 92%; animation-duration: 16s; animation-delay: -6s; }
+.p6 { width: 7px; height: 7px; background: #7c5cf7;        top: 90%; left: 40%; animation-duration: 28s; animation-delay: -10s; }
+.p7 { width: 4px; height: 4px; background: var(--primary); top: 5%;  left: 55%; animation-duration: 21s; animation-delay: -3s; }
+.p8 { width: 5px; height: 5px; background: #5ca8f7;        top: 55%; left: 35%; animation-duration: 19s; animation-delay: -7s; }
+
+@keyframes float-particle {
+  0%, 100% { transform: translateY(0) translateX(0) scale(1); }
+  25%      { transform: translateY(-40px) translateX(20px) scale(1.2); }
+  50%      { transform: translateY(-10px) translateX(-15px) scale(0.8); }
+  75%      { transform: translateY(-50px) translateX(10px) scale(1.1); }
+}
+
+.login-container {
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: 20px;
+  box-shadow:
+    0 4px 24px rgba(0, 0, 0, 0.3),
+    0 40px 80px rgba(0, 0, 0, 0.25),
+    inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  padding: 2.8rem 2.5rem 2.2rem;
+  max-width: 420px;
+  width: 100%;
+  text-align: center;
+  position: relative;
+  z-index: 2;
+  animation: card-enter 0.6s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes card-enter {
+  from { opacity: 0; transform: translateY(30px) scale(0.97); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.login-header { margin-bottom: 2rem; animation: fade-up 0.5s 0.15s both; }
+
+@keyframes fade-up {
+  from { opacity: 0; transform: translateY(14px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.login-logo-text {
+  display: inline-block;
+  margin-bottom: 0.9rem;
+  font-family: 'Sora', sans-serif;
+  font-size: 1.7rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  color: var(--text-primary);
+  text-shadow: 0 0 20px var(--primary-glow);
+}
+
+.login-title {
+  font-family: 'Sora', sans-serif;
+  font-size: 1.85rem;
+  font-weight: 800;
+  color: var(--text-primary);
+  margin-bottom: 0.3rem;
+  letter-spacing: -0.02em;
+}
+
+.login-subtitle {
+  color: var(--text-secondary);
+  font-size: 0.95rem;
+  font-weight: 400;
+}
+
+.login-form { margin-bottom: 1.4rem; }
+
+.form-group {
+  margin-bottom: 1.3rem;
+  text-align: left;
+  animation: fade-up 0.5s both;
+}
+.form-group:nth-child(1) { animation-delay: 0.25s; }
+.form-group:nth-child(2) { animation-delay: 0.35s; }
+
+.form-label {
+  display: block;
+  margin-bottom: 0.45rem;
+  font-weight: 500;
+  font-size: 0.88rem;
+  color: var(--text-secondary);
+  letter-spacing: 0.02em;
+}
+
+.input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.input-icon {
+  position: absolute;
+  left: 14px;
+  color: var(--text-muted);
+  pointer-events: none;
+  transition: color var(--transition);
+  z-index: 2;
+}
+
+.input-wrapper:focus-within .input-icon {
+  color: var(--primary);
+}
+
+.form-input {
+  width: 100%;
+  padding: 0.8rem 0.8rem 0.8rem 2.8rem;
+  background: var(--bg-input);
+  border: 1.5px solid var(--border-subtle);
+  border-radius: 10px;
+  font-size: 0.95rem;
+  font-family: 'DM Sans', sans-serif;
+  color: var(--text-primary);
+  transition: border-color var(--transition), box-shadow var(--transition), background var(--transition);
+  outline: none;
+}
+
+.form-input::placeholder { color: var(--text-muted); }
+
+.form-input:focus {
+  border-color: var(--border-focus);
+  background: rgba(232, 82, 26, 0.04);
+  box-shadow: 0 0 0 3px rgba(232, 82, 26, 0.1);
+}
+
+.eye-toggle {
+  position: absolute;
+  right: 6px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 3;
+  border-radius: 8px;
+  transition: background var(--transition);
+}
+
+.eye-toggle:hover { background: rgba(255, 255, 255, 0.06); }
+
+.eye-svg { overflow: visible; transition: transform 0.15s ease; }
+.eye-svg .eyelid { transition: d 0.35s cubic-bezier(0.4, 0, 0.2, 1); }
+.eye-svg #sclera { transition: ry 0.35s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s; }
+.eye-svg #iris,
+.eye-svg #pupil,
+.eye-svg #reflection { transition: cx 0.08s ease-out, cy 0.08s ease-out, r 0.2s ease, opacity 0.3s; }
+.eye-svg .lashes { transition: opacity 0.3s; }
+
+.eye-svg.is-closed #sclera    { ry: 0; opacity: 0; }
+.eye-svg.is-closed #iris      { opacity: 0; }
+.eye-svg.is-closed #pupil     { opacity: 0; }
+.eye-svg.is-closed #reflection { opacity: 0; }
+.eye-svg.is-closed .lashes    { opacity: 0; }
+.eye-svg.is-closed #eye-closed-line { opacity: 1 !important; }
+
+.form-options {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 1.5rem;
+  font-size: 0.85rem;
+  animation: fade-up 0.5s 0.45s both;
+}
+
+.forgot-link {
+  color: var(--primary-light);
+  text-decoration: none;
+  font-weight: 500;
+  transition: color var(--transition);
+}
+.forgot-link:hover { color: #ffaa7a; text-decoration: underline; }
+
+.btn-submit {
+  width: 100%;
+  padding: 0.85rem 1.2rem;
+  border: none;
+  border-radius: 12px;
+  background: linear-gradient(135deg, var(--primary), var(--primary-light));
+  color: #fff;
+  font-family: 'Sora', sans-serif;
+  font-size: 1rem;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  position: relative;
+  overflow: hidden;
+  transition: transform 0.18s ease, box-shadow 0.25s ease;
+  animation: fade-up 0.5s 0.55s both;
+}
+
+.btn-submit::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, rgba(255,255,255,0.15), transparent);
+  opacity: 0;
+  transition: opacity 0.25s;
+}
+
+.btn-submit:hover::before { opacity: 1; }
+.btn-submit:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 30px rgba(232, 82, 26, 0.35);
+}
+
+.btn-submit:active { transform: translateY(0) scale(0.98); }
+
+.btn-submit:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.btn-arrow { transition: transform 0.2s ease; }
+.btn-submit:hover .btn-arrow { transform: translateX(3px); }
+
+.login-divider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 1.2rem;
+  animation: fade-up 0.5s 0.6s both;
+}
+
+.login-divider::before,
+.login-divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--border-subtle);
+}
+
+.login-divider span {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+
+.login-footer {
+  font-size: 0.88rem;
+  color: var(--text-secondary);
+  animation: fade-up 0.5s 0.65s both;
+}
+
+.register-link {
+  color: var(--primary-light);
+  text-decoration: none;
+  font-weight: 600;
+  transition: color var(--transition);
+}
+.register-link:hover { color: #ffaa7a; text-decoration: underline; }
+
+.empresa-cta-row {
+  margin-top: 0.55rem;
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+}
+
+.empresa-cta-link {
+  margin-left: 6px;
+  border: 0;
+  background: none;
+  color: #8dd0ff;
+  font-weight: 700;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.empresa-request-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 10001;
+  display: grid;
+  place-items: center;
+}
+
+.empresa-request-modal[hidden] { display: none !important; }
+
+.empresa-request-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(4, 8, 16, 0.72);
+  backdrop-filter: blur(8px);
+}
+
+.empresa-request-panel {
+  position: relative;
+  width: min(760px, calc(100vw - 20px));
+  max-height: calc(100vh - 20px);
+  overflow-y: auto;
+  background: #0e1320;
+  border: 1px solid var(--border-subtle);
+  border-radius: 16px;
+  padding: 1.2rem;
+  z-index: 2;
+  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.55);
+}
+
+.empresa-request-close {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  border: 1px solid var(--border-subtle);
+  color: var(--text-secondary);
+  background: rgba(255, 255, 255, 0.04);
+  cursor: pointer;
+}
+
+.empresa-request-panel h2 {
+  margin: 0;
+  font-family: 'Sora', sans-serif;
+  font-size: 1.35rem;
+}
+
+.empresa-request-subtitle {
+  margin: 0.45rem 0 0.9rem;
+  color: var(--text-secondary);
+  font-size: 0.88rem;
+}
+
+.empresa-request-form fieldset {
+  border: 1px solid var(--border-subtle);
+  border-radius: 12px;
+  padding: 0.8rem;
+  margin-bottom: 0.8rem;
+}
+
+.empresa-request-form legend {
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 0 6px;
+}
+
+.empresa-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.65rem;
+}
+
+.empresa-grid label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.32rem;
+  font-size: 0.76rem;
+  color: var(--text-secondary);
+}
+
+.empresa-grid input,
+.empresa-grid select {
+  border: 1px solid var(--border-subtle);
+  border-radius: 9px;
+  background: #171d2c;
+  color: var(--text-primary);
+  padding: 0.55rem 0.62rem;
+  font-size: 0.86rem;
+}
+
+.empresa-grid input:focus,
+.empresa-grid select:focus {
+  outline: none;
+  border-color: var(--border-focus);
+  box-shadow: 0 0 0 2px rgba(232, 82, 26, 0.12);
+}
+
+.empresa-col-full { grid-column: 1 / -1; }
+
+.empresa-grid-files input {
+  padding: 0.45rem;
+}
+
+.empresa-request-feedback {
+  margin: 0 0 0.7rem;
+  padding: 0.55rem 0.7rem;
+  border-radius: 10px;
+  font-size: 0.8rem;
+  border: 1px solid rgba(239, 68, 68, 0.35);
+  background: rgba(239, 68, 68, 0.08);
+  color: #fda4af;
+}
+
+.empresa-request-feedback.success {
+  border-color: rgba(34, 197, 94, 0.35);
+  background: rgba(34, 197, 94, 0.08);
+  color: #86efac;
+}
+
+.empresa-request-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.6rem;
+}
+
+.empresa-btn {
+  border-radius: 10px;
+  border: 1px solid var(--border-subtle);
+  padding: 0.65rem 0.95rem;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.empresa-btn-ghost {
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text-secondary);
+}
+
+.empresa-btn-primary {
+  border: none;
+  color: #fff;
+  font-weight: 700;
+  background: linear-gradient(135deg, var(--primary), var(--primary-light));
+}
+
+.login-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background: rgba(8, 11, 19, 0.7);
+  backdrop-filter: blur(8px);
+  display: grid;
+  place-items: center;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+}
+
+.login-modal.is-open { opacity: 1; pointer-events: auto; }
+.login-modal[hidden] { display: none !important; }
+
+.login-modal-panel {
+  width: min(420px, calc(100vw - 28px));
+  border-radius: 18px;
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-card);
+  box-shadow: 0 30px 70px rgba(0, 0, 0, 0.5);
+  padding: 2rem 1.8rem;
+  transform: translateY(14px) scale(0.96);
+  opacity: 0;
+  transition: transform 0.25s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.2s ease;
+  position: relative;
+  color: var(--text-primary);
+  text-align: center;
+}
+
+.login-modal-panel.is-open { transform: translateY(0) scale(1); opacity: 1; }
+
+.login-modal-close {
+  position: absolute;
+  top: 14px; right: 14px;
+  border: 0;
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text-secondary);
+  width: 32px; height: 32px;
+  border-radius: 8px;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  transition: background var(--transition), color var(--transition);
+}
+
+.login-modal-close:hover { background: rgba(255, 255, 255, 0.12); color: var(--text-primary); }
+
+.modal-icon-wrap {
+  width: 56px; height: 56px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  margin: 0 auto 1rem;
+}
+
+.modal-icon { width: 28px; height: 28px; display: none; }
+
+.login-modal.success .modal-icon-wrap { background: rgba(34, 197, 94, 0.12); border: 1.5px solid rgba(34, 197, 94, 0.3); }
+.login-modal.success .modal-icon--success { display: block; color: #22c55e; }
+
+.login-modal.error .modal-icon-wrap { background: rgba(239, 68, 68, 0.12); border: 1.5px solid rgba(239, 68, 68, 0.3); }
+.login-modal.error .modal-icon--error { display: block; color: #ef4444; }
+
+.login-modal-kicker {
+  margin: 0 0 6px;
+  font-size: 0.82rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  font-weight: 700;
+}
+
+.login-modal.success .login-modal-kicker { color: #86efac; }
+.login-modal.error .login-modal-kicker { color: #fca5a5; }
+
+.login-modal-panel h2 {
+  margin: 0;
+  font-family: 'Sora', sans-serif;
+  font-size: 1.6rem;
+  font-weight: 800;
+  line-height: 1.2;
+}
+
+.login-modal-message {
+  margin: 10px 0 0;
+  font-size: 0.95rem;
+  line-height: 1.5;
+  color: var(--text-secondary);
+}
+
+.login-modal-ok {
+  margin-top: 1.4rem;
+  width: 100%;
+  border-radius: 12px;
+  border: none;
+  background: linear-gradient(135deg, var(--primary), var(--primary-light));
+  color: #fff;
+  font-family: 'Sora', sans-serif;
+  font-size: 0.95rem;
+  font-weight: 700;
+  padding: 0.8rem 1rem;
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.2s ease;
+}
+
+.login-modal-ok:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(232, 82, 26, 0.3);
+}
+
+@media (max-width: 480px) {
+  .login-container { padding: 2rem 1.5rem 1.6rem; }
+  .login-title { font-size: 1.5rem; }
+  .empresa-grid { grid-template-columns: 1fr; }
+}
+</style>
+
+<script is:inline data-astro-rerun nonce={cspNonce}>
+function initLoginPage() {
+  var currentLang = document.documentElement.lang || 'es';
+  var form = document.getElementById('login-form');
+  if (!form) return;
+  if (form.dataset.jsBound === '1') return;
+  form.dataset.jsBound = '1';
+
+  // If credentials were accidentally sent in query params, immediately scrub URL.
+  try {
+    var url = new URL(window.location.href);
+    var hadSensitiveParams = url.searchParams.has('correo') || url.searchParams.has('contrasena');
+    if (hadSensitiveParams) {
+      url.searchParams.delete('correo');
+      url.searchParams.delete('contrasena');
+      var nextSearch = url.searchParams.toString();
+      var cleanedUrl = url.pathname + (nextSearch ? ('?' + nextSearch) : '') + url.hash;
+      window.history.replaceState({}, '', cleanedUrl);
+    }
+  } catch (_) {}
+
+  /* ── EYE TRACKING ── */
+  var eyeSvg       = document.getElementById('eye-svg');
+  var iris         = document.getElementById('iris');
+  var pupil        = document.getElementById('pupil');
+  var reflection   = document.getElementById('reflection');
+  var toggleBtn    = document.getElementById('toggle-password');
+  var passwordInput= document.getElementById('contrasena');
+
+  var isPasswordVisible = false;
+  var isEyeOpen = true;
+  var eyeRect = null;
+  var targetX = 32, targetY = 32;
+  var currentX = 32, currentY = 32;
+  var EYE_MOVE_RADIUS = 5;
+
+  function updateEyeRect() {
+    if (eyeSvg) eyeRect = eyeSvg.getBoundingClientRect();
+  }
+
+  window.addEventListener('resize', updateEyeRect);
+  window.addEventListener('scroll', updateEyeRect, { passive: true });
+  setTimeout(updateEyeRect, 300);
+
+  document.addEventListener('mousemove', function(e) {
+    if (!eyeRect || !isEyeOpen) return;
+    var eyeCenterX = eyeRect.left + eyeRect.width / 2;
+    var eyeCenterY = eyeRect.top + eyeRect.height / 2;
+    var dx = e.clientX - eyeCenterX;
+    var dy = e.clientY - eyeCenterY;
+    var dist = Math.sqrt(dx * dx + dy * dy);
+    var maxDist = Math.max(window.innerWidth, window.innerHeight) * 0.5;
+    var factor = Math.min(dist / maxDist, 1);
+    var angle = Math.atan2(dy, dx);
+    targetX = 32 + Math.cos(angle) * EYE_MOVE_RADIUS * factor;
+    targetY = 32 + Math.sin(angle) * EYE_MOVE_RADIUS * factor;
+  });
+
+  function animateEye() {
+    if (isEyeOpen && iris && pupil && reflection) {
+      currentX += (targetX - currentX) * 0.18;
+      currentY += (targetY - currentY) * 0.18;
+      iris.setAttribute('cx', currentX.toFixed(2));
+      iris.setAttribute('cy', currentY.toFixed(2));
+      pupil.setAttribute('cx', currentX.toFixed(2));
+      pupil.setAttribute('cy', currentY.toFixed(2));
+      reflection.setAttribute('cx', (currentX - 3).toFixed(2));
+      reflection.setAttribute('cy', (currentY - 2.5).toFixed(2));
+    }
+    requestAnimationFrame(animateEye);
+  }
+  requestAnimationFrame(animateEye);
+
+  if (toggleBtn && passwordInput && eyeSvg && toggleBtn.dataset.eyeBound !== '1') {
+    toggleBtn.dataset.eyeBound = '1';
+    toggleBtn.addEventListener('click', function() {
+      isPasswordVisible = !isPasswordVisible;
+      if (isPasswordVisible) {
+        passwordInput.type = 'text';
+        eyeSvg.classList.add('is-closed');
+        isEyeOpen = false;
+      } else {
+        passwordInput.type = 'password';
+        eyeSvg.classList.remove('is-closed');
+        isEyeOpen = true;
+        updateEyeRect();
+      }
+    });
+  }
+
+  /* ── MODAL ── */
+  var modalEl       = document.getElementById('login-modal');
+  var modalPanelEl  = document.getElementById('login-modal-panel');
+  var modalKickerEl = document.getElementById('login-modal-kicker');
+  var modalTitleEl  = document.getElementById('login-modal-title');
+  var modalMessageEl= document.getElementById('login-modal-message');
+  var modalOkEl     = document.getElementById('login-modal-ok');
+  var modalCloseEl  = document.getElementById('login-modal-close');
+  var modalRedirect = '';
+
+  function closeModal() {
+    if (!modalEl || !modalPanelEl) return;
+    modalPanelEl.classList.remove('is-open');
+    setTimeout(function() {
+      modalEl.classList.remove('is-open', 'success', 'error');
+      modalEl.hidden = true;
+      if (modalRedirect) {
+        var url = modalRedirect;
+        modalRedirect = '';
+        window.location.href = url;
+      }
+    }, 200);
+  }
+
+  function openModal(opts) {
+    if (!modalEl || !modalPanelEl) return;
+    modalRedirect = opts.redirectTo || '';
+    if (modalTitleEl) modalTitleEl.textContent = opts.title || 'Error';
+    if (modalMessageEl) modalMessageEl.textContent = opts.message || '';
+    if (modalKickerEl) modalKickerEl.textContent = opts.type === 'success' ? 'Éxito' : 'Error';
+    if (modalOkEl) modalOkEl.textContent = opts.buttonText || 'Aceptar';
+    modalEl.hidden = false;
+    modalEl.classList.remove('success', 'error');
+    modalEl.classList.add('is-open', opts.type || 'error');
+    setTimeout(function() { modalPanelEl.classList.add('is-open'); }, 10);
+  }
+
+  if (modalOkEl) modalOkEl.addEventListener('click', closeModal);
+  if (modalCloseEl) modalCloseEl.addEventListener('click', closeModal);
+  if (modalEl) modalEl.addEventListener('click', function(e) { if (e.target === modalEl) closeModal(); });
+
+  // ── Feedback from email verification redirect ──
+  (function showVerificationFeedback() {
+    try {
+      var params = new URLSearchParams(window.location.search || '');
+      if (params.get('verified') === '1') {
+        openModal({
+          type: 'success',
+          title: 'Correo verificado',
+          message: 'Tu correo fue verificado correctamente. Ya puedes iniciar sesión.',
+          buttonText: 'Continuar',
+        });
+        return;
+      }
+
+      var loginError = params.get('loginError') || '';
+      if (loginError === 'missing') {
+        openModal({ type: 'error', title: 'Campos incompletos', message: 'Por favor completa correo y contrasena.', buttonText: 'Aceptar' });
+      } else if (loginError === 'invalid') {
+        openModal({ type: 'error', title: 'No se pudo iniciar sesion', message: 'Correo o contrasena incorrectos.', buttonText: 'Aceptar' });
+      } else if (loginError === 'verify-email') {
+        openModal({ type: 'error', title: 'Correo no verificado', message: 'Verifica tu correo electronico antes de iniciar sesion.', buttonText: 'Entendido' });
+      } else if (loginError === 'blocked') {
+        openModal({ type: 'error', title: 'Demasiados intentos', message: 'Tu acceso fue bloqueado temporalmente por seguridad. Intenta de nuevo en unos minutos.', buttonText: 'Aceptar' });
+      } else if (loginError === '2fa') {
+        openModal({ type: 'error', title: 'Verificacion adicional', message: 'Tu cuenta requiere un segundo factor. Inicia sesion desde el flujo principal para completar la verificacion.', buttonText: 'Aceptar' });
+      } else if (loginError === 'server') {
+        openModal({ type: 'error', title: 'Error interno', message: 'Ocurrio un error al iniciar sesion. Intenta nuevamente.', buttonText: 'Aceptar' });
+      }
+    } catch (_) {}
+  })();
+
+  /* ── ENCRIPTACIÓN RSA ── */
+  var cachedPublicKey = null;
+
+  async function fetchPublicKey() {
+    if (cachedPublicKey) return cachedPublicKey;
+    console.log('[login] Pidiendo llave pública...');
+    var res = await fetch('/api/public-key');
+    if (!res.ok) throw new Error('public-key respondió ' + res.status);
+    var json = await res.json();
+    if (!json.publicKey) throw new Error('No se recibió publicKey en JSON');
+    cachedPublicKey = json.publicKey;
+    console.log('[login] Llave pública recibida OK');
+    return cachedPublicKey;
+  }
+
+  async function importPublicKey(pem) {
+    var pemClean = pem
+      .replace(/-----BEGIN PUBLIC KEY-----/, '')
+      .replace(/-----END PUBLIC KEY-----/, '')
+      .replace(/[\n\r\s]/g, '');
+    var binaryStr = atob(pemClean);
+    var bytes = new Uint8Array(binaryStr.length);
+    for (var i = 0; i < binaryStr.length; i++) {
+      bytes[i] = binaryStr.charCodeAt(i);
+    }
+    return window.crypto.subtle.importKey(
+      'spki',
+      bytes.buffer,
+      { name: 'RSA-OAEP', hash: 'SHA-256' },
+      false,
+      ['encrypt']
+    );
+  }
+
+  async function encryptText(plainText, publicKeyPem) {
+    var key = await importPublicKey(publicKeyPem);
+    var encoded = new TextEncoder().encode(plainText);
+    var encrypted = await window.crypto.subtle.encrypt(
+      { name: 'RSA-OAEP' },
+      key,
+      encoded
+    );
+    var bytes = new Uint8Array(encrypted);
+    var binary = '';
+    for (var i = 0; i < bytes.length; i++) {
+      binary += String.fromCharCode(bytes[i]);
+    }
+    return btoa(binary);
+  }
+
+  /* ── CSRF helper ── */
+  function getCsrfToken() {
+    var match = document.cookie.match(/go_csrf=([^;]+)/);
+    return match ? match[1] : '';
+  }
+
+  /* ── FORM SUBMIT ── */
+  var correoInput     = document.getElementById('correo');
+  var contrasenaInput = document.getElementById('contrasena');
+  var submitBtn       = document.getElementById('submit-btn');
+
+  form.addEventListener('submit', async function(e) {
+    e.preventDefault();
+
+    var correo = correoInput ? correoInput.value : '';
+    var contrasena = contrasenaInput ? contrasenaInput.value : '';
+
+    if (!correo || !contrasena) {
+      openModal({ type: 'error', title: 'Campos incompletos', message: 'Por favor completa todos los campos.' });
+      return;
+    }
+
+    if (submitBtn) submitBtn.disabled = true;
+
+    try {
+      // Intentar encriptar la contraseña
+      var contrasenaFinal = contrasena;
+      try {
+        var publicKeyPem = await fetchPublicKey();
+        contrasenaFinal = await encryptText(contrasena, publicKeyPem);
+        console.log('[login] Contraseña encriptada OK (largo: ' + contrasenaFinal.length + ')');
+      } catch (encErr) {
+        console.warn('[login] Encriptación falló, enviando sin encriptar:', encErr.message);
+        // Si la encriptación falla, enviar sin encriptar (el backend lo maneja)
+      }
+
+      var formData = new FormData();
+      formData.append('correo', correo);
+      formData.append('contrasena', contrasenaFinal);
+
+      var response = await fetch('/api/login', {
+        method: 'POST',
+        body: formData,
+        credentials: 'include',
+        headers: { 'x-csrf-token': getCsrfToken() }
+      });
+
+      var data = await response.json();
+
+      if (response.ok && data.success) {
+        openModal({
+          type: 'success',
+          title: ('Bienvenido ' + (data.user.nombre || '')).trim(),
+          message: data.mustChangePassword ? 'Por seguridad, primero debes cambiar tu contraseña.' : 'Inicio de sesión exitoso.',
+          buttonText: 'Continuar',
+          redirectTo: data.redirectTo || ('/' + currentLang + '/'),
+        });
+        return;
+      }
+
+      openModal({
+        type: 'error',
+        title: 'No se pudo iniciar sesión',
+        message: data.error || 'Error al iniciar sesión',
+      });
+      if (submitBtn) submitBtn.disabled = false;
+    } catch (error) {
+      console.error('[login] Error general:', error);
+      cachedPublicKey = null;
+      openModal({
+        type: 'error',
+        title: 'Error de conexión',
+        message: 'Error de conexión. Por favor, intenta nuevamente.',
+      });
+      if (submitBtn) submitBtn.disabled = false;
+    }
+  });
+
+  /* ── SOLICITUD EMPRESA DESDE LOGIN ── */
+  var reqOpenBtn = document.getElementById('open-empresa-modal');
+  var reqModal = document.getElementById('empresa-request-modal');
+  var reqOverlay = document.getElementById('empresa-request-overlay');
+  var reqCloseBtn = document.getElementById('empresa-request-close');
+  var reqCancelBtn = document.getElementById('empresa-request-cancel');
+  var reqForm = document.getElementById('empresa-request-form');
+  var reqSubmitBtn = document.getElementById('empresa-request-submit');
+  var reqFeedback = document.getElementById('empresa-request-feedback');
+  var reqKycOpenBtn = document.getElementById('er-kyc-open');
+  var reqKycStatus = document.getElementById('er-kyc-status');
+
+  var kycModal = document.getElementById('empresa-kyc-modal');
+  var kycOverlay = document.getElementById('empresa-kyc-overlay');
+  var kycCloseBtn = document.getElementById('empresa-kyc-close');
+  var kycCancelBtn = document.getElementById('empresa-kyc-cancel');
+  var kycVideo = document.getElementById('empresa-kyc-video');
+  var kycCanvas = document.getElementById('empresa-kyc-canvas');
+  var kycPreview = document.getElementById('empresa-kyc-preview');
+  var kycFileInput = document.getElementById('empresa-kyc-file');
+  var kycUploadBtn = document.getElementById('empresa-kyc-upload');
+  var kycCaptureBtn = document.getElementById('empresa-kyc-capture');
+  var kycAcceptBtn = document.getElementById('empresa-kyc-accept');
+  var kycConfirmCheck = document.getElementById('empresa-kyc-confirm');
+  var kycFeedback = document.getElementById('empresa-kyc-feedback');
+
+  var kycStream = null;
+  var kycSnapshotDataUrl = '';
+  var kycCompleted = false;
+  var kycVideoReady = false;
+
+  function reqSetFeedback(msg, success) {
+    if (!reqFeedback) return;
+    if (!msg) {
+      reqFeedback.hidden = true;
+      reqFeedback.classList.remove('success');
+      reqFeedback.textContent = '';
+      return;
+    }
+    reqFeedback.hidden = false;
+    reqFeedback.textContent = msg;
+    reqFeedback.classList.toggle('success', !!success);
+  }
+
+  function openEmpresaRequestModal() {
+    if (!reqModal) return;
+    reqSetFeedback('');
+    reqModal.hidden = false;
+    document.body.style.overflow = 'hidden';
+    kycCompleted = false;
+    kycSnapshotDataUrl = '';
+    if (reqKycStatus) reqKycStatus.textContent = 'Estado KYC: pendiente';
+  }
+
+  function closeEmpresaRequestModal() {
+    if (!reqModal) return;
+    reqModal.hidden = true;
+    document.body.style.overflow = '';
+    if (reqForm) reqForm.reset();
+    reqSetFeedback('');
+    kycCompleted = false;
+    kycSnapshotDataUrl = '';
+    if (reqKycStatus) reqKycStatus.textContent = 'Estado KYC: pendiente';
+    closeKycModal();
+  }
+
+  function setKycFeedback(msg, success) {
+    if (!kycFeedback) return;
+    if (!msg) {
+      kycFeedback.hidden = true;
+      kycFeedback.classList.remove('success');
+      kycFeedback.textContent = '';
+      return;
+    }
+    kycFeedback.hidden = false;
+    kycFeedback.textContent = msg;
+    kycFeedback.classList.toggle('success', !!success);
+  }
+
+  function isSecureCameraContext() {
+    return !!window.isSecureContext;
+  }
+
+  function getReadableCameraError(err) {
+    var name = String(err && err.name || '');
+    if (name === 'NotAllowedError' || name === 'SecurityError') {
+      return 'No se dio permiso de camara. Habilitalo en tu navegador e intenta de nuevo.';
+    }
+    if (name === 'NotFoundError' || name === 'DevicesNotFoundError') {
+      return 'No se encontro ninguna camara disponible en este equipo.';
+    }
+    if (name === 'NotReadableError' || name === 'TrackStartError') {
+      return 'La camara esta siendo usada por otra app. Cierra esa app e intenta de nuevo.';
+    }
+    if (name === 'OverconstrainedError') {
+      return 'La configuracion de video no es compatible con tu camara.';
+    }
+    if (!isSecureCameraContext()) {
+      return 'La camara solo funciona en contexto seguro (HTTPS o localhost).';
+    }
+    return String(err && err.message || 'No se pudo abrir la camara biometrica.');
+  }
+
+  function waitForVideoReady(videoEl, timeoutMs) {
+    return new Promise(function(resolve, reject) {
+      if (!videoEl) {
+        reject(new Error('No se encontro el video de KYC.'));
+        return;
+      }
+      if (videoEl.videoWidth > 0 && videoEl.videoHeight > 0 && videoEl.readyState >= 2) {
+        resolve();
+        return;
+      }
+
+      var done = false;
+      var timeoutId = setTimeout(function() {
+        if (done) return;
+        done = true;
+        cleanup();
+        reject(new Error('La camara tardó demasiado en iniciar.'));
+      }, timeoutMs);
+
+      function cleanup() {
+        clearTimeout(timeoutId);
+        videoEl.removeEventListener('loadedmetadata', onReady);
+        videoEl.removeEventListener('canplay', onReady);
+      }
+
+      function onReady() {
+        if (done) return;
+        if (!(videoEl.videoWidth > 0 && videoEl.videoHeight > 0)) return;
+        done = true;
+        cleanup();
+        resolve();
+      }
+
+      videoEl.addEventListener('loadedmetadata', onReady);
+      videoEl.addEventListener('canplay', onReady);
+    });
+  }
+
+  function setCaptureEnabled(enabled) {
+    if (!kycCaptureBtn) return;
+    kycCaptureBtn.disabled = !enabled;
+    kycCaptureBtn.textContent = enabled ? 'Tomar captura' : 'Iniciando camara...';
+  }
+
+  async function startKycCamera() {
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      throw new Error('Tu navegador no soporta camara biometrica.');
+    }
+    if (!isSecureCameraContext()) {
+      throw new Error('La camara solo funciona en HTTPS o localhost.');
+    }
+    stopKycCamera();
+    kycVideoReady = false;
+    setCaptureEnabled(false);
+    kycStream = await navigator.mediaDevices.getUserMedia({
+      video: {
+        facingMode: 'user',
+        width: { ideal: 1280 },
+        height: { ideal: 720 },
+      },
+      audio: false,
+    });
+    if (kycVideo) {
+      kycVideo.srcObject = kycStream;
+      await kycVideo.play();
+      await waitForVideoReady(kycVideo, 8000);
+      kycVideoReady = true;
+      setCaptureEnabled(true);
+    }
+  }
+
+  function stopKycCamera() {
+    if (kycStream) {
+      kycStream.getTracks().forEach(function(track) { track.stop(); });
+      kycStream = null;
+    }
+    if (kycVideo) kycVideo.srcObject = null;
+    kycVideoReady = false;
+    setCaptureEnabled(false);
+  }
+
+  async function openKycModal() {
+    if (!kycModal) return;
+    setKycFeedback('');
+    if (kycPreview) {
+      kycPreview.hidden = true;
+      kycPreview.removeAttribute('src');
+      kycPreview.style.display = 'none';
+    }
+    if (kycAcceptBtn) kycAcceptBtn.disabled = true;
+    if (kycConfirmCheck) kycConfirmCheck.checked = false;
+    setCaptureEnabled(false);
+
+    kycModal.hidden = false;
+    document.body.style.overflow = 'hidden';
+
+    try {
+      await startKycCamera();
+      setKycFeedback('Camara activa. Coloca tu rostro centrado y toma captura.', true);
+    } catch (err) {
+      setKycFeedback(getReadableCameraError(err));
+    }
+  }
+
+  function closeKycModal() {
+    if (!kycModal) return;
+    stopKycCamera();
+    kycModal.hidden = true;
+    if (reqModal && !reqModal.hidden) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+  }
+
+  function captureKycSnapshot() {
+    if (!kycVideo || !kycCanvas) {
+      setKycFeedback('No se encontro superficie de captura.');
+      return;
+    }
+
+    var width = kycVideo.videoWidth || 0;
+    var height = kycVideo.videoHeight || 0;
+    if (!kycVideoReady || !width || !height || kycVideo.readyState < 2) {
+      setKycFeedback('Espera a que la camara cargue y vuelve a intentar.');
+      return;
+    }
+
+    kycCanvas.width = width;
+    kycCanvas.height = height;
+    var ctx = kycCanvas.getContext('2d');
+    ctx.drawImage(kycVideo, 0, 0, width, height);
+    kycSnapshotDataUrl = kycCanvas.toDataURL('image/jpeg', 0.88);
+
+    if (kycPreview) {
+      kycPreview.src = kycSnapshotDataUrl;
+      kycPreview.hidden = false;
+      kycPreview.style.display = 'block';
+    }
+
+    if (kycAcceptBtn) kycAcceptBtn.disabled = false;
+    setKycFeedback('Captura tomada. Marca el checkbox y confirma.', true);
+  }
+
+  function onKycUploadClick() {
+    if (kycFileInput) kycFileInput.click();
+  }
+
+  function onKycFileSelected(ev) {
+    var file = ev && ev.target && ev.target.files ? ev.target.files[0] : null;
+    if (!file) return;
+    if (!/^image\//i.test(String(file.type || ''))) {
+      setKycFeedback('Solo se permiten imagenes para selfie.');
+      return;
+    }
+
+    var reader = new FileReader();
+    reader.onload = function() {
+      kycSnapshotDataUrl = String(reader.result || '');
+      if (!kycSnapshotDataUrl) {
+        setKycFeedback('No se pudo procesar la selfie. Intenta otro archivo.');
+        return;
+      }
+      if (kycPreview) {
+        kycPreview.src = kycSnapshotDataUrl;
+        kycPreview.hidden = false;
+        kycPreview.style.display = 'block';
+      }
+      if (kycAcceptBtn) kycAcceptBtn.disabled = false;
+      setKycFeedback('Selfie cargada. Marca el checkbox y confirma.', true);
+    };
+    reader.onerror = function() {
+      setKycFeedback('No se pudo leer la imagen seleccionada.');
+    };
+    reader.readAsDataURL(file);
+  }
+
+  async function completeKycLocalValidation() {
+    if (!kycSnapshotDataUrl) {
+      setKycFeedback('Primero toma una captura.');
+      return;
+    }
+    if (!kycConfirmCheck || !kycConfirmCheck.checked) {
+      setKycFeedback('Debes confirmar autorizacion biometrica.');
+      return;
+    }
+
+    kycCompleted = true;
+    if (reqKycStatus) reqKycStatus.textContent = 'Estado KYC: validacion local completada';
+    setKycFeedback('Verificacion local completada. Puedes enviar la solicitud.', true);
+    closeKycModal();
+  }
+
+  async function uploadEmpresaDoc(file, tipo) {
+    var fd = new FormData();
+    fd.append('file', file);
+    fd.append('tipoDocumento', tipo);
+
+    var res = await fetch('/api/admin/empresas/documentos/upload', {
+      method: 'POST',
+      credentials: 'include',
+      headers: {
+        'x-public-company-request': '1',
+        'x-csrf-token': getCsrfToken(),
+      },
+      body: fd,
+    });
+    var data = await res.json().catch(function(){ return {}; });
+    if (!res.ok || !data.success || !data.documento || !data.documento.url) {
+      var detail = data && data.detail ? String(data.detail) : '';
+      var base = data && data.error ? String(data.error) : ('No se pudo subir ' + tipo);
+      throw new Error(detail ? (base + ': ' + detail) : base);
+    }
+    return {
+      tipo: tipo,
+      url: String(data.documento.url || ''),
+      public_id: String(data.documento.publicId || ''),
+      resource_type: String(data.documento.resourceType || ''),
+      format: String(data.documento.format || ''),
+      mime_type: String(file.type || ''),
+      nombre_archivo: String(file.name || ''),
+      size_bytes: Number(file.size || 0),
+    };
+  }
+
+  function dataUrlToFile(dataUrl, fileName) {
+    var raw = String(dataUrl || '');
+    var match = raw.match(/^data:([^;]+);base64,(.+)$/);
+    if (!match) throw new Error('Selfie biometrica invalida. Vuelve a capturar la foto.');
+
+    var mime = String(match[1] || 'image/jpeg').toLowerCase();
+    var b64 = String(match[2] || '');
+    var binary = atob(b64);
+    var len = binary.length;
+    var bytes = new Uint8Array(len);
+    for (var i = 0; i < len; i++) bytes[i] = binary.charCodeAt(i);
+
+    var ext = 'jpg';
+    if (mime === 'image/png') ext = 'png';
+    if (mime === 'image/webp') ext = 'webp';
+    var safeName = (fileName || 'selfie_biometrica') + '.' + ext;
+    return new File([bytes], safeName, { type: mime });
+  }
+
+  async function uploadPrivateBiometricEvidence(solicitudId, correo, selfieDataUrl) {
+    var res = await fetch('/api/register-empresa/biometria', {
+      method: 'POST',
+      credentials: 'include',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-public-company-request': '1',
+        'x-csrf-token': getCsrfToken(),
+      },
+      body: JSON.stringify({
+        solicitudId: solicitudId,
+        correo: correo,
+        selfieDataUrl: selfieDataUrl,
+        consentimientoAceptado: true,
+        consentimientoTexto: 'Acepto tratamiento de biometria para validacion de identidad de representante legal.',
+        retentionDays: 90,
+      }),
+    });
+    var data = await res.json().catch(function(){ return {}; });
+    if (!res.ok || !data.success) {
+      throw new Error(data.error || 'No se pudo guardar evidencia biometrica privada.');
+    }
+    return data;
+  }
+
+  if (reqOpenBtn) reqOpenBtn.addEventListener('click', openEmpresaRequestModal);
+  if (reqCloseBtn) reqCloseBtn.addEventListener('click', closeEmpresaRequestModal);
+  if (reqCancelBtn) reqCancelBtn.addEventListener('click', closeEmpresaRequestModal);
+  if (reqOverlay) reqOverlay.addEventListener('click', closeEmpresaRequestModal);
+  if (reqKycOpenBtn) reqKycOpenBtn.addEventListener('click', openKycModal);
+  if (kycCloseBtn) kycCloseBtn.addEventListener('click', closeKycModal);
+  if (kycCancelBtn) kycCancelBtn.addEventListener('click', closeKycModal);
+  if (kycOverlay) kycOverlay.addEventListener('click', closeKycModal);
+  if (kycUploadBtn) kycUploadBtn.addEventListener('click', onKycUploadClick);
+  if (kycFileInput) kycFileInput.addEventListener('change', onKycFileSelected);
+  if (kycCaptureBtn) kycCaptureBtn.addEventListener('click', captureKycSnapshot);
+  if (kycAcceptBtn) kycAcceptBtn.addEventListener('click', completeKycLocalValidation);
+
+  document.addEventListener('keydown', function(ev) {
+    if (ev.key === 'Escape' && reqModal && !reqModal.hidden) closeEmpresaRequestModal();
+    if (ev.key === 'Escape' && kycModal && !kycModal.hidden) closeKycModal();
+  });
+
+  if (reqForm) {
+    reqForm.addEventListener('submit', async function(ev) {
+      ev.preventDefault();
+      reqSetFeedback('');
+
+      var payload = {
+        nombre_empresa: (document.getElementById('er-nombre')?.value || '').trim(),
+        rfc: (document.getElementById('er-rfc')?.value || '').trim(),
+        descripcion: (document.getElementById('er-desc')?.value || '').trim(),
+        sitio_web: (document.getElementById('er-sitio')?.value || '').trim(),
+        razon_social: ((document.getElementById('er-razon')?.value || '').trim()).toUpperCase(),
+        regimen_fiscal: (document.getElementById('er-regimen')?.value || '').trim(),
+        codigo_postal_fiscal: (document.getElementById('er-cp-fiscal')?.value || '').trim(),
+        numero_casa: Number(document.getElementById('er-numero')?.value || 0),
+        codigo_postal: Number(document.getElementById('er-cp')?.value || 0),
+        calle: (document.getElementById('er-calle')?.value || '').trim(),
+        ciudad: (document.getElementById('er-ciudad')?.value || '').trim(),
+        provincia: (document.getElementById('er-provincia')?.value || '').trim(),
+        pais: (document.getElementById('er-pais')?.value || '').trim() || 'Mexico',
+        admin_nombre: (document.getElementById('er-admin-nombre')?.value || '').trim(),
+        admin_apellido: (document.getElementById('er-admin-apellido')?.value || '').trim(),
+        admin_apellido_materno: (document.getElementById('er-admin-apellido-m')?.value || '').trim(),
+        admin_correo: (document.getElementById('er-admin-correo')?.value || '').trim(),
+        admin_telefono: (document.getElementById('er-admin-tel')?.value || '').trim(),
+      };
+
+      var fActa = document.getElementById('er-doc-acta')?.files?.[0];
+      var fIne = document.getElementById('er-doc-ine')?.files?.[0];
+      var fConst = document.getElementById('er-doc-constancia')?.files?.[0];
+
+      if (!payload.nombre_empresa || !payload.razon_social || !payload.regimen_fiscal || !payload.admin_nombre || !payload.admin_apellido || !payload.admin_correo) {
+        reqSetFeedback('Completa empresa, datos fiscales y datos del administrador obligatorios.');
+        return;
+      }
+      if (!/^\d{5}$/.test(payload.codigo_postal_fiscal)) {
+        reqSetFeedback('El CP fiscal debe tener 5 digitos.');
+        return;
+      }
+      if (!payload.numero_casa || !payload.calle || !payload.codigo_postal || !payload.ciudad || !payload.provincia) {
+        reqSetFeedback('Completa la direccion de recoleccion.');
+        return;
+      }
+      if (!fActa || !fIne || !fConst) {
+        reqSetFeedback('Debes subir acta constitutiva, INE y constancia fiscal.');
+        return;
+      }
+      if (!kycCompleted) {
+        reqSetFeedback('Completa primero la verificacion biometrica del representante.');
+        return;
+      }
+
+      if (reqSubmitBtn) {
+        reqSubmitBtn.disabled = true;
+        reqSubmitBtn.textContent = 'Enviando...';
+      }
+
+      try {
+        if (!kycSnapshotDataUrl) {
+          throw new Error('No se encontro selfie biometrica. Completa nuevamente la verificacion KYC.');
+        }
+
+        reqSetFeedback('Subiendo documentos...');
+        var dActa = await uploadEmpresaDoc(fActa, 'ACTA_CONSTITUTIVA');
+        var dIne = await uploadEmpresaDoc(fIne, 'INE_REPRESENTANTE');
+        var dConst = await uploadEmpresaDoc(fConst, 'CONSTANCIA_FISCAL');
+        // Politica de privacidad: selfie biometrica no se persiste en servidor.
+        payload.documentos = [dActa, dIne, dConst];
+
+        reqSetFeedback('Registrando solicitud...');
+        var res = await fetch('/api/admin/empresas', {
+          method: 'POST',
+          credentials: 'include',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-public-company-request': '1',
+            'x-csrf-token': getCsrfToken(),
+          },
+          body: JSON.stringify(payload),
+        });
+        var data = await res.json().catch(function(){ return {}; });
+
+        if (!res.ok || !data.success) {
+          throw new Error(data.error || 'No se pudo registrar la solicitud');
+        }
+
+        var solicitudId = Number(data.solicitudId || 0);
+        if (solicitudId > 0) {
+          var correoKyc = payload.admin_correo;
+          reqSetFeedback('Guardando evidencia biometrica segura...');
+          await uploadPrivateBiometricEvidence(solicitudId, correoKyc, kycSnapshotDataUrl);
+
+          var startRes = await fetch('/api/register-empresa/kyc', {
+            method: 'POST',
+            credentials: 'include',
+            headers: {
+              'Content-Type': 'application/json',
+              'x-public-company-request': '1',
+              'x-csrf-token': getCsrfToken(),
+            },
+            body: JSON.stringify({
+              solicitudId: solicitudId,
+              correo: correoKyc,
+              proveedor: 'manual_superusuario',
+              payloadProveedor: {
+                snapshotTaken: !!kycSnapshotDataUrl,
+                evidenceStored: true,
+              },
+            }),
+          });
+          var startData = await startRes.json().catch(function(){ return {}; });
+          if (!startRes.ok || !startData.success) {
+            throw new Error(startData.error || 'No se pudo iniciar KYC de la solicitud.');
+          }
+
+          var finishRes = await fetch('/api/register-empresa/kyc', {
+            method: 'PUT',
+            credentials: 'include',
+            headers: {
+              'Content-Type': 'application/json',
+              'x-public-company-request': '1',
+              'x-csrf-token': getCsrfToken(),
+            },
+            body: JSON.stringify({
+              solicitudId: solicitudId,
+              correo: correoKyc,
+              proveedor: 'manual_superusuario',
+              estado: 'en_proceso',
+              biometriaValida: null,
+              documentoValido: null,
+              fraudeSospecha: null,
+              scoreComparacion: null,
+              livenessScore: null,
+              payloadProveedor: {
+                mode: 'private_biometric_evidence',
+                snapshotBytes: kycSnapshotDataUrl.length,
+                pendingManualReview: true,
+              },
+            }),
+          });
+          var finishData = await finishRes.json().catch(function(){ return {}; });
+          if (!finishRes.ok || !finishData.success) {
+            throw new Error(finishData.error || 'No se pudo completar KYC de la solicitud.');
+          }
+        }
+
+        closeEmpresaRequestModal();
+        openModal({
+          type: 'success',
+          title: 'Solicitud enviada',
+          message: 'Tu solicitud empresarial fue registrada. La validacion biometrica queda en revision segura por superusuario.',
+          buttonText: 'Entendido',
+        });
+      } catch (err) {
+        reqSetFeedback(err.message || 'Error al enviar la solicitud. Intenta de nuevo.');
+      } finally {
+        if (reqSubmitBtn) {
+          reqSubmitBtn.disabled = false;
+          reqSubmitBtn.textContent = 'Enviar solicitud';
+        }
+      }
+    });
+  }
+
+}
+
+initLoginPage();
+document.addEventListener('astro:page-load', initLoginPage);
+</script>
+
+</AuthLayout>

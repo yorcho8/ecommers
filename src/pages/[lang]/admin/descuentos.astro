@@ -1,0 +1,1377 @@
+﻿---
+import BaseLayout from "../../../layouts/BaseLayout.astro";
+export function getStaticPaths() {
+  return [{ params: { lang: "es" } }];
+}
+
+const currentLang = "es";
+const cspNonce = Astro.locals?.cspNonce || "";
+
+const role = String(Astro.locals?.user?.rol || "").trim().toLowerCase().replace(/[\s_-]/g, "")
+  .replace(/^superadmin$|^superuser$|^superusuario$/, "superusuario");
+
+if (!role) return Astro.redirect(`/${currentLang}/login`);
+if (role !== "admin" && role !== "superusuario") return Astro.redirect(`/${currentLang}`);
+---
+
+<BaseLayout title="Panel Admin | Descuentos" currentLang={currentLang}>
+  <style>
+    /* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+       ADMIN DESCUENTOS â€” PREMIUM DARK THEME (Admin = Purple)
+       Matches go-platform glassmorphism design system
+       â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
+
+    .da {
+      --da-bg: #0b0e14;
+      --da-surface: rgba(18,22,31,.8);
+      --da-surface-solid: #12161f;
+      --da-surface-2: #181d28;
+      --da-surface-3: #1e2433;
+      --da-border: rgba(255,255,255,.07);
+      --da-border-hover: rgba(255,255,255,.14);
+      --da-text: #f0f2f5;
+      --da-text-2: #8b95a5;
+      --da-text-3: #5a6478;
+      --da-accent: #a855f7;
+      --da-accent-hover: #c084fc;
+      --da-accent-glow: rgba(168,85,247,.15);
+      --da-accent-glow-s: rgba(168,85,247,.3);
+      --da-accent-border: rgba(168,85,247,.3);
+      --da-green: #22c55e;
+      --da-green-bg: rgba(34,197,94,.1);
+      --da-green-border: rgba(34,197,94,.25);
+      --da-red: #ef4444;
+      --da-red-bg: rgba(239,68,68,.08);
+      --da-red-border: rgba(239,68,68,.2);
+      --da-amber: #f59e0b;
+      --da-amber-bg: rgba(245,158,11,.1);
+      --da-radius: 16px;
+      --da-radius-sm: 10px;
+      --da-shadow: 0 2px 8px rgba(0,0,0,.2), 0 0 0 1px rgba(255,255,255,.04);
+      --da-shadow-lg: 0 8px 32px rgba(0,0,0,.35), 0 0 0 1px rgba(255,255,255,.05);
+
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 40px 24px 80px;
+      color: var(--da-text);
+      font-family: var(--fuente-cuerpo, 'NeueMontreal', 'Inter', -apple-system, sans-serif);
+      position: relative;
+      animation: da-pageIn .4s ease;
+    }
+
+    @keyframes da-pageIn {
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* â”€â”€ Ambient Glows (Purple for admin) â”€â”€ */
+    .da::before {
+      content: '';
+      position: fixed;
+      top: -200px;
+      right: -200px;
+      width: 600px;
+      height: 600px;
+      background: radial-gradient(circle, rgba(168,85,247,.07) 0%, transparent 70%);
+      pointer-events: none;
+      z-index: 0;
+    }
+    .da::after {
+      content: '';
+      position: fixed;
+      bottom: -150px;
+      left: -150px;
+      width: 400px;
+      height: 400px;
+      background: radial-gradient(circle, rgba(139,92,246,.05) 0%, transparent 70%);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .da > * { position: relative; z-index: 1; }
+
+    /* â•â•â•â•â•â•â•â•â•â•â• HERO â•â•â•â•â•â•â•â•â•â•â• */
+    .da-hero {
+      background: var(--da-surface);
+      backdrop-filter: blur(20px);
+      border: 1px solid var(--da-border);
+      border-radius: var(--da-radius);
+      padding: 28px;
+      margin-bottom: 20px;
+      display: grid;
+      grid-template-columns: 1.3fr 1fr;
+      gap: 24px;
+      box-shadow: var(--da-shadow-lg);
+      overflow: hidden;
+      position: relative;
+    }
+    .da-hero::before {
+      content: '';
+      position: absolute;
+      top: -80px;
+      right: -80px;
+      width: 250px;
+      height: 250px;
+      background: radial-gradient(circle, rgba(168,85,247,.1) 0%, transparent 70%);
+      pointer-events: none;
+    }
+
+    .da-hero__kicker {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 12px;
+      border-radius: 24px;
+      border: 1px solid var(--da-accent-border);
+      background: var(--da-accent-glow);
+      color: var(--da-accent-hover);
+      font-size: 10px;
+      font-weight: 800;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+      width: fit-content;
+    }
+
+    .da-hero__title {
+      margin: 14px 0 10px;
+      font-size: clamp(1.6rem, 3vw, 2.2rem);
+      font-weight: 800;
+      line-height: 1.1;
+      letter-spacing: -.02em;
+      background: linear-gradient(135deg, #fff 0%, #c4b5fd 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .da-hero__sub {
+      margin: 0;
+      font-size: 14px;
+      line-height: 1.6;
+      color: var(--da-text-2);
+      max-width: 520px;
+    }
+
+    /* â”€â”€ Stats Grid â”€â”€ */
+    .da-stats {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 10px;
+      align-content: start;
+    }
+
+    .da-stat {
+      padding: 14px 16px;
+      background: rgba(255,255,255,.03);
+      border: 1px solid var(--da-border);
+      border-radius: 14px;
+      transition: all .25s ease;
+    }
+    .da-stat:hover {
+      border-color: var(--da-border-hover);
+      transform: translateY(-2px);
+      box-shadow: var(--da-shadow);
+    }
+
+    .da-stat__value {
+      font-size: 22px;
+      font-weight: 800;
+      color: var(--da-text);
+      line-height: 1;
+      margin-bottom: 4px;
+    }
+    .da-stat__label {
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: .08em;
+      color: var(--da-text-3);
+      font-weight: 700;
+    }
+
+    /* â•â•â•â•â•â•â•â•â•â•â• HEADER ROW â•â•â•â•â•â•â•â•â•â•â• */
+    .da-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      gap: 16px;
+      margin-bottom: 14px;
+      flex-wrap: wrap;
+    }
+
+    .da-header__title {
+      margin: 0;
+      font-size: clamp(1.2rem, 2.5vw, 1.6rem);
+      font-weight: 800;
+      color: var(--da-text);
+    }
+    .da-header__sub {
+      margin: 4px 0 0;
+      color: var(--da-text-2);
+      font-size: 13px;
+    }
+
+    .da-company-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      border: 1px solid var(--da-accent-border);
+      color: var(--da-accent-hover);
+      background: var(--da-accent-glow);
+      border-radius: 24px;
+      padding: 7px 14px;
+      font-size: 12px;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+    .da-company-pill svg { width: 14px; height: 14px; }
+
+    /* â•â•â•â•â•â•â•â•â•â•â• PANEL â•â•â•â•â•â•â•â•â•â•â• */
+    .da-panel {
+      background: var(--da-surface);
+      backdrop-filter: blur(20px);
+      border: 1px solid var(--da-border);
+      border-radius: var(--da-radius);
+      box-shadow: var(--da-shadow-lg);
+      padding: 20px;
+    }
+
+    /* â”€â”€ Alert â”€â”€ */
+    .da-alert {
+      display: none;
+      border-radius: var(--da-radius-sm);
+      padding: 10px 14px;
+      font-size: 13px;
+      font-weight: 700;
+      margin-bottom: 12px;
+      animation: da-slideIn .25s ease;
+    }
+    @keyframes da-slideIn {
+      from { opacity: 0; transform: translateY(-4px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .da-alert.ok {
+      display: block;
+      border: 1px solid var(--da-green-border);
+      color: var(--da-green);
+      background: var(--da-green-bg);
+    }
+    .da-alert.error {
+      display: block;
+      border: 1px solid var(--da-red-border);
+      color: var(--da-red);
+      background: var(--da-red-bg);
+    }
+
+    /* â”€â”€ Toolbar â”€â”€ */
+    .da-toolbar {
+      display: grid;
+      grid-template-columns: minmax(220px, 1fr) auto auto auto;
+      gap: 8px;
+      align-items: center;
+      margin-bottom: 14px;
+    }
+
+    .da-field {
+      width: 100%;
+      border-radius: var(--da-radius-sm);
+      border: 1.5px solid var(--da-border);
+      background: rgba(255,255,255,.03);
+      color: var(--da-text);
+      padding: 10px 14px;
+      outline: none;
+      font-size: 13px;
+      font-family: inherit;
+      box-sizing: border-box;
+      transition: border-color .2s ease, box-shadow .2s ease;
+    }
+    .da-field:focus {
+      border-color: rgba(168,85,247,.5);
+      box-shadow: 0 0 0 3px rgba(168,85,247,.1);
+    }
+    .da-field::placeholder { color: var(--da-text-3); }
+
+    .da-chip {
+      border-radius: 24px;
+      border: 1px solid var(--da-border);
+      background: rgba(255,255,255,.03);
+      color: var(--da-text-2);
+      padding: 9px 16px;
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all .2s ease;
+      white-space: nowrap;
+      font-family: inherit;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .da-chip:hover {
+      border-color: var(--da-accent-border);
+      color: var(--da-accent-hover);
+      transform: translateY(-1px);
+    }
+    .da-chip.primary {
+      border-color: var(--da-accent-border);
+      background: var(--da-accent-glow);
+      color: var(--da-accent-hover);
+    }
+    .da-chip.primary:hover {
+      background: var(--da-accent-glow-s);
+      box-shadow: 0 4px 16px rgba(168,85,247,.2);
+    }
+
+    /* â•â•â•â•â•â•â•â•â•â•â• TABLE â•â•â•â•â•â•â•â•â•â•â• */
+    .da-table-wrap {
+      border: 1px solid var(--da-border);
+      border-radius: 14px;
+      overflow: auto;
+      max-height: 68vh;
+    }
+
+    .da-table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 860px;
+      font-size: 13px;
+    }
+
+    .da-table thead th {
+      position: sticky;
+      top: 0;
+      z-index: 2;
+      background: var(--da-surface-solid);
+      color: var(--da-text-2);
+      text-transform: uppercase;
+      letter-spacing: .07em;
+      font-size: 10px;
+      font-weight: 800;
+      padding: 14px 12px;
+      border-bottom: 1px solid var(--da-border);
+      text-align: left;
+      white-space: nowrap;
+    }
+
+    .da-table th.sortable {
+      cursor: pointer;
+      user-select: none;
+      transition: color .2s ease;
+    }
+    .da-table th.sortable:hover { color: var(--da-accent-hover); }
+    .da-table th.sortable .sort-ind {
+      margin-left: 4px;
+      color: var(--da-text-3);
+      font-size: 11px;
+      transition: color .2s ease;
+    }
+    .da-table th.sortable.active .sort-ind { color: var(--da-accent); }
+
+    .da-table tbody tr {
+      border-bottom: 1px solid rgba(255,255,255,.04);
+      animation: da-rowIn .3s ease both;
+      animation-delay: var(--delay, 0ms);
+      transition: background .2s ease;
+    }
+    @keyframes da-rowIn {
+      from { opacity: 0; transform: translateY(6px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .da-table tbody tr:hover {
+      background: rgba(168,85,247,.04);
+    }
+
+    .da-table td {
+      padding: 12px;
+      vertical-align: middle;
+      color: var(--da-text);
+    }
+
+    /* â”€â”€ Product Cell â”€â”€ */
+    :global(.da .product-cell) {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      min-width: 260px;
+    }
+    :global(.da .product-cell img),
+    :global(.da .ph) {
+      width: 52px !important;
+      height: 52px !important;
+      min-width: 52px;
+      min-height: 52px;
+      max-width: 52px;
+      max-height: 52px;
+      border-radius: 12px;
+      object-fit: cover;
+      background: var(--da-surface-2);
+      border: 1px solid var(--da-border);
+      flex-shrink: 0;
+      display: block;
+      overflow: hidden;
+      transition: transform .3s ease;
+    }
+    :global(.da-table tbody tr:hover .product-cell img) {
+      transform: scale(1.06);
+    }
+    :global(.da .ph) {
+      display: grid;
+      place-items: center;
+      color: var(--da-text-3);
+      font-size: 18px;
+    }
+    :global(.da .pname) {
+      font-weight: 700;
+      color: var(--da-text);
+      margin-bottom: 2px;
+      max-width: 300px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      font-size: 13px;
+    }
+    :global(.da .pid) {
+      color: var(--da-text-3);
+      font-size: 11px;
+    }
+
+    /* â”€â”€ Price â”€â”€ */
+    :global(.da .price-old) {
+      text-decoration: line-through;
+      color: var(--da-text-3);
+      font-size: 12px;
+      margin-right: 6px;
+    }
+    :global(.da .price-final) {
+      color: var(--da-text);
+      font-weight: 800;
+      font-size: 14px;
+    }
+
+    /* â”€â”€ Tags â”€â”€ */
+    :global(.da .tag) {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      border-radius: 8px;
+      padding: 3px 10px;
+      font-size: 11px;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+    :global(.da .tag.on) {
+      border: 1px solid var(--da-accent-border);
+      background: var(--da-accent-glow);
+      color: var(--da-accent-hover);
+    }
+    :global(.da .tag.off) {
+      border: 1px solid var(--da-border);
+      color: var(--da-text-3);
+      background: rgba(255,255,255,.02);
+    }
+
+    /* â”€â”€ Action Buttons â”€â”€ */
+    :global(.da .actions) {
+      display: flex;
+      gap: 6px;
+      justify-content: flex-end;
+      flex-wrap: wrap;
+    }
+    :global(.da .action-btn) {
+      border: 1px solid var(--da-border);
+      background: rgba(255,255,255,.03);
+      color: var(--da-text-2);
+      border-radius: var(--da-radius-sm);
+      padding: 7px 12px;
+      font-size: 11px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all .2s ease;
+      font-family: inherit;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+    :global(.da .action-btn:hover) {
+      transform: translateY(-1px);
+      border-color: var(--da-accent-border);
+      color: var(--da-accent-hover);
+      background: var(--da-accent-glow);
+    }
+    :global(.da .action-btn.warn) {
+      border-color: var(--da-red-border);
+      color: var(--da-red);
+      background: var(--da-red-bg);
+    }
+    :global(.da .action-btn.warn:hover) {
+      box-shadow: 0 2px 8px rgba(239,68,68,.15);
+    }
+
+    /* â”€â”€ Empty â”€â”€ */
+    .da-empty {
+      border-radius: 12px;
+      border: 1px dashed var(--da-border);
+      padding: 40px 20px;
+      text-align: center;
+      color: var(--da-text-2);
+      font-size: 14px;
+      background: rgba(255,255,255,.02);
+      margin: 8px;
+    }
+
+    /* â•â•â•â•â•â•â•â•â•â•â• MODAL â•â•â•â•â•â•â•â•â•â•â• */
+    .da-modal-bg {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,.6);
+      backdrop-filter: blur(6px);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 10050;
+      padding: 20px;
+    }
+    .da-modal-bg.open {
+      display: flex;
+      animation: da-fadeIn .2s ease;
+    }
+    @keyframes da-fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+
+    .da-modal {
+      width: min(640px, 100%);
+      border-radius: 20px;
+      border: 1px solid var(--da-border);
+      background: var(--da-surface-solid);
+      box-shadow: 0 24px 64px rgba(0,0,0,.5), 0 0 0 1px rgba(168,85,247,.08);
+      overflow: hidden;
+      animation: da-modalIn .25s cubic-bezier(.2,.9,.2,1);
+    }
+    @keyframes da-modalIn {
+      from { transform: translateY(12px) scale(.98); opacity: 0; }
+      to { transform: translateY(0) scale(1); opacity: 1; }
+    }
+
+    .da-modal__head {
+      padding: 20px 22px;
+      border-bottom: 1px solid var(--da-border);
+      display: flex;
+      align-items: start;
+      justify-content: space-between;
+      gap: 12px;
+      background: rgba(168,85,247,.03);
+    }
+
+    .da-modal__title {
+      margin: 0;
+      font-size: 16px;
+      font-weight: 800;
+      color: var(--da-text);
+    }
+    .da-modal__sub {
+      margin: 4px 0 0;
+      font-size: 12px;
+      color: var(--da-text-2);
+    }
+
+    .da-modal__close {
+      width: 32px;
+      height: 32px;
+      border-radius: 10px;
+      border: 1px solid var(--da-border);
+      background: rgba(255,255,255,.03);
+      color: var(--da-text-2);
+      font-size: 16px;
+      cursor: pointer;
+      display: grid;
+      place-items: center;
+      transition: all .2s ease;
+      flex-shrink: 0;
+    }
+    .da-modal__close:hover {
+      border-color: var(--da-accent-border);
+      color: var(--da-accent-hover);
+    }
+
+    .da-modal__body {
+      padding: 18px 22px 14px;
+      display: grid;
+      gap: 14px;
+    }
+
+    .da-grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    .da-mfield label {
+      display: block;
+      margin-bottom: 6px;
+      font-size: 10px;
+      color: var(--da-text-2);
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      font-weight: 800;
+    }
+    .da-mfield input,
+    .da-mfield select {
+      width: 100%;
+      border-radius: var(--da-radius-sm);
+      border: 1.5px solid var(--da-border);
+      background: rgba(255,255,255,.03);
+      color: var(--da-text);
+      padding: 10px 12px;
+      outline: none;
+      box-sizing: border-box;
+      font-size: 13px;
+      font-family: inherit;
+      transition: border-color .2s ease, box-shadow .2s ease;
+    }
+    .da-mfield input:focus,
+    .da-mfield select:focus {
+      border-color: rgba(168,85,247,.5);
+      box-shadow: 0 0 0 3px rgba(168,85,247,.1);
+    }
+
+    .da-presets {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+    .da-presets button {
+      border: 1px solid var(--da-border);
+      background: rgba(255,255,255,.03);
+      color: var(--da-text-2);
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: 700;
+      padding: 5px 12px;
+      cursor: pointer;
+      font-family: inherit;
+      transition: all .2s ease;
+    }
+    .da-presets button:hover {
+      border-color: var(--da-accent-border);
+      color: var(--da-accent-hover);
+      background: var(--da-accent-glow);
+    }
+
+    .da-preview {
+      border: 1px solid var(--da-accent-border);
+      border-radius: 14px;
+      background: var(--da-accent-glow);
+      padding: 14px 16px;
+      display: grid;
+      gap: 4px;
+    }
+    .da-preview__main {
+      font-weight: 800;
+      font-size: 16px;
+      color: var(--da-text);
+    }
+    .da-preview__sub {
+      color: var(--da-text-2);
+      font-size: 12px;
+    }
+
+    .da-modal__actions {
+      padding: 14px 22px 18px;
+      border-top: 1px solid var(--da-border);
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .da-btn {
+      border: 1px solid transparent;
+      border-radius: 12px;
+      padding: 11px 20px;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all .2s ease;
+      min-width: 130px;
+      font-family: inherit;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+    .da-btn:hover { filter: brightness(1.08); transform: translateY(-1px); }
+    .da-btn:disabled { opacity: .4; cursor: not-allowed; transform: none; }
+
+    .da-btn.primary {
+      background: linear-gradient(135deg, #a855f7, #7c3aed);
+      color: #fff;
+      margin-left: auto;
+      box-shadow: 0 4px 16px rgba(168,85,247,.25);
+    }
+    .da-btn.primary:hover { box-shadow: 0 8px 28px rgba(168,85,247,.35); }
+
+    .da-btn.secondary {
+      background: rgba(255,255,255,.05);
+      border-color: var(--da-border);
+      color: var(--da-text-2);
+    }
+    .da-btn.secondary:hover { color: var(--da-text); border-color: var(--da-border-hover); }
+
+    .da-btn.warn {
+      background: var(--da-red-bg);
+      border-color: var(--da-red-border);
+      color: var(--da-red);
+    }
+    .da-btn.warn:hover { box-shadow: 0 4px 16px rgba(239,68,68,.15); }
+
+    /* â•â•â•â•â•â•â•â•â•â•â• RESPONSIVE â•â•â•â•â•â•â•â•â•â•â• */
+    @media (max-width: 1080px) {
+      .da-toolbar { grid-template-columns: 1fr 1fr; }
+    }
+    @media (max-width: 860px) {
+      .da { padding: 28px 16px 60px; }
+      .da-hero { grid-template-columns: 1fr; padding: 22px; }
+      .da-toolbar { grid-template-columns: 1fr; }
+      .da-grid-2 { grid-template-columns: 1fr; }
+      .da-header { flex-direction: column; align-items: flex-start; }
+    }
+  </style>
+
+  <main class="da">
+
+    <!-- â•â•â•â•â•â•â•â•â•â• HERO â•â•â•â•â•â•â•â•â•â• -->
+    <section class="da-hero">
+      <div>
+        <span class="da-hero__kicker">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+          Panel Comercial
+        </span>
+        <h1 class="da-hero__title">Control Premium de Descuentos</h1>
+        <p class="da-hero__sub">
+          Flujo optimizado para equipo comercial: tabla ordenable, ediciÃ³n en modal y visiÃ³n rÃ¡pida del impacto de precio.
+          Todas las acciones aplican solo a productos de tu empresa.
+        </p>
+      </div>
+      <div class="da-stats">
+        <div class="da-stat"><div class="da-stat__value" id="statTotal">0</div><div class="da-stat__label">Productos</div></div>
+        <div class="da-stat"><div class="da-stat__value" id="statWithDiscount">0</div><div class="da-stat__label">Con Descuento</div></div>
+        <div class="da-stat"><div class="da-stat__value" id="statWithoutDiscount">0</div><div class="da-stat__label">Sin Descuento</div></div>
+        <div class="da-stat"><div class="da-stat__value" id="statAvgDiscount">0%</div><div class="da-stat__label">Promedio Activo</div></div>
+      </div>
+    </section>
+
+    <!-- â•â•â•â•â•â•â•â•â•â• HEADER â•â•â•â•â•â•â•â•â•â• -->
+    <header class="da-header">
+      <div>
+        <h1 class="da-header__title">Descuentos por Producto</h1>
+        <p class="da-header__sub">Ordena por columna, abre modal para editar y aplica cambios en segundos.</p>
+      </div>
+      <div class="da-company-pill" id="companyPill">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+        Empresa: --
+      </div>
+    </header>
+
+    <!-- â•â•â•â•â•â•â•â•â•â• PANEL â•â•â•â•â•â•â•â•â•â• -->
+    <section class="da-panel">
+      <div id="listAlert" class="da-alert"></div>
+
+      <div class="da-toolbar">
+        <input id="searchInput" class="da-field" type="search" placeholder="Buscar producto por nombreâ€¦" />
+        <select id="statusFilter" class="da-field" aria-label="Filtrar por estado">
+          <option value="all">Todos</option>
+          <option value="with">Con descuento</option>
+          <option value="without">Sin descuento</option>
+        </select>
+        <button id="refreshButton" class="da-chip" type="button">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 11-2.12-9.36L23 10"/></svg>
+          Actualizar
+        </button>
+        <button id="newDiscountButton" class="da-chip primary" type="button">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          Nuevo descuento
+        </button>
+      </div>
+
+      <div class="da-table-wrap">
+        <table class="da-table" aria-label="Tabla de descuentos por producto">
+          <thead>
+            <tr>
+              <th class="sortable active" data-sort="nombre">Producto <span class="sort-ind">â†•</span></th>
+              <th class="sortable" data-sort="precio">Precio Base <span class="sort-ind">â†•</span></th>
+              <th class="sortable" data-sort="descuento">Descuento <span class="sort-ind">â†•</span></th>
+              <th class="sortable" data-sort="vigencia">Vigencia <span class="sort-ind">â†•</span></th>
+              <th>Acciones</th>
+            </tr>
+          </thead>
+          <tbody id="tableBody">
+            <tr><td colspan="5"><div class="da-empty">Cargando productos de tu empresaâ€¦</div></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- â•â•â•â•â•â•â•â•â•â• MODAL â•â•â•â•â•â•â•â•â•â• -->
+    <div id="modalBackdrop" class="da-modal-bg" aria-hidden="true">
+      <div class="da-modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+        <div class="da-modal__head">
+          <div>
+            <h2 class="da-modal__title" id="modalTitle">Gestionar descuento</h2>
+            <p class="da-modal__sub" id="modalSub">Selecciona un producto para comenzar</p>
+          </div>
+          <button id="modalClose" class="da-modal__close" type="button" aria-label="Cerrar">âœ•</button>
+        </div>
+
+        <div class="da-modal__body">
+          <div id="formAlert" class="da-alert"></div>
+
+          <div class="da-mfield">
+            <label for="discountName">Nombre del descuento</label>
+            <input id="discountName" type="text" placeholder="Ej. Oferta de temporada" />
+          </div>
+
+          <div class="da-grid-2">
+            <div class="da-mfield">
+              <label for="discountType">Tipo</label>
+              <select id="discountType">
+                <option value="porcentaje">Porcentaje (%)</option>
+                <option value="monto">Monto fijo (MXN)</option>
+              </select>
+            </div>
+            <div class="da-mfield">
+              <label for="discountValue">Valor</label>
+              <input id="discountValue" type="number" min="0.01" step="0.01" placeholder="0" />
+            </div>
+          </div>
+
+          <div class="da-presets" id="quickPreset">
+            <button type="button" data-v="5">5%</button>
+            <button type="button" data-v="10">10%</button>
+            <button type="button" data-v="15">15%</button>
+            <button type="button" data-v="20">20%</button>
+            <button type="button" data-v="30">30%</button>
+          </div>
+
+          <div class="da-grid-2">
+            <div class="da-mfield">
+              <label for="startDate">Inicio</label>
+              <input id="startDate" type="datetime-local" />
+            </div>
+            <div class="da-mfield">
+              <label for="endDate">Fin</label>
+              <input id="endDate" type="datetime-local" />
+            </div>
+          </div>
+
+          <div class="da-preview" id="previewBox">
+            <div class="da-preview__main" id="previewMain">--</div>
+            <div class="da-preview__sub" id="previewSub">Selecciona un producto y define un valor para ver el precio final.</div>
+          </div>
+        </div>
+
+        <div class="da-modal__actions">
+          <button id="removeButton" class="da-btn warn" type="button">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>
+            Desactivar
+          </button>
+          <button id="cancelButton" class="da-btn secondary" type="button">Cancelar</button>
+          <button id="saveButton" class="da-btn primary" type="button">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>
+            Guardar descuento
+          </button>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    // @ts-nocheck
+    const state = {
+      empresaId: null,
+      products: [],
+      filtered: [],
+      selectedId: null,
+      sortBy: 'nombre',
+      sortDir: 'asc',
+    };
+
+    const $ = (id) => document.getElementById(id);
+
+    const ui = {
+      companyPill: $('companyPill'),
+      statTotal: $('statTotal'),
+      statWithDiscount: $('statWithDiscount'),
+      statWithoutDiscount: $('statWithoutDiscount'),
+      statAvgDiscount: $('statAvgDiscount'),
+      searchInput: $('searchInput'),
+      statusFilter: $('statusFilter'),
+      refreshButton: $('refreshButton'),
+      newDiscountButton: $('newDiscountButton'),
+      tableBody: $('tableBody'),
+      sortableHeaders: Array.from(document.querySelectorAll('th.sortable')),
+      modalBackdrop: $('modalBackdrop'),
+      modalClose: $('modalClose'),
+      cancelButton: $('cancelButton'),
+      modalTitle: $('modalTitle'),
+      modalSub: $('modalSub'),
+      listAlert: $('listAlert'),
+      formAlert: $('formAlert'),
+      discountName: $('discountName'),
+      discountType: $('discountType'),
+      discountValue: $('discountValue'),
+      startDate: $('startDate'),
+      endDate: $('endDate'),
+      saveButton: $('saveButton'),
+      removeButton: $('removeButton'),
+      previewMain: $('previewMain'),
+      previewSub: $('previewSub'),
+      quickPreset: $('quickPreset'),
+    };
+
+    function showAlert(target, text, type = 'ok') {
+      target.textContent = text;
+      target.className = `da-alert ${type}`;
+      if (text) {
+        setTimeout(() => {
+          target.className = 'da-alert';
+          target.textContent = '';
+        }, 2800);
+      }
+    }
+
+    function money(n) {
+      return new Intl.NumberFormat('es-MX', {
+        style: 'currency',
+        currency: 'MXN',
+        minimumFractionDigits: 2,
+      }).format(Number(n || 0));
+    }
+
+    function escapeHtml(value) {
+      return String(value ?? '')
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;')
+        .replaceAll("'", '&#39;');  
+    }
+
+    function normalizeImageSrc(src) {
+      const raw = String(src || '').trim();
+      if (!raw) return null;
+      if (raw.startsWith('http://') || raw.startsWith('https://') || raw.startsWith('/')) return raw;
+      if (raw.startsWith('images/')) return `/${raw}`;
+      return `/images/${raw.replace(/^\/+/, '')}`;
+    }
+
+    function toInputDate(iso) {
+      if (!iso) return '';
+      const d = new Date(iso);
+      if (Number.isNaN(d.getTime())) return '';
+      const pad = (v) => String(v).padStart(2, '0');
+      return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+    }
+
+    function fromInputDate(value) {
+      if (!value) return null;
+      const d = new Date(value);
+      if (Number.isNaN(d.getTime())) return null;
+      return d.toISOString();
+    }
+
+    function getSelectedProduct() {
+      return state.products.find((p) => p.id === state.selectedId) || null;
+    }
+
+    function compareValues(a, b, type = 'text') {
+      if (type === 'num') return Number(a || 0) - Number(b || 0);
+      return String(a || '').localeCompare(String(b || ''), 'es', { sensitivity: 'base' });
+    }
+
+    function discountSortVal(product) {
+      if (!product?.descuento) return -1;
+      return Number(product.descuento.valor || 0);
+    }
+
+    function vigenciaSortVal(product) {
+      if (!product?.descuento) return 0;
+      return product.descuento.vigente ? 2 : 1;
+    }
+
+    function sortProducts(products) {
+      const arr = [...products];
+      arr.sort((a, b) => {
+        let result = 0;
+        if (state.sortBy === 'nombre') result = compareValues(a.nombre, b.nombre, 'text');
+        if (state.sortBy === 'precio') result = compareValues(a.precio, b.precio, 'num');
+        if (state.sortBy === 'descuento') result = compareValues(discountSortVal(a), discountSortVal(b), 'num');
+        if (state.sortBy === 'vigencia') result = compareValues(vigenciaSortVal(a), vigenciaSortVal(b), 'num');
+        return state.sortDir === 'asc' ? result : -result;
+      });
+      return arr;
+    }
+
+    function updateSortIndicators() {
+      ui.sortableHeaders.forEach((th) => {
+        const key = th.getAttribute('data-sort');
+        const ind = th.querySelector('.sort-ind');
+        th.classList.remove('active');
+        if (key === state.sortBy) {
+          th.classList.add('active');
+          if (ind) ind.textContent = state.sortDir === 'asc' ? 'â†‘' : 'â†“';
+        } else if (ind) {
+          ind.textContent = 'â†•';
+        }
+      });
+    }
+
+    function updateStats() {
+      const total = state.products.length;
+      const withDiscount = state.products.filter((p) => p.descuento && p.descuento.vigente).length;
+      const without = total - withDiscount;
+      const discounts = state.products
+        .filter((p) => p.descuento && p.descuento.vigente && p.descuento.tipo === 'porcentaje')
+        .map((p) => Number(p.descuento.valor || 0));
+      const avg = discounts.length ? (discounts.reduce((a, b) => a + b, 0) / discounts.length).toFixed(1) : '0.0';
+
+      ui.statTotal.textContent = String(total);
+      ui.statWithDiscount.textContent = String(withDiscount);
+      ui.statWithoutDiscount.textContent = String(without);
+      ui.statAvgDiscount.textContent = `${avg}%`;
+    }
+
+    function setFormEnabled(enabled) {
+      ui.discountName.disabled = !enabled;
+      ui.discountType.disabled = !enabled;
+      ui.discountValue.disabled = !enabled;
+      ui.startDate.disabled = !enabled;
+      ui.endDate.disabled = !enabled;
+      ui.saveButton.disabled = !enabled;
+      ui.removeButton.disabled = !enabled;
+    }
+
+    function renderTable() {
+      const q = String(ui.searchInput.value || '').trim().toLowerCase();
+      const status = ui.statusFilter.value;
+
+      state.filtered = state.products.filter((p) => {
+        const nameOk = q ? String(p.nombre || '').toLowerCase().includes(q) : true;
+        const hasDiscount = Boolean(p.descuento && p.descuento.vigente);
+        const statusOk = status === 'all' ? true : status === 'with' ? hasDiscount : !hasDiscount;
+        return nameOk && statusOk;
+      });
+
+      state.filtered = sortProducts(state.filtered);
+
+      if (!state.filtered.length) {
+        ui.tableBody.innerHTML = '<tr><td colspan="5"><div class="da-empty">No hay productos para mostrar.</div></td></tr>';
+        return;
+      }
+
+      ui.tableBody.innerHTML = state.filtered
+        .map((p, idx) => {
+          const d = p.descuento;
+          const safeName = escapeHtml(p.nombre || 'Producto');
+          const imageSrc = normalizeImageSrc(p.imagen);
+          const img = imageSrc
+            ? `<img src="${imageSrc}" alt="${safeName}" loading="lazy" />`
+            : '<div class="ph">ðŸ“¦</div>';
+          const descuento = d
+            ? `<span class="tag on">${d.tipo === 'porcentaje' ? `-${d.valor}%` : `-${money(d.valor)}`}</span>`
+            : '<span class="tag off">Sin descuento</span>';
+          const vigencia = d
+            ? `<span class="tag ${d.vigente ? 'on' : 'off'}">${d.vigente ? 'Vigente' : 'Programado/Vencido'}</span>`
+            : '<span class="tag off">No aplica</span>';
+          const precio = d
+            ? `<span class="price-old">${money(p.precio)}</span><span class="price-final">${money(d.precioFinal)}</span>`
+            : `<span class="price-final">${money(p.precio)}</span>`;
+
+          return `
+            <tr style="--delay:${idx * 18}ms">
+              <td>
+                <div class="product-cell">
+                  ${img}
+                  <div>
+                    <div class="pname">${safeName}</div>
+                    <div class="pid">ID ${p.id}</div>
+                  </div>
+                </div>
+              </td>
+              <td>${money(p.precio)}</td>
+              <td>${precio}<div style="margin-top:4px">${descuento}</div></td>
+              <td>${vigencia}</td>
+              <td>
+                <div class="actions">
+                  <button class="action-btn" data-action="edit" data-id="${p.id}">âœï¸ Gestionar</button>
+                  <button class="action-btn warn" data-action="remove" data-id="${p.id}">ðŸ—‘ Desactivar</button>
+                </div>
+              </td>
+            </tr>
+          `;
+        })
+        .join('');
+    }
+
+    function syncModalFromSelected() {
+      const product = getSelectedProduct();
+      if (!product) {
+        setFormEnabled(false);
+        ui.modalTitle.textContent = 'Gestionar descuento';
+        ui.modalSub.textContent = 'Selecciona un producto para comenzar';
+        ui.discountName.value = '';
+        ui.discountType.value = 'porcentaje';
+        ui.discountValue.value = '';
+        ui.startDate.value = '';
+        ui.endDate.value = '';
+        updatePreview();
+        return;
+      }
+
+      setFormEnabled(true);
+      ui.modalTitle.textContent = product.nombre;
+      ui.modalSub.textContent = `Precio base: ${money(product.precio)} Â· Empresa #${state.empresaId || '--'}`;
+
+      if (product.descuento) {
+        const d = product.descuento;
+        ui.discountName.value = d.nombre || '';
+        ui.discountType.value = d.tipo || 'porcentaje';
+        ui.discountValue.value = d.valor ?? '';
+        ui.startDate.value = toInputDate(d.fechaInicio);
+        ui.endDate.value = toInputDate(d.fechaFin);
+      } else {
+        ui.discountName.value = `Descuento ${product.nombre}`;
+        ui.discountType.value = 'porcentaje';
+        ui.discountValue.value = '';
+        const now = new Date();
+        const end = new Date(now.getTime() + 1000 * 60 * 60 * 24 * 7);
+        ui.startDate.value = toInputDate(now.toISOString());
+        ui.endDate.value = toInputDate(end.toISOString());
+      }
+
+      updatePreview();
+    }
+
+    function openModal(productId) {
+      state.selectedId = Number(productId || 0) || null;
+      syncModalFromSelected();
+      ui.modalBackdrop.classList.add('open');
+      ui.modalBackdrop.setAttribute('aria-hidden', 'false');
+    }
+
+    function closeModal() {
+      ui.modalBackdrop.classList.remove('open');
+      ui.modalBackdrop.setAttribute('aria-hidden', 'true');
+      ui.formAlert.className = 'da-alert';
+      ui.formAlert.textContent = '';
+    }
+
+    function updatePreview() {
+      const product = getSelectedProduct();
+      const tipo = ui.discountType.value;
+      const valor = Number(ui.discountValue.value || 0);
+
+      if (!product || !Number.isFinite(valor) || valor <= 0) {
+        ui.previewMain.textContent = '--';
+        ui.previewSub.textContent = 'Selecciona un producto y define un valor para ver el precio final.';
+        return;
+      }
+
+      const base = Number(product.precio || 0);
+      const final = tipo === 'porcentaje' ? base * (1 - valor / 100) : base - valor;
+      const finalSafe = Math.max(0, final);
+
+      ui.previewMain.textContent = `${money(finalSafe)} (${tipo === 'porcentaje' ? `${valor}%` : money(valor)} off)`;
+      ui.previewSub.textContent = `Antes: ${money(base)} | Tipo: ${tipo === 'porcentaje' ? 'porcentaje' : 'monto fijo'}`;
+    }
+
+    async function loadProducts() {
+      ui.tableBody.innerHTML = '<tr><td colspan="5"><div class="da-empty">Cargando productos de tu empresaâ€¦</div></td></tr>';
+      try {
+        const res = await fetch('/api/admin/descuentos', { credentials: 'include' });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok || !data.success) {
+          throw new Error(data.error || 'No se pudo cargar el panel de descuentos');
+        }
+
+        state.empresaId = data.empresaId ?? null;
+        state.products = Array.isArray(data.productos) ? data.productos : [];
+        ui.companyPill.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg> ${state.empresaId ? `Empresa: #${state.empresaId}` : 'Empresa: sin asociar'}`;
+        updateStats();
+
+        if (!state.products.length) {
+          ui.tableBody.innerHTML = '<tr><td colspan="5"><div class="da-empty">No hay productos de tu empresa para administrar descuentos.</div></td></tr>';
+          state.selectedId = null;
+          syncModalFromSelected();
+          return;
+        }
+
+        if (!state.selectedId || !state.products.some((p) => p.id === state.selectedId)) {
+          state.selectedId = state.products[0].id;
+        }
+
+        renderTable();
+      } catch (error) {
+        ui.tableBody.innerHTML = '<tr><td colspan="5"><div class="da-empty">Error cargando productos.</div></td></tr>';
+        showAlert(ui.listAlert, String(error.message || 'Error interno'), 'error');
+      }
+    }
+
+    async function saveDiscount() {
+      const product = getSelectedProduct();
+      if (!product) {
+        showAlert(ui.formAlert, 'Selecciona un producto primero.', 'error');
+        return;
+      }
+
+      const payload = {
+        id_producto: product.id,
+        nombre: String(ui.discountName.value || '').trim(),
+        tipo: ui.discountType.value,
+        valor: Number(ui.discountValue.value || 0),
+        fecha_inicio: fromInputDate(ui.startDate.value),
+        fecha_fin: fromInputDate(ui.endDate.value),
+      };
+
+      if (!payload.nombre) {
+        showAlert(ui.formAlert, 'El nombre del descuento es obligatorio.', 'error');
+        return;
+      }
+      if (!Number.isFinite(payload.valor) || payload.valor <= 0) {
+        showAlert(ui.formAlert, 'Ingresa un valor de descuento valido.', 'error');
+        return;
+      }
+      if (!payload.fecha_inicio || !payload.fecha_fin) {
+        showAlert(ui.formAlert, 'Debes definir fecha de inicio y fecha fin.', 'error');
+        return;
+      }
+
+      ui.saveButton.disabled = true;
+      ui.saveButton.textContent = 'Guardandoâ€¦';
+      try {
+        const res = await fetch('/api/admin/descuentos', {
+          method: 'POST',
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok || !data.success) {
+          throw new Error(data.error || 'No se pudo guardar el descuento');
+        }
+        showAlert(ui.formAlert, 'Descuento guardado correctamente.', 'ok');
+        await loadProducts();
+        closeModal();
+      } catch (error) {
+        showAlert(ui.formAlert, String(error.message || 'Error al guardar'), 'error');
+      } finally {
+        ui.saveButton.disabled = false;
+        ui.saveButton.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg> Guardar descuento';
+      }
+    }
+
+    async function removeDiscount() {
+      const product = getSelectedProduct();
+      if (!product) {
+        showAlert(ui.formAlert, 'Selecciona un producto primero.', 'error');
+        return;
+      }
+
+      const confirmDelete = window.confirm(`Se desactivaran los descuentos activos de ${product.nombre}. Continuar?`);
+      if (!confirmDelete) return;
+
+      ui.removeButton.disabled = true;
+      ui.removeButton.textContent = 'Desactivandoâ€¦';
+      try {
+        const res = await fetch('/api/admin/descuentos', {
+          method: 'DELETE',
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id_producto: product.id }),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok || !data.success) {
+          throw new Error(data.error || 'No se pudo desactivar el descuento');
+        }
+        showAlert(ui.formAlert, 'Descuento desactivado.', 'ok');
+        await loadProducts();
+        closeModal();
+      } catch (error) {
+        showAlert(ui.formAlert, String(error.message || 'Error al desactivar'), 'error');
+      } finally {
+        ui.removeButton.disabled = false;
+        ui.removeButton.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg> Desactivar';
+      }
+    }
+
+    ui.tableBody.addEventListener('click', (event) => {
+      const btn = event.target.closest('button[data-action]');
+      if (!btn) return;
+      const action = btn.getAttribute('data-action');
+      const id = Number(btn.getAttribute('data-id') || 0);
+      if (!id) return;
+
+      if (action === 'edit') {
+        openModal(id);
+      } else if (action === 'remove') {
+        state.selectedId = id;
+        removeDiscount();
+      }
+    });
+
+    ui.sortableHeaders.forEach((th) => {
+      th.addEventListener('click', () => {
+        const key = th.getAttribute('data-sort');
+        if (!key) return;
+        if (state.sortBy === key) {
+          state.sortDir = state.sortDir === 'asc' ? 'desc' : 'asc';
+        } else {
+          state.sortBy = key;
+          state.sortDir = 'asc';
+        }
+        updateSortIndicators();
+        renderTable();
+      });
+    });
+
+    ui.searchInput.addEventListener('input', renderTable);
+    ui.statusFilter.addEventListener('change', renderTable);
+    ui.discountType.addEventListener('change', updatePreview);
+    ui.discountValue.addEventListener('input', updatePreview);
+
+    ui.quickPreset.addEventListener('click', (event) => {
+      const btn = event.target.closest('button[data-v]');
+      if (!btn) return;
+      ui.discountType.value = 'porcentaje';
+      ui.discountValue.value = btn.getAttribute('data-v');
+      updatePreview();
+    });
+
+    ui.saveButton.addEventListener('click', saveDiscount);
+    ui.removeButton.addEventListener('click', removeDiscount);
+    ui.refreshButton.addEventListener('click', loadProducts);
+
+    ui.newDiscountButton.addEventListener('click', () => {
+      if (!state.products.length) return;
+      const noDiscount = state.products.find((p) => !p.descuento) || state.products[0];
+      openModal(noDiscount.id);
+    });
+
+    ui.modalClose.addEventListener('click', closeModal);
+    ui.cancelButton.addEventListener('click', closeModal);
+
+    ui.modalBackdrop.addEventListener('click', (event) => {
+      if (event.target === ui.modalBackdrop) closeModal();
+    });
+
+    document.addEventListener('keydown', (event) => {
+      if (event.key === 'Escape' && ui.modalBackdrop.classList.contains('open')) {
+        closeModal();
+      }
+    });
+
+    updateSortIndicators();
+    loadProducts();
+  </script>
+</BaseLayout>
+

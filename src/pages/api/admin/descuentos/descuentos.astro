@@ -1,0 +1,627 @@
+---
+// src/pages/[lang]/admin/descuentos.astro
+import BaseLayout from "../../../../layouts/BaseLayout.astro";
+
+const lang = Astro.params?.lang || "es";
+const cspNonce = Astro.locals?.cspNonce || "";
+
+const role = String(Astro.locals?.user?.rol || "").trim().toLowerCase().replace(/[\s_-]/g, "")
+  .replace(/^superadmin$|^superuser$|^superusuario$/, "superusuario");
+const isAdmin = role === "admin" || role === "superusuario";
+
+if (!isAdmin) {
+  return Astro.redirect(`/${lang}/`);
+}
+---
+
+<BaseLayout title="Descuentos | GO2026" currentLang={lang}>
+<style>
+  .dc-wrap {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 40px 24px 80px;
+    font-family: system-ui, sans-serif;
+  }
+
+  /* ── Header ── */
+  .dc-head {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-bottom: 32px;
+  }
+  .dc-head h1 {
+    font-size: 24px;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+  }
+  .dc-head p {
+    font-size: 13px;
+    color: #888;
+    margin-top: 4px;
+  }
+  .dc-search {
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 10px;
+    padding: 9px 14px;
+    font-size: 13px;
+    color: inherit;
+    outline: none;
+    width: 220px;
+    transition: border-color .2s;
+  }
+  html:not(.dark) .dc-search {
+    background: #f5f5f5;
+    border-color: #e0e0e0;
+  }
+  .dc-search:focus { border-color: #e8521a; }
+
+  /* ── Lista ── */
+  .dc-list {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .dc-item {
+    display: grid;
+    grid-template-columns: 44px 1fr auto auto;
+    align-items: center;
+    gap: 16px;
+    padding: 14px 18px;
+    border-radius: 12px;
+    background: rgba(255,255,255,0.03);
+    border: 1px solid transparent;
+    transition: background .15s, border-color .15s;
+    cursor: pointer;
+  }
+  html:not(.dark) .dc-item { background: #fafafa; }
+  .dc-item:hover {
+    background: rgba(255,255,255,0.06);
+    border-color: rgba(255,255,255,0.08);
+  }
+  html:not(.dark) .dc-item:hover {
+    background: #f0f0f0;
+    border-color: #e8e8e8;
+  }
+  .dc-item.has-discount {
+    border-color: rgba(232,82,26,0.2);
+    background: rgba(232,82,26,0.04);
+  }
+
+  .dc-img {
+    width: 44px;
+    height: 44px;
+    border-radius: 8px;
+    object-fit: cover;
+    background: rgba(255,255,255,0.06);
+    flex-shrink: 0;
+  }
+  .dc-img-placeholder {
+    width: 44px;
+    height: 44px;
+    border-radius: 8px;
+    background: rgba(255,255,255,0.06);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    flex-shrink: 0;
+  }
+  html:not(.dark) .dc-img-placeholder { background: #ececec; }
+
+  .dc-info .dc-name {
+    font-size: 14px;
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 300px;
+  }
+  .dc-info .dc-prices {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 3px;
+  }
+  .dc-precio-original {
+    font-size: 12px;
+    color: #888;
+  }
+  .dc-precio-original.tachado {
+    text-decoration: line-through;
+    color: #666;
+  }
+  .dc-precio-final {
+    font-size: 13px;
+    font-weight: 700;
+    color: #e8521a;
+  }
+
+  /* badge descuento */
+  .dc-badge {
+    font-size: 11px;
+    font-weight: 700;
+    background: rgba(232,82,26,0.12);
+    color: #e8521a;
+    border: 1px solid rgba(232,82,26,0.25);
+    border-radius: 6px;
+    padding: 3px 8px;
+    white-space: nowrap;
+  }
+  .dc-badge.vence {
+    font-size: 10px;
+    font-weight: 400;
+    color: #888;
+    background: transparent;
+    border-color: rgba(255,255,255,0.1);
+  }
+  html:not(.dark) .dc-badge.vence { border-color: #e0e0e0; }
+
+  .dc-action {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+  }
+
+  .btn-edit {
+    font-size: 12px;
+    padding: 6px 14px;
+    border-radius: 8px;
+    border: 1px solid rgba(255,255,255,0.12);
+    background: transparent;
+    color: inherit;
+    cursor: pointer;
+    transition: all .15s;
+  }
+  html:not(.dark) .btn-edit { border-color: #ddd; }
+  .btn-edit:hover {
+    border-color: #e8521a;
+    color: #e8521a;
+  }
+
+  .btn-remove {
+    font-size: 12px;
+    padding: 6px 10px;
+    border-radius: 8px;
+    border: 1px solid rgba(239,68,68,0.2);
+    background: rgba(239,68,68,0.06);
+    color: #ef4444;
+    cursor: pointer;
+    transition: all .15s;
+  }
+  .btn-remove:hover {
+    background: rgba(239,68,68,0.14);
+  }
+
+  /* ── Modal overlay ── */
+  .modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.6);
+    z-index: 9999;
+    align-items: center;
+    justify-content: center;
+    backdrop-filter: blur(4px);
+  }
+  .modal-overlay.open { display: flex; }
+
+  .modal {
+    background: #181818;
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 20px;
+    padding: 32px;
+    width: 100%;
+    max-width: 400px;
+    margin: 20px;
+    animation: modalIn .2s ease;
+  }
+  html:not(.dark) .modal {
+    background: #fff;
+    border-color: #e8e8e8;
+  }
+  @keyframes modalIn {
+    from { opacity:0; transform:translateY(12px) scale(.97); }
+    to   { opacity:1; transform:translateY(0) scale(1); }
+  }
+
+  .modal h2 {
+    font-size: 17px;
+    font-weight: 700;
+    margin-bottom: 6px;
+  }
+  .modal .modal-sub {
+    font-size: 12px;
+    color: #888;
+    margin-bottom: 24px;
+  }
+
+  .field {
+    margin-bottom: 18px;
+  }
+  .field label {
+    display: block;
+    font-size: 12px;
+    font-weight: 600;
+    color: #888;
+    margin-bottom: 7px;
+    text-transform: uppercase;
+    letter-spacing: .05em;
+  }
+
+  .pct-wrap {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    background: rgba(255,255,255,0.04);
+    border: 1.5px solid rgba(255,255,255,0.12);
+    border-radius: 10px;
+    overflow: hidden;
+    transition: border-color .2s;
+  }
+  html:not(.dark) .pct-wrap { background: #f5f5f5; border-color: #e0e0e0; }
+  .pct-wrap:focus-within { border-color: #e8521a; }
+
+  .pct-wrap input {
+    flex: 1;
+    background: transparent;
+    border: none;
+    outline: none;
+    font-size: 24px;
+    font-weight: 700;
+    padding: 12px 16px;
+    color: inherit;
+    -moz-appearance: textfield;
+  }
+  .pct-wrap input::-webkit-outer-spin-button,
+  .pct-wrap input::-webkit-inner-spin-button { -webkit-appearance: none; }
+  .pct-sym {
+    font-size: 20px;
+    font-weight: 700;
+    color: #e8521a;
+    padding-right: 16px;
+    user-select: none;
+  }
+
+  .field input[type="date"] {
+    width: 100%;
+    background: rgba(255,255,255,0.04);
+    border: 1.5px solid rgba(255,255,255,0.12);
+    border-radius: 10px;
+    padding: 11px 14px;
+    font-size: 14px;
+    color: inherit;
+    outline: none;
+    transition: border-color .2s;
+    box-sizing: border-box;
+    color-scheme: dark;
+  }
+  html:not(.dark) .field input[type="date"] {
+    background: #f5f5f5;
+    border-color: #e0e0e0;
+    color-scheme: light;
+  }
+  .field input[type="date"]:focus { border-color: #e8521a; }
+
+  .preview-box {
+    background: rgba(232,82,26,0.06);
+    border: 1px solid rgba(232,82,26,0.2);
+    border-radius: 10px;
+    padding: 14px 16px;
+    margin-bottom: 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .preview-box .pv-label { font-size: 12px; color: #888; }
+  .preview-box .pv-price {
+    font-size: 22px;
+    font-weight: 800;
+    color: #e8521a;
+    letter-spacing: -0.02em;
+  }
+  .preview-box .pv-original {
+    font-size: 12px;
+    color: #666;
+    text-decoration: line-through;
+    margin-top: 2px;
+  }
+
+  .modal-actions {
+    display: flex;
+    gap: 10px;
+  }
+  .btn-cancel {
+    flex: 1;
+    padding: 12px;
+    border-radius: 10px;
+    border: 1px solid rgba(255,255,255,0.1);
+    background: transparent;
+    color: inherit;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background .15s;
+  }
+  html:not(.dark) .btn-cancel { border-color: #ddd; }
+  .btn-cancel:hover { background: rgba(255,255,255,0.05); }
+
+  .btn-save {
+    flex: 2;
+    padding: 12px;
+    border-radius: 10px;
+    border: none;
+    background: #e8521a;
+    color: white;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: opacity .15s;
+  }
+  .btn-save:hover { opacity: .85; }
+  .btn-save:disabled { opacity: .4; cursor: not-allowed; }
+
+  /* empty / loading */
+  .dc-empty {
+    text-align: center;
+    padding: 60px 20px;
+    color: #555;
+    font-size: 14px;
+  }
+
+  .toast {
+    position: fixed;
+    bottom: 32px;
+    left: 50%;
+    transform: translateX(-50%) translateY(20px);
+    background: #1a1a1a;
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 10px;
+    padding: 12px 20px;
+    font-size: 13px;
+    font-weight: 600;
+    opacity: 0;
+    transition: all .3s ease;
+    z-index: 99999;
+    white-space: nowrap;
+  }
+  html:not(.dark) .toast { background: #fff; border-color: #e0e0e0; color: #111; }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+  .toast.ok   { border-color: rgba(34,197,94,0.4); color: #22c55e; }
+  .toast.err  { border-color: rgba(239,68,68,0.4); color: #ef4444; }
+</style>
+
+<div class="dc-wrap">
+
+  <div class="dc-head">
+    <div>
+      <h1>Descuentos</h1>
+      <p>Aplica ofertas temporales o permanentes a tus productos.</p>
+    </div>
+    <input class="dc-search" type="search" id="buscarInput" placeholder="Buscar producto…" />
+  </div>
+
+  <div class="dc-list" id="listaProductos">
+    <div class="dc-empty">Cargando productos…</div>
+  </div>
+</div>
+
+<!-- Modal -->
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal">
+    <h2 id="modalTitulo">Aplicar descuento</h2>
+    <p class="modal-sub" id="modalSub">—</p>
+
+    <div class="field">
+      <label>Descuento</label>
+      <div class="pct-wrap">
+        <input type="number" id="pctInput" min="1" max="99" step="1" placeholder="0" />
+        <span class="pct-sym">%</span>
+      </div>
+    </div>
+
+    <div class="field">
+      <label>Vence el <span style="color:#555;font-weight:400">(opcional — vacío = sin fecha)</span></label>
+      <input type="date" id="fechaFin" />
+    </div>
+
+    <div class="preview-box" id="previewBox" style="display:none">
+      <div>
+        <div class="pv-label">Precio con descuento</div>
+        <div class="pv-price" id="pvPrice">—</div>
+        <div class="pv-original" id="pvOriginal">—</div>
+      </div>
+      <div style="font-size:28px;font-weight:800;color:#e8521a" id="pvPct">—</div>
+    </div>
+
+    <div class="modal-actions">
+      <button class="btn-cancel" id="btnCancelar">Cancelar</button>
+      <button class="btn-save"   id="btnGuardar">Guardar descuento</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+  // @ts-nocheck
+  const fmt = n => new Intl.NumberFormat('es-MX', { style:'currency', currency:'MXN', minimumFractionDigits:2 }).format(n);
+  const fmtDate = iso => iso ? new Date(iso).toLocaleDateString('es-MX', { day:'2-digit', month:'short', year:'numeric' }) : null;
+
+  let productos = [];
+  let productoActual = null;
+
+  // ── Toast ─────────────────────────────────────────
+  function showToast(msg, tipo = 'ok') {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.className = 'toast show ' + tipo;
+    setTimeout(() => { t.className = 'toast'; }, 2800);
+  }
+
+  // ── Render lista ──────────────────────────────────
+  function renderLista(filtro = '') {
+    const lista = document.getElementById('listaProductos');
+    const q = filtro.toLowerCase();
+    const filtrados = q ? productos.filter(p => p.nombre.toLowerCase().includes(q)) : productos;
+
+    if (!filtrados.length) {
+      lista.innerHTML = '<div class="dc-empty">Sin resultados.</div>';
+      return;
+    }
+
+    lista.innerHTML = filtrados.map(p => {
+      const d = p.descuento;
+      const imgHtml = p.imagen
+        ? `<img class="dc-img" src="${p.imagen}" alt="" loading="lazy" />`
+        : `<div class="dc-img-placeholder">📦</div>`;
+
+      const preciosHtml = d
+        ? `<span class="dc-precio-original tachado">${fmt(p.precio)}</span>
+           <span class="dc-precio-final">${fmt(d.precioFinal)}</span>`
+        : `<span class="dc-precio-original">${fmt(p.precio)}</span>`;
+
+      const badgeHtml = d
+        ? `<span class="dc-badge">−${d.porcentaje}%</span>
+           ${d.fechaFin ? `<span class="dc-badge vence">hasta ${fmtDate(d.fechaFin)}</span>` : ''}`
+        : '';
+
+      const botonesHtml = d
+        ? `<button class="btn-edit"   onclick="abrirModal(${p.id})">Editar</button>
+           <button class="btn-remove" onclick="quitarDescuento(${p.id})">Quitar</button>`
+        : `<button class="btn-edit"   onclick="abrirModal(${p.id})">+ Descuento</button>`;
+
+      return `
+        <div class="dc-item ${d ? 'has-discount' : ''}" id="item-${p.id}">
+          ${imgHtml}
+          <div class="dc-info">
+            <div class="dc-name">${p.nombre}</div>
+            <div class="dc-prices">${preciosHtml} ${badgeHtml}</div>
+          </div>
+          <div></div>
+          <div class="dc-action">${botonesHtml}</div>
+        </div>`;
+    }).join('');
+  }
+
+  // ── Modal ─────────────────────────────────────────
+  function abrirModal(idProducto) {
+    productoActual = productos.find(p => p.id === idProducto);
+    if (!productoActual) return;
+
+    document.getElementById('modalTitulo').textContent = productoActual.nombre;
+    document.getElementById('modalSub').textContent    = 'Precio base: ' + fmt(productoActual.precio);
+    document.getElementById('pctInput').value = productoActual.descuento?.porcentaje ?? '';
+    document.getElementById('fechaFin').value = '';
+
+    if (productoActual.descuento?.fechaFin) {
+      document.getElementById('fechaFin').value = productoActual.descuento.fechaFin.slice(0, 10);
+    }
+
+    actualizarPreview();
+    document.getElementById('modalOverlay').classList.add('open');
+  }
+
+  function cerrarModal() {
+    document.getElementById('modalOverlay').classList.remove('open');
+    productoActual = null;
+  }
+
+  function actualizarPreview() {
+    if (!productoActual) return;
+    const pct = parseFloat(document.getElementById('pctInput').value);
+    const box = document.getElementById('previewBox');
+
+    if (!pct || pct < 1 || pct > 99) { box.style.display = 'none'; return; }
+
+    const final = productoActual.precio * (1 - pct / 100);
+    document.getElementById('pvPrice').textContent    = fmt(final);
+    document.getElementById('pvOriginal').textContent = fmt(productoActual.precio);
+    document.getElementById('pvPct').textContent      = '−' + pct + '%';
+    box.style.display = 'flex';
+  }
+
+  // ── Guardar ───────────────────────────────────────
+  async function guardarDescuento() {
+    if (!productoActual) return;
+    const pct = parseFloat(document.getElementById('pctInput').value);
+    const fechaFin = document.getElementById('fechaFin').value || null;
+
+    if (!pct || pct < 1 || pct > 99) { showToast('Ingresa un descuento entre 1 y 99%', 'err'); return; }
+
+    const btn = document.getElementById('btnGuardar');
+    btn.disabled = true;
+    btn.textContent = 'Guardando…';
+
+    try {
+      const res = await fetch('/api/descuentos', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id_producto: productoActual.id, porcentaje: pct, fecha_fin: fechaFin }),
+      });
+      const data = await res.json();
+      if (!data.success) throw new Error(data.error);
+
+      showToast('¡Descuento aplicado!', 'ok');
+      cerrarModal();
+      await cargarProductos();
+    } catch (e) {
+      showToast('Error al guardar', 'err');
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'Guardar descuento';
+    }
+  }
+
+  // ── Quitar ────────────────────────────────────────
+  async function quitarDescuento(idProducto) {
+    try {
+      const res = await fetch('/api/descuentos', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id_producto: idProducto }),
+      });
+      const data = await res.json();
+      if (!data.success) throw new Error(data.error);
+      showToast('Descuento eliminado', 'ok');
+      await cargarProductos();
+    } catch {
+      showToast('Error al quitar descuento', 'err');
+    }
+  }
+
+  // ── Cargar ────────────────────────────────────────
+  async function cargarProductos() {
+    try {
+      const res  = await fetch('/api/descuentos');
+      const data = await res.json();
+      if (!data.success) throw new Error();
+      productos = data.productos;
+      renderLista(document.getElementById('buscarInput').value);
+    } catch {
+      document.getElementById('listaProductos').innerHTML =
+        '<div class="dc-empty">Error al cargar productos.</div>';
+    }
+  }
+
+  // ── Eventos ───────────────────────────────────────
+  document.getElementById('pctInput').addEventListener('input', actualizarPreview);
+  document.getElementById('btnCancelar').addEventListener('click', cerrarModal);
+  document.getElementById('btnGuardar').addEventListener('click', guardarDescuento);
+  document.getElementById('buscarInput').addEventListener('input', e => renderLista(e.target.value));
+  document.getElementById('modalOverlay').addEventListener('click', e => {
+    if (e.target === e.currentTarget) cerrarModal();
+  });
+
+  // Exponer para onclick en HTML
+  window.abrirModal      = abrirModal;
+  window.quitarDescuento = quitarDescuento;
+
+  cargarProductos();
+</script>
+</BaseLayout>

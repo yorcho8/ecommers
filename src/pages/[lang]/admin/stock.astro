@@ -1,0 +1,629 @@
+﻿---
+import BaseLayout from "../../../layouts/BaseLayout.astro";
+export function getStaticPaths() {
+  return [{ params: { lang: "es" } }];
+}
+
+const currentLang = "es";
+const cspNonce = Astro.locals?.cspNonce || "";
+
+const role = String(Astro.locals?.user?.rol || "").trim().toLowerCase().replace(/[\s_-]/g, "")
+  .replace(/^superadmin$|^superuser$|^superusuario$/, "superusuario");
+
+if (!role) {
+  return Astro.redirect(`/${currentLang}/login`);
+}
+
+if (role !== "admin" && role !== "superusuario") {
+  return Astro.redirect(`/${currentLang}`);
+}
+---
+
+<BaseLayout title="Restablecer stock" currentLang={currentLang}>
+  <main class="stock-admin-page">
+    <section class="stock-admin-shell">
+      <header class="stock-admin-header">
+        <div>
+          <p class="stock-admin-kicker">Stock</p>
+          <h1>Restablecer stock</h1>
+          <p class="stock-admin-subtitle">AÃ±ade o establece stock de los productos del catÃ¡logo.</p>
+        </div>
+        <div class="stock-admin-top-actions">
+          <a class="stock-admin-back" href={`/${currentLang}`}>Volver al sitio</a>
+        </div>
+      </header>
+
+      <div id="stockInfoModal" class="stock-info-modal" hidden>
+        <div class="stock-info-overlay" data-close-info="true"></div>
+        <article id="stockInfoPanel" class="stock-info-panel" role="dialog" aria-modal="true">
+          <button id="stockInfoClose" class="stock-info-close" type="button" aria-label="Cerrar">x</button>
+          <h3>InformaciÃ³n</h3>
+          <p id="stockInfoMessage">OperaciÃ³n completada.</p>
+          <div class="stock-info-actions">
+            <button id="stockInfoOk" class="btn warning" type="button">Aceptar</button>
+          </div>
+        </article>
+      </div>
+
+      <section class="stock-list-section">
+        <article class="stock-card">
+          <div class="stock-toolbar">
+            <div class="stock-toolbar-left">
+              <label for="rowsPerPage">Mostrar</label>
+              <select id="rowsPerPage" class="toolbar-select">
+                <option value="10">10</option>
+                <option value="25">25</option>
+                <option value="50">50</option>
+              </select>
+              <span>registros</span>
+            </div>
+            <div class="stock-toolbar-center">
+              <button id="btnCopy" class="mini-btn" type="button">Copiar</button>
+              <button id="btnCsv" class="mini-btn info" type="button">CSV</button>
+            </div>
+            <div class="stock-toolbar-right">
+              <label for="searchStock">Buscar:</label>
+              <input id="searchStock" class="toolbar-search" type="text" placeholder="Nombre o descripcion" />
+            </div>
+          </div>
+
+          <div class="stock-list-header">
+            <h2>Lista de productos</h2>
+          </div>
+          <div class="stock-table-wrap">
+            <table class="stock-table">
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Nombre</th>
+                  <th>Categoria</th>
+                  <th>Imagen</th>
+                  <th>Stock actual</th>
+                  <th>Cantidad</th>
+                  <th class="stock-th-actions">Acciones</th>
+                </tr>
+              </thead>
+              <tbody id="stockRows"></tbody>
+            </table>
+          </div>
+          <div id="stockResultsInfo" class="stock-results-info"></div>
+        </article>
+      </section>
+    </section>
+  </main>
+
+  <script nonce={cspNonce} is:inline>
+    const modalEl = document.getElementById('stockInfoModal');
+    const panelEl = document.getElementById('stockInfoPanel');
+    const messageEl = document.getElementById('stockInfoMessage');
+    const okBtn = document.getElementById('stockInfoOk');
+    const closeBtn = document.getElementById('stockInfoClose');
+    const rowsEl = document.getElementById('stockRows');
+    const searchEl = document.getElementById('searchStock');
+    const perPageEl = document.getElementById('rowsPerPage');
+    const resultsEl = document.getElementById('stockResultsInfo');
+    const btnCopy = document.getElementById('btnCopy');
+    const btnCsv = document.getElementById('btnCsv');
+
+    let products = [];
+    let filtered = [];
+
+    function closeModal() {
+      if (!modalEl) return;
+      modalEl.hidden = true;
+      panelEl?.classList.remove('is-ok', 'is-error');
+    }
+
+    function showStatus(msg, ok) {
+      if (!modalEl || !panelEl || !messageEl) return;
+      messageEl.textContent = msg;
+      panelEl.classList.remove('is-ok', 'is-error');
+      panelEl.classList.add(ok ? 'is-ok' : 'is-error');
+      modalEl.hidden = false;
+    }
+
+    okBtn?.addEventListener('click', closeModal);
+    closeBtn?.addEventListener('click', closeModal);
+    modalEl?.addEventListener('click', function(e) {
+      if (e.target.closest('[data-close-info="true"]')) closeModal();
+    });
+
+    function badgeClass(s) {
+      if (s === 0) return 'badge out';
+      if (s <= 5) return 'badge low';
+      if (s <= 20) return 'badge med';
+      return 'badge ok';
+    }
+
+    function applyFilters() {
+      var q = (searchEl?.value || '').trim().toLowerCase();
+      filtered = products.filter(function(p) {
+        if (!q) return true;
+        return (p.nombre || '').toLowerCase().includes(q) || (p.categoria || '').toLowerCase().includes(q) || String(p.id).includes(q);
+      });
+    }
+
+    function getDisplayed() {
+      applyFilters();
+      var limit = Number(perPageEl?.value || 10);
+      return filtered.slice(0, limit);
+    }
+
+    function render() {
+      if (!rowsEl) return;
+      rowsEl.innerHTML = '';
+      var displayed = getDisplayed();
+
+      displayed.forEach(function(p) {
+        var s = p.stock ?? 0;
+        var tr = document.createElement('tr');
+        tr.dataset.id = p.id;
+
+        var imgHtml = p.imagen
+          ? '<img src="' + p.imagen + '" alt="" class="stock-thumb" loading="lazy">'
+          : '<span class="stock-no-img">\u2014</span>';
+
+        tr.innerHTML =
+          '<td>' + p.id + '</td>' +
+          '<td class="stock-name">' + (p.nombre || '') + '</td>' +
+          '<td>' + (p.categoria || 'Sin categoria') + '</td>' +
+          '<td>' + imgHtml + '</td>' +
+          '<td><span class="' + badgeClass(s) + '">' + s + '</span></td>' +
+          '<td><input class="stock-qty" type="number" min="0" placeholder="0" data-pid="' + p.id + '"></td>' +
+          '<td>' +
+            '<div class="stock-row-actions">' +
+              '<button class="row-icon-btn add" data-action="add" data-pid="' + p.id + '" type="button" title="Sumar al stock">' +
+                '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>' +
+              '</button>' +
+              '<button class="row-icon-btn set" data-action="set" data-pid="' + p.id + '" type="button" title="Establecer stock exacto">' +
+                '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h16v16H4zM9 9h6v6H9z"/></svg>' +
+              '</button>' +
+            '</div>' +
+          '</td>';
+
+        rowsEl.appendChild(tr);
+      });
+
+      if (resultsEl) {
+        resultsEl.textContent = 'Mostrando ' + displayed.length + ' de ' + filtered.length + ' productos filtrados (' + products.length + ' total).';
+      }
+    }
+
+    async function loadProducts() {
+      try {
+        var res = await fetch('/api/productos', { credentials: 'include' });
+        var data = await res.json();
+        if (res.ok && data.success) {
+          products = Array.isArray(data.productos) ? data.productos : [];
+        }
+      } catch (e) {
+        showStatus('Error cargando productos.', false);
+      }
+      render();
+    }
+
+    function findProduct(id) {
+      return products.find(function(p) { return String(p.id) === String(id); });
+    }
+
+    async function updateStock(product, newStock) {
+      var row = rowsEl.querySelector('tr[data-id="' + product.id + '"]');
+      if (row) row.style.opacity = '0.4';
+
+      var payload = {
+        nombre: product.nombre,
+        descripcion: product.descripcion || '',
+        precio: product.precio,
+        stockDisponible: newStock,
+        categoriaId: product.categoriaId,
+        imagenUrl: product.imagen || '',
+      };
+
+      try {
+        var res = await fetch('/api/admin/productos/' + product.id, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify(payload),
+        });
+        var data = await res.json();
+        if (!res.ok || !data.success) {
+          showStatus(data.error || 'Error actualizando stock.', false);
+          if (row) row.style.opacity = '1';
+          return;
+        }
+        var anterior = product.stock ?? 0;
+        showStatus(product.nombre + ': ' + anterior + ' \u2192 ' + newStock, true);
+        await loadProducts();
+      } catch (e) {
+        showStatus('Error de conexiÃ³n.', false);
+        if (row) row.style.opacity = '1';
+      }
+    }
+
+    rowsEl?.addEventListener('click', function(e) {
+      var btn = e.target.closest('[data-action]');
+      if (!btn) return;
+      var pid = btn.dataset.pid;
+      var action = btn.dataset.action;
+      var input = rowsEl.querySelector('input[data-pid="' + pid + '"]');
+      var val = parseInt(input ? input.value : '', 10);
+      var product = findProduct(pid);
+      if (!product) return;
+      var actual = product.stock ?? 0;
+
+      if (action === 'add') {
+        if (!val || val <= 0) { showStatus('Ingresa una cantidad mayor a 0.', false); return; }
+        updateStock(product, actual + val);
+      } else if (action === 'set') {
+        if (isNaN(val) || val < 0) { showStatus('Ingresa un nÃºmero vÃ¡lido (0 o mayor).', false); return; }
+        updateStock(product, val);
+      }
+    });
+
+    searchEl?.addEventListener('input', render);
+    perPageEl?.addEventListener('change', render);
+
+    btnCopy?.addEventListener('click', async function() {
+      var displayed = getDisplayed();
+      var header = 'ID\tNOMBRE\tCATEGORIA\tSTOCK\tPRECIO';
+      var rows = displayed.map(function(p) { return [p.id, p.nombre, p.categoria || '', p.stock ?? 0, p.precio].join('\t'); }).join('\n');
+      try {
+        await navigator.clipboard.writeText(header + '\n' + rows);
+        showStatus('Tabla copiada al portapapeles', true);
+      } catch { showStatus('No se pudo copiar', false); }
+    });
+
+    btnCsv?.addEventListener('click', function() {
+      var header = 'ID,Nombre,Categoria,Stock,Precio\n';
+      var rows = products.map(function(p) { return [p.id, '"' + (p.nombre || '') + '"', '"' + (p.categoria || '') + '"', p.stock ?? 0, p.precio].join(','); }).join('\n');
+      var blob = new Blob([header + rows], { type: 'text/csv' });
+      var url = URL.createObjectURL(blob);
+      var a = document.createElement('a'); a.href = url; a.download = 'stock_' + new Date().toISOString().slice(0, 10) + '.csv'; a.click();
+      URL.revokeObjectURL(url);
+      showStatus('CSV descargado', true);
+    });
+
+    loadProducts();
+  </script>
+
+  <style is:global>
+    .stock-admin-page {
+      min-height: 100vh;
+      padding: 108px 20px 40px;
+      background: #0c0d10;
+    }
+
+    .stock-admin-shell {
+      width: min(1320px, 100%);
+      margin: 0 auto;
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      border-radius: 12px;
+      background: #131417;
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.4);
+      padding: 16px;
+    }
+
+    .stock-admin-header {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      align-items: flex-start;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+      padding-bottom: 12px;
+      margin-bottom: 12px;
+    }
+
+    .stock-admin-kicker {
+      margin: 0;
+      font-size: 0.72rem;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: rgba(255, 255, 255, 0.58);
+    }
+
+    .stock-admin-header h1 {
+      margin: 3px 0;
+      font-size: 1.95rem;
+      color: #f7f7f7;
+      line-height: 1.05;
+    }
+
+    .stock-admin-subtitle {
+      margin: 0;
+      color: rgba(255, 255, 255, 0.68);
+      font-size: 0.84rem;
+    }
+
+    .stock-admin-top-actions {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .stock-admin-back {
+      text-decoration: none;
+      color: #f8f8f8;
+      border: 1px solid rgba(255, 255, 255, 0.26);
+      background: transparent;
+      border-radius: 6px;
+      padding: 8px 11px;
+      font-size: 0.78rem;
+      white-space: nowrap;
+    }
+
+    /* â”€â”€ Modal â”€â”€ */
+    .stock-info-modal {
+      position: fixed;
+      inset: 0;
+      z-index: 1200;
+      display: grid;
+      place-items: center;
+      padding: 16px;
+    }
+    .stock-info-modal[hidden] { display: none !important; }
+
+    .stock-info-overlay {
+      position: absolute;
+      inset: 0;
+      background: rgba(2, 6, 23, 0.6);
+    }
+
+    .stock-info-panel {
+      position: relative;
+      width: min(500px, 100%);
+      border-radius: 12px;
+      border: 1px solid rgba(255, 255, 255, 0.22);
+      background: #11151d;
+      box-shadow: 0 20px 56px rgba(0, 0, 0, 0.45);
+      padding: 20px 18px 14px;
+      color: #f8fafc;
+    }
+
+    .stock-info-panel h3 { margin: 0 0 10px; font-size: 1.3rem; color: #f8fafc; }
+    .stock-info-panel p { margin: 0; font-size: 1rem; line-height: 1.45; color: rgba(248, 250, 252, 0.94); }
+    .stock-info-actions { margin-top: 18px; display: flex; justify-content: flex-end; }
+
+    .stock-info-close {
+      position: absolute; top: 10px; right: 10px;
+      width: 32px; height: 32px; border-radius: 999px;
+      border: 1px solid rgba(255, 255, 255, 0.24);
+      background: transparent; color: #f8fafc;
+      font-size: 0.92rem; cursor: pointer;
+    }
+
+    .stock-info-panel.is-ok { border-color: rgba(34, 197, 94, 0.5); }
+    .stock-info-panel.is-error { border-color: rgba(239, 68, 68, 0.58); }
+
+    /* â”€â”€ Card & Toolbar â”€â”€ */
+    .stock-list-section { margin-top: 10px; }
+
+    .stock-card {
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      border-radius: 8px;
+      background: #0f1013;
+      padding: 10px;
+    }
+
+    .stock-toolbar {
+      display: grid;
+      grid-template-columns: 1fr auto 1fr;
+      gap: 8px;
+      align-items: center;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      background: #17191d;
+      border-radius: 6px;
+      padding: 8px;
+      margin-bottom: 10px;
+    }
+
+    .stock-toolbar-left,
+    .stock-toolbar-right {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.74rem;
+      color: rgba(255, 255, 255, 0.74);
+    }
+
+    .stock-toolbar-right { justify-self: end; }
+
+    .stock-toolbar-center {
+      display: inline-flex;
+      gap: 5px;
+      justify-self: center;
+    }
+
+    .toolbar-select,
+    .toolbar-search {
+      padding: 5px 7px;
+      font-size: 0.74rem;
+      border-radius: 4px;
+      border: 1px solid rgba(255, 255, 255, 0.22);
+      min-width: 64px;
+      background: #101116;
+      color: #f5f5f5;
+    }
+
+    .toolbar-search { width: 200px; }
+
+    .mini-btn {
+      border: 1px solid rgba(255, 255, 255, 0.26);
+      background: transparent;
+      color: #ececec;
+      border-radius: 4px;
+      padding: 4px 7px;
+      font-size: 0.68rem;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .mini-btn.info {
+      background: rgba(255, 255, 255, 0.08);
+      border-color: rgba(255, 255, 255, 0.26);
+    }
+
+    .btn.warning {
+      border: 1px solid rgba(122, 37, 50, 0.7);
+      background: rgba(122, 37, 50, 0.2);
+      color: #ffd3c3;
+      border-radius: 6px;
+      padding: 8px 12px;
+      font-size: 0.78rem;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    /* â”€â”€ Table â”€â”€ */
+    .stock-list-header { margin-bottom: 10px; }
+    .stock-list-header h2 { margin: 0; font-size: 1.35rem; color: #f3f3f3; }
+
+    .stock-table-wrap {
+      overflow: auto;
+      max-height: 62vh;
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      border-radius: 6px;
+    }
+
+    .stock-table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 820px;
+      font-size: 0.78rem;
+      background: #101216;
+    }
+
+    .stock-table th,
+    .stock-table td {
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      padding: 8px 10px;
+      text-align: left;
+      color: #f3f4f6;
+    }
+
+    .stock-table th {
+      position: sticky;
+      top: 0;
+      background: #1a1c22;
+      color: rgba(255, 255, 255, 0.72);
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+
+    .stock-th-actions { width: 120px; text-align: center; }
+
+    .stock-name { font-weight: 600; color: #fff; }
+
+    .stock-thumb {
+      width: 40px;
+      height: 40px;
+      object-fit: cover;
+      border-radius: 6px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      display: block;
+    }
+
+    .stock-no-img { color: rgba(255, 255, 255, 0.2); }
+
+    /* â”€â”€ Badges â”€â”€ */
+    .badge {
+      display: inline-block;
+      padding: 3px 10px;
+      border-radius: 6px;
+      font-size: 0.76rem;
+      font-weight: 700;
+    }
+    .badge.ok  { background: rgba(34, 197, 94, 0.12); color: #4ade80; border: 1px solid rgba(34, 197, 94, 0.2); }
+    .badge.med { background: rgba(59, 130, 246, 0.12); color: #60a5fa; border: 1px solid rgba(59, 130, 246, 0.2); }
+    .badge.low { background: rgba(251, 191, 36, 0.12); color: #fbbf24; border: 1px solid rgba(251, 191, 36, 0.2); }
+    .badge.out { background: rgba(239, 68, 68, 0.12); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.2); }
+
+    /* â”€â”€ Qty input â”€â”€ */
+    .stock-qty {
+      width: 70px;
+      padding: 6px 8px;
+      background: #15171b;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 6px;
+      color: #f5f5f5;
+      font-size: 0.8rem;
+      text-align: center;
+    }
+
+    /* â”€â”€ Action buttons â”€â”€ */
+    .stock-row-actions { display: flex; align-items: center; gap: 8px; justify-content: center; }
+
+    .row-icon-btn {
+      width: 28px; height: 28px;
+      border-radius: 4px;
+      border: 1px solid rgba(255, 255, 255, 0.24);
+      background: transparent;
+      display: inline-flex; align-items: center; justify-content: center;
+      cursor: pointer;
+      transition: transform 0.16s ease;
+    }
+
+    .row-icon-btn:hover { transform: translateY(-1px); }
+
+    .row-icon-btn svg {
+      width: 14px; height: 14px;
+      stroke: currentColor; fill: none;
+      stroke-width: 2; stroke-linecap: round; stroke-linejoin: round;
+    }
+
+    .row-icon-btn.add { color: #4ade80; border-color: rgba(34, 197, 94, 0.5); }
+    .row-icon-btn.set { color: #60a5fa; border-color: rgba(59, 130, 246, 0.5); }
+
+    .stock-results-info {
+      padding-top: 8px;
+      font-size: 0.74rem;
+      color: rgba(255, 255, 255, 0.62);
+    }
+
+    /* â”€â”€ Light mode â”€â”€ */
+    html:not(.dark) .stock-admin-page { background: #eef3f9; }
+    html:not(.dark) .stock-admin-shell { border-color: #d8e1ee; background: #fff; box-shadow: 0 18px 40px rgba(15, 23, 42, 0.08); }
+    html:not(.dark) .stock-admin-header { border-bottom-color: #e3e9f3; }
+    html:not(.dark) .stock-admin-kicker,
+    html:not(.dark) .stock-admin-subtitle,
+    html:not(.dark) .stock-toolbar-left,
+    html:not(.dark) .stock-toolbar-right,
+    html:not(.dark) .stock-results-info { color: #5b687d; }
+    html:not(.dark) .stock-admin-header h1,
+    html:not(.dark) .stock-list-header h2,
+    html:not(.dark) .stock-table th,
+    html:not(.dark) .stock-table td,
+    html:not(.dark) .stock-admin-back { color: #172033; }
+    html:not(.dark) .stock-card,
+    html:not(.dark) .stock-toolbar,
+    html:not(.dark) .stock-table,
+    html:not(.dark) .toolbar-select,
+    html:not(.dark) .toolbar-search,
+    html:not(.dark) .stock-qty { background: #fff; border-color: #d9e2ee; color: #172033; }
+    html:not(.dark) .stock-table th { background: #f2f5fa; color: #4b5a73; }
+    html:not(.dark) .stock-table th,
+    html:not(.dark) .stock-table td,
+    html:not(.dark) .stock-table-wrap,
+    html:not(.dark) .stock-toolbar { border-color: #dfe6f0; }
+    html:not(.dark) .stock-info-overlay { background: rgba(15, 23, 42, 0.35); }
+    html:not(.dark) .stock-info-panel { background: #fff; border-color: #d9e2ee; color: #0f172a; box-shadow: 0 20px 52px rgba(15, 23, 42, 0.18); }
+    html:not(.dark) .stock-info-panel h3 { color: #0f172a; }
+    html:not(.dark) .stock-info-panel p { color: #334155; }
+    html:not(.dark) .stock-info-close { border-color: #d3dce8; color: #0f172a; }
+    html:not(.dark) .mini-btn,
+    html:not(.dark) .row-icon-btn { border-color: #cfd9e7; color: #233047; background: #fff; }
+
+    @media (max-width: 1100px) {
+      .stock-admin-header { flex-direction: column; }
+      .stock-toolbar { grid-template-columns: 1fr; }
+      .stock-toolbar-center, .stock-toolbar-right { justify-self: start; }
+    }
+
+    @media (max-width: 820px) {
+      .toolbar-search { width: 100%; }
+    }
+  </style>
+</BaseLayout>
+
+

@@ -1,0 +1,88 @@
+/* ═══════════════════════════════════════════════════════════════
+   APP-RESET.CSS
+   
+   Neutraliza typography.css dentro de [data-app-view].
+   
+   El truco: typography.css usa var(--fs-display-xl) etc.
+   No podemos ganarle con !important en font-size porque
+   la variable se resuelve al valor gigante.
+   
+   La solución: REDEFINIR las variables dentro del wrapper
+   para que apunten a tamaños normales.
+   
+   Archivo: src/styles/app-reset.css
+   Importar en BaseLayout DESPUÉS de typography.css:
+     @import "../styles/typography.css";
+     @import "../styles/app-reset.css";
+     @import "../styles/backgrounds.css";
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ── Redefinir TODAS las variables de escala dentro del wrapper ── */
+[data-app-view] {
+  /* Display scale → tamaños normales de app */
+  --fs-display-xl: clamp(1.4rem, 2.8vw, 2.2rem);
+  --fs-display-lg: clamp(1rem, 1.5vw, 1.15rem);
+  --fs-display-md: clamp(0.9rem, 1.2vw, 1.05rem);
+  --fs-display-sm: clamp(0.82rem, 1vw, 0.95rem);
+  --fs-display-xs: clamp(0.78rem, 0.9vw, 0.88rem);
+
+  /* Subtitle scale */
+  --fs-subtitle-lg: clamp(1rem, 1.3vw, 1.15rem);
+  --fs-subtitle-md: clamp(0.88rem, 1.1vw, 1rem);
+  --fs-subtitle-sm: clamp(0.82rem, 1vw, 0.92rem);
+
+  /* Line heights → normales */
+  --lh-display: 1.2;
+  --lh-display-md: 1.3;
+
+  /* Letter spacing → neutro */
+  --ls-display-hero: normal;
+  --ls-display: normal;
+  --ls-display-md: normal;
+  --ls-display-sm: normal;
+  --ls-subtitle: normal;
+  --ls-label: 0.04em;
+  --ls-label-sm: 0.03em;
+  --ls-label-xs: 0.02em;
+  --ls-loose: 0.08em;
+
+  /* Font families → system fonts para app */
+  --font-display: 'Inter', -apple-system, 'SF Pro Display', 'SF Pro', system-ui, sans-serif;
+  --font-title: 'Inter', -apple-system, 'SF Pro Display', 'SF Pro', system-ui, sans-serif;
+  --font-titles: 'Inter', -apple-system, 'SF Pro Display', 'SF Pro', system-ui, sans-serif;
+  --font-body: 'Inter', -apple-system, 'SF Pro Display', 'SF Pro', system-ui, sans-serif;
+  --font-subtitle: 'Inter', -apple-system, 'SF Pro Display', 'SF Pro', system-ui, sans-serif;
+  --fuente-titulos: 'Inter', -apple-system, 'SF Pro Display', 'SF Pro', system-ui, sans-serif;
+  --fuente-cuerpo: 'Inter', -apple-system, 'SF Pro Display', 'SF Pro', system-ui, sans-serif;
+
+  /* Font weights → normales */
+  --fw-display: 700;
+  --fw-subtitle: 500;
+}
+
+/* ── Forzar que los headings NO sean uppercase ── */
+[data-app-view] h1,
+[data-app-view] h2,
+[data-app-view] h3,
+[data-app-view] h4,
+[data-app-view] h5,
+[data-app-view] h6 {
+  text-transform: none !important;
+  font-synthesis: none;
+}
+
+/* ── Matar clases de typography.css que puedan filtrarse ── */
+[data-app-view] .block-title,
+[data-app-view] .block-subtitle,
+[data-app-view] .section-heading,
+[data-app-view] .section-tag,
+[data-app-view] .eyebrow,
+[data-app-view] .label-text,
+[data-app-view] .subtitle-lg,
+[data-app-view] .subtitle-md,
+[data-app-view] .subtitle-sm {
+  font-size: inherit !important;
+  letter-spacing: inherit !important;
+  text-transform: none !important;
+  margin-bottom: 0 !important;
+}

@@ -1,0 +1,658 @@
+﻿---
+const { currentLang = "es" } = Astro.props;
+---
+
+<section id="admin-sales-ribbon" class="admin-sales-ribbon" aria-label="Dashboard de ventas">
+  <div class="admin-sales-ribbon__halo"></div>
+  <div class="admin-sales-ribbon__head">
+    <p class="admin-sales-ribbon__eyebrow">Executive Pulse</p>
+    <h3 class="admin-sales-ribbon__title">Ventas y ganancias</h3>
+    <p id="adminSalesUpdatedAt" class="admin-sales-ribbon__updated">Sincronizando...</p>
+  </div>
+
+  <div class="admin-sales-ribbon__controls">
+    <select id="adminSalesRange" class="admin-sales-ribbon__range" aria-label="Rango de tiempo">
+      <option value="7">7 dias</option>
+      <option value="30" selected>30 dias</option>
+      <option value="90">90 dias</option>
+    </select>
+    <a class="admin-sales-ribbon__cta" href={`/${currentLang}/admin/pedidos`}>Detalles</a>
+  </div>
+
+  <section id="adminSalesKpiGrid" class="admin-sales-ribbon__kpis" aria-live="polite">
+    <article class="admin-sales-ribbon__card is-skeleton"></article>
+    <article class="admin-sales-ribbon__card is-skeleton"></article>
+  </section>
+
+  <section class="admin-sales-ribbon__panel admin-sales-ribbon__panel--pulse">
+    <header>
+      <p class="admin-sales-ribbon__panel-label">Performance</p>
+      <h4 class="admin-sales-ribbon__panel-title">Pulso comercial</h4>
+    </header>
+    <div class="admin-sales-ribbon__pulse-wrap">
+      <div id="adminSalesGauge" class="admin-sales-ribbon__gauge" style="--pct: 0%;">
+        <div class="admin-sales-ribbon__gauge-core">
+          <strong id="adminSalesGaugeValue">0%</strong>
+          <span>crecimiento</span>
+        </div>
+      </div>
+      <div class="admin-sales-ribbon__pulse-metrics">
+        <p><span>Ticket</span><strong id="adminSalesTicket">$0.00</strong></p>
+        <p><span>Hoy</span><strong id="adminSalesToday">$0.00</strong></p>
+        <p><span>Ordenes hoy</span><strong id="adminSalesOrdersToday">0</strong></p>
+      </div>
+    </div>
+  </section>
+
+  <section class="admin-sales-ribbon__panel">
+    <header>
+      <p class="admin-sales-ribbon__panel-label">Tendencia</p>
+      <h4 class="admin-sales-ribbon__panel-title">Ritmo diario</h4>
+    </header>
+    <svg id="adminSalesSparkline" class="admin-sales-ribbon__sparkline" viewBox="0 0 220 72" preserveAspectRatio="none" aria-label="Tendencia de ingresos">
+      <defs>
+        <linearGradient id="sparkStroke" x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0%" stop-color="#7a2532"></stop>
+          <stop offset="100%" stop-color="#22d3ee"></stop>
+        </linearGradient>
+        <linearGradient id="sparkFill" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="rgba(122,37,50,0.35)"></stop>
+          <stop offset="100%" stop-color="rgba(34,211,238,0.03)"></stop>
+        </linearGradient>
+      </defs>
+      <path id="adminSalesSparkArea" d="" fill="url(#sparkFill)"></path>
+      <path id="adminSalesSparkPath" d="" fill="none" stroke="url(#sparkStroke)" stroke-width="2.6" stroke-linecap="round"></path>
+    </svg>
+  </section>
+
+  <section class="admin-sales-ribbon__panel">
+    <header>
+      <p class="admin-sales-ribbon__panel-label">Top productos</p>
+      <h4 class="admin-sales-ribbon__panel-title">Mes actual</h4>
+    </header>
+    <ul id="adminSalesTopProducts" class="admin-sales-ribbon__bars"></ul>
+  </section>
+</section>
+
+<style>
+  .admin-sales-ribbon {
+    position: relative;
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    background: linear-gradient(145deg, rgba(16, 22, 33, 0.96), rgba(8, 12, 20, 0.96));
+    color: #f8fbff;
+    padding: 11px;
+    margin: 2px 0 12px;
+    box-shadow: 0 12px 24px rgba(2, 8, 20, 0.32);
+    overflow: hidden;
+  }
+
+  .admin-sales-ribbon__halo {
+    position: absolute;
+    width: 170px;
+    height: 170px;
+    top: -94px;
+    right: -76px;
+    border-radius: 999px;
+    background: radial-gradient(circle, rgba(122, 37, 50, 0.35), transparent 72%);
+    filter: blur(2px);
+    pointer-events: none;
+  }
+
+  .admin-sales-ribbon > * {
+    position: relative;
+  }
+
+  .admin-sales-ribbon__head {
+    margin-bottom: 8px;
+  }
+
+  .admin-sales-ribbon__eyebrow {
+    margin: 0;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    font-size: 0.55rem;
+    color: rgba(255, 223, 199, 0.88);
+  }
+
+  .admin-sales-ribbon__title {
+    margin: 2px 0;
+    font-size: 0.9rem;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+  }
+
+  .admin-sales-ribbon__updated {
+    margin: 0;
+    font-size: 0.63rem;
+    color: rgba(226, 232, 240, 0.74);
+  }
+
+  .admin-sales-ribbon__controls {
+    display: flex;
+    align-items: stretch;
+    gap: 8px;
+    margin-bottom: 9px;
+  }
+
+  .admin-sales-ribbon__range,
+  .admin-sales-ribbon__cta {
+    border-radius: 9px;
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    background: rgba(255, 255, 255, 0.06);
+    color: #fff;
+    font-size: 0.68rem;
+    padding: 7px 8px;
+    text-decoration: none;
+  }
+
+  .admin-sales-ribbon__range {
+    flex: 1;
+  }
+
+  .admin-sales-ribbon__cta {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 74px;
+    font-weight: 600;
+  }
+
+  .admin-sales-ribbon__range:focus,
+  .admin-sales-ribbon__cta:focus {
+    outline: 2px solid rgba(251, 146, 60, 0.8);
+    outline-offset: 2px;
+  }
+
+  .admin-sales-ribbon__kpis {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+    margin-bottom: 9px;
+  }
+
+  .admin-sales-ribbon__card {
+    border-radius: 10px;
+    border: 1px solid rgba(255, 255, 255, 0.13);
+    background: rgba(255, 255, 255, 0.06);
+    padding: 9px;
+    min-height: 66px;
+  }
+
+  .admin-sales-ribbon__card.is-skeleton {
+    background: linear-gradient(90deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0.14), rgba(255, 255, 255, 0.04));
+    background-size: 200% 100%;
+    animation: adminSalesPulse 1.4s infinite linear;
+  }
+
+  .admin-sales-ribbon__card-label {
+    margin: 0;
+    font-size: 0.64rem;
+    color: rgba(241, 245, 249, 0.7);
+  }
+
+  .admin-sales-ribbon__card-value {
+    margin: 3px 0 2px;
+    font-size: 0.93rem;
+    font-weight: 700;
+    letter-spacing: 0.01em;
+    color: #ffffff;
+  }
+
+  .admin-sales-ribbon__card-trend {
+    margin: 0;
+    font-size: 0.62rem;
+    color: rgba(191, 219, 254, 0.92);
+  }
+
+  .admin-sales-ribbon__card-trend.is-up { color: #86efac; }
+  .admin-sales-ribbon__card-trend.is-down { color: #fca5a5; }
+
+  .admin-sales-ribbon__panel {
+    border-radius: 10px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: rgba(255, 255, 255, 0.04);
+    padding: 8px;
+    margin-bottom: 8px;
+  }
+
+  .admin-sales-ribbon__panel--pulse {
+    background: linear-gradient(160deg, rgba(14, 17, 28, 0.9), rgba(8, 30, 35, 0.55));
+  }
+
+  .admin-sales-ribbon__panel:last-child {
+    margin-bottom: 0;
+  }
+
+  .admin-sales-ribbon__panel-label {
+    margin: 0;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    font-size: 0.54rem;
+    color: rgba(226, 232, 240, 0.78);
+  }
+
+  .admin-sales-ribbon__panel-title {
+    margin: 1px 0 5px;
+    font-size: 0.75rem;
+    font-weight: 600;
+  }
+
+  .admin-sales-ribbon__pulse-wrap {
+    display: grid;
+    grid-template-columns: 74px 1fr;
+    gap: 10px;
+    align-items: center;
+  }
+
+  .admin-sales-ribbon__gauge {
+    width: 74px;
+    height: 74px;
+    border-radius: 999px;
+    display: grid;
+    place-items: center;
+    background:
+      radial-gradient(circle at center, rgba(7, 10, 19, 1) 52%, transparent 53%),
+      conic-gradient(from -110deg, #22d3ee 0 var(--pct), rgba(148, 163, 184, 0.2) var(--pct) 100%);
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.12), 0 8px 16px rgba(15, 23, 42, 0.35);
+    transition: background 0.4s ease;
+  }
+
+  .admin-sales-ribbon__gauge-core {
+    width: 54px;
+    height: 54px;
+    border-radius: inherit;
+    background: rgba(2, 6, 23, 0.92);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    display: grid;
+    place-content: center;
+    text-align: center;
+    line-height: 1.05;
+  }
+
+  .admin-sales-ribbon__gauge-core strong {
+    font-size: 0.75rem;
+    letter-spacing: 0.01em;
+  }
+
+  .admin-sales-ribbon__gauge-core span {
+    font-size: 0.43rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: rgba(226, 232, 240, 0.72);
+  }
+
+  .admin-sales-ribbon__pulse-metrics {
+    display: grid;
+    gap: 5px;
+  }
+
+  .admin-sales-ribbon__pulse-metrics p {
+    margin: 0;
+    display: flex;
+    justify-content: space-between;
+    gap: 8px;
+    font-size: 0.62rem;
+    color: rgba(226, 232, 240, 0.76);
+  }
+
+  .admin-sales-ribbon__pulse-metrics strong {
+    color: #f8fafc;
+    font-size: 0.67rem;
+    letter-spacing: 0.01em;
+  }
+
+  .admin-sales-ribbon__sparkline {
+    width: 100%;
+    height: 66px;
+    display: block;
+    overflow: visible;
+  }
+
+  .admin-sales-ribbon__sparkline #adminSalesSparkPath {
+    stroke-dasharray: 440;
+    stroke-dashoffset: 440;
+    animation: drawSalesPath 1s ease forwards;
+  }
+
+  .admin-sales-ribbon__bars {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: 6px;
+  }
+
+  .admin-sales-ribbon__bar-item {
+    display: grid;
+    gap: 3px;
+  }
+
+  .admin-sales-ribbon__bar-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 6px;
+    align-items: baseline;
+  }
+
+  .admin-sales-ribbon__bar-name {
+    color: rgba(255, 255, 255, 0.9);
+    font-size: 0.65rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .admin-sales-ribbon__bar-metrics {
+    color: rgba(255, 255, 255, 0.72);
+    font-size: 0.6rem;
+    flex-shrink: 0;
+  }
+
+  .admin-sales-ribbon__bar-track {
+    width: 100%;
+    height: 6px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.11);
+    overflow: hidden;
+  }
+
+  .admin-sales-ribbon__bar-fill {
+    height: 100%;
+    border-radius: inherit;
+    background: linear-gradient(90deg, #7a2532, #22d3ee);
+    transform-origin: left;
+    animation: growBar 0.9s cubic-bezier(0.2, 1, 0.3, 1);
+  }
+
+  @keyframes adminSalesPulse {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+  }
+
+  @keyframes drawSalesPath {
+    to {
+      stroke-dashoffset: 0;
+    }
+  }
+
+  @keyframes growBar {
+    from {
+      transform: scaleX(0);
+    }
+    to {
+      transform: scaleX(1);
+    }
+  }
+
+  html:not(.dark) .admin-sales-ribbon {
+    color: #0f172a;
+    border-color: rgba(15, 23, 42, 0.14);
+    background: radial-gradient(circle at 10% 10%, rgba(251, 146, 60, 0.16), transparent 42%),
+      linear-gradient(145deg, rgba(255, 255, 255, 0.96), rgba(241, 245, 249, 0.96));
+  }
+
+  html:not(.dark) .admin-sales-ribbon__range,
+  html:not(.dark) .admin-sales-ribbon__cta {
+    color: #0f172a;
+    border-color: rgba(15, 23, 42, 0.16);
+    background: rgba(255, 255, 255, 0.85);
+  }
+
+  html:not(.dark) .admin-sales-ribbon__panel,
+  html:not(.dark) .admin-sales-ribbon__card {
+    border-color: rgba(15, 23, 42, 0.12);
+    background: rgba(255, 255, 255, 0.8);
+  }
+
+  html:not(.dark) .admin-sales-ribbon__panel--pulse {
+    background: linear-gradient(160deg, rgba(255, 255, 255, 0.92), rgba(224, 242, 254, 0.78));
+  }
+
+  html:not(.dark) .admin-sales-ribbon__updated,
+  html:not(.dark) .admin-sales-ribbon__card-label,
+  html:not(.dark) .admin-sales-ribbon__bar-metrics {
+    color: rgba(15, 23, 42, 0.66);
+  }
+
+  html:not(.dark) .admin-sales-ribbon__bar-name {
+    color: rgba(15, 23, 42, 0.88);
+  }
+
+  html:not(.dark) .admin-sales-ribbon__gauge-core {
+    background: rgba(255, 255, 255, 0.96);
+    border-color: rgba(15, 23, 42, 0.12);
+  }
+
+  html:not(.dark) .admin-sales-ribbon__gauge-core span,
+  html:not(.dark) .admin-sales-ribbon__pulse-metrics p {
+    color: rgba(15, 23, 42, 0.66);
+  }
+
+  html:not(.dark) .admin-sales-ribbon__pulse-metrics strong,
+  html:not(.dark) .admin-sales-ribbon__gauge-core strong {
+    color: rgba(15, 23, 42, 0.92);
+  }
+
+  @media (max-width: 1024px) {
+    .admin-sales-ribbon {
+      margin-bottom: 10px;
+    }
+  }
+</style>
+
+<script is:inline>
+  (function () {
+    const ribbon = document.getElementById("admin-sales-ribbon");
+    if (!ribbon) return;
+
+    const kpiGrid = document.getElementById("adminSalesKpiGrid");
+    const sparkPath = document.getElementById("adminSalesSparkPath");
+    const sparkArea = document.getElementById("adminSalesSparkArea");
+    const topProductsList = document.getElementById("adminSalesTopProducts");
+    const updatedAtLabel = document.getElementById("adminSalesUpdatedAt");
+    const rangeSelect = document.getElementById("adminSalesRange");
+    const gauge = document.getElementById("adminSalesGauge");
+    const gaugeValue = document.getElementById("adminSalesGaugeValue");
+    const ticketEl = document.getElementById("adminSalesTicket");
+    const todayEl = document.getElementById("adminSalesToday");
+    const ordersTodayEl = document.getElementById("adminSalesOrdersToday");
+
+    const money = (value) =>
+      `$${Number(value || 0).toLocaleString("es-MX", {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      })} MXN`;
+
+    const compactMoney = (value) =>
+      new Intl.NumberFormat("es-MX", {
+        style: "currency",
+        currency: "MXN",
+        notation: "compact",
+        maximumFractionDigits: 1,
+      }).format(Number(value || 0));
+
+    function escapeHtml(value) {
+      return String(value || "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/\"/g, "&quot;")
+        .replace(/'/g, "&#39;");
+    }
+
+    function trendClass(value) {
+      if (value > 0) return "is-up";
+      if (value < 0) return "is-down";
+      return "";
+    }
+
+    function trendLabel(value) {
+      const num = Number(value || 0);
+      if (!num) return "Sin variacion mensual";
+      const arrow = num > 0 ? "+" : "-";
+      return `${arrow} ${Math.abs(num).toFixed(1)}% vs mes anterior`;
+    }
+
+    function renderKpis(data) {
+      if (!kpiGrid) return;
+      const kpis = data?.kpis || {};
+      const growth = Number(kpis.crecimientoMensual || 0);
+
+      const cards = [
+        {
+          label: "Ingreso mensual",
+          value: compactMoney(kpis.ingresosMes),
+          trend: trendLabel(growth),
+          trendClassName: trendClass(growth),
+        },
+        {
+          label: "Ganancia",
+          value: compactMoney(kpis.gananciasEstimadasMes),
+          trend: `${Number(kpis.margenEstimado || 0).toFixed(1)}% margen estimado`,
+          trendClassName: "",
+        },
+      ];
+
+      kpiGrid.innerHTML = cards
+        .map(
+          (card) => `
+            <article class="admin-sales-ribbon__card">
+              <p class="admin-sales-ribbon__card-label">${card.label}</p>
+              <p class="admin-sales-ribbon__card-value">${card.value}</p>
+              <p class="admin-sales-ribbon__card-trend ${card.trendClassName}">${card.trend}</p>
+            </article>
+          `,
+        )
+        .join("");
+    }
+
+    function renderTrend(data) {
+      if (!sparkPath || !sparkArea) return;
+      const trend = Array.isArray(data?.trend) ? data.trend : [];
+      if (!trend.length) {
+        sparkPath.setAttribute("d", "");
+        sparkArea.setAttribute("d", "");
+        return;
+      }
+
+      const values = trend.map((row) => Number(row.ingresos || 0));
+      const max = Math.max(...values, 1);
+      const min = Math.min(...values, 0);
+      const width = 220;
+      const height = 72;
+      const pad = 6;
+      const xStep = values.length > 1 ? (width - pad * 2) / (values.length - 1) : 0;
+      const yScale = (height - pad * 2) / Math.max(max - min, 1);
+
+      const points = values.map((v, i) => {
+        const x = pad + i * xStep;
+        const y = height - pad - (v - min) * yScale;
+        return [x, y];
+      });
+
+      const lineD = points
+        .map(([x, y], i) => `${i === 0 ? "M" : "L"}${x.toFixed(2)} ${y.toFixed(2)}`)
+        .join(" ");
+
+      const areaD = `${lineD} L ${(pad + (values.length - 1) * xStep).toFixed(2)} ${(height - pad).toFixed(2)} L ${pad.toFixed(2)} ${(height - pad).toFixed(2)} Z`;
+
+      sparkPath.setAttribute("d", lineD);
+      sparkArea.setAttribute("d", areaD);
+    }
+
+    function renderTopProducts(data) {
+      if (!topProductsList) return;
+      const top = Array.isArray(data?.topProductosMes) ? data.topProductosMes : [];
+      if (!top.length) {
+        topProductsList.innerHTML = '<li class="admin-sales-ribbon__bar-item"><span class="admin-sales-ribbon__bar-name">Sin ventas registradas este mes.</span></li>';
+        return;
+      }
+
+      const maxIngresos = Math.max(...top.map((item) => Number(item.ingresos || 0)), 1);
+
+      topProductsList.innerHTML = top
+        .map(
+          (item) => `
+            <li class="admin-sales-ribbon__bar-item">
+              <div class="admin-sales-ribbon__bar-row">
+                <span class="admin-sales-ribbon__bar-name" title="${escapeHtml(item.nombre)}">${escapeHtml(item.nombre)}</span>
+                <span class="admin-sales-ribbon__bar-metrics">${item.unidades} u | ${compactMoney(item.ingresos)}</span>
+              </div>
+              <span class="admin-sales-ribbon__bar-track">
+                <span class="admin-sales-ribbon__bar-fill" style="width:${Math.max(8, Math.round((Number(item.ingresos || 0) / maxIngresos) * 100))}%"></span>
+              </span>
+            </li>
+          `,
+        )
+        .join("");
+    }
+
+    function renderPulse(data) {
+      const k = data?.kpis || {};
+      const growth = Number(k.crecimientoMensual || 0);
+      const gaugePct = Math.max(0, Math.min(100, Math.round(Math.abs(growth))));
+      if (gauge) gauge.style.setProperty("--pct", `${gaugePct}%`);
+      if (gaugeValue) gaugeValue.textContent = `${growth >= 0 ? "+" : "-"}${Math.abs(growth).toFixed(1)}%`;
+      if (ticketEl) ticketEl.textContent = compactMoney(k.ticketPromedioMes || 0);
+      if (todayEl) todayEl.textContent = compactMoney(k.ingresosHoy || 0);
+      if (ordersTodayEl) ordersTodayEl.textContent = String(Number(k.ordenesHoy || 0));
+    }
+
+    function renderUpdatedAt(data) {
+      if (!updatedAtLabel) return;
+      const parsed = new Date(data?.updatedAt || Date.now());
+      updatedAtLabel.textContent = `Actualizado ${parsed.toLocaleString("es-MX", {
+        day: "numeric",
+        month: "short",
+        hour: "2-digit",
+        minute: "2-digit",
+      })}`;
+    }
+
+    async function fetchDashboard(range) {
+      try {
+        const res = await fetch(`/api/admin/dashboard-ventas?range=${encodeURIComponent(range)}`, {
+          credentials: "same-origin",
+          cache: "no-store",
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok || !data?.success) throw new Error(data?.error || "No fue posible cargar dashboard");
+
+        renderKpis(data);
+        renderTrend(data);
+        renderPulse(data);
+        renderTopProducts(data);
+        renderUpdatedAt(data);
+      } catch (error) {
+        if (kpiGrid) {
+          kpiGrid.innerHTML = `
+            <article class="admin-sales-ribbon__card">
+              <p class="admin-sales-ribbon__card-label">Dashboard</p>
+              <p class="admin-sales-ribbon__card-value">No disponible</p>
+              <p class="admin-sales-ribbon__card-trend">${String(error?.message || "Error desconocido")}</p>
+            </article>
+          `;
+        }
+        if (sparkPath) sparkPath.setAttribute("d", "");
+        if (sparkArea) sparkArea.setAttribute("d", "");
+        if (topProductsList) topProductsList.innerHTML = "";
+        if (gauge) gauge.style.setProperty("--pct", "0%");
+        if (gaugeValue) gaugeValue.textContent = "0%";
+        if (ticketEl) ticketEl.textContent = "$0.00";
+        if (todayEl) todayEl.textContent = "$0.00";
+        if (ordersTodayEl) ordersTodayEl.textContent = "0";
+      }
+    }
+
+    if (rangeSelect) {
+      rangeSelect.addEventListener("change", () => {
+        fetchDashboard(rangeSelect.value || "30");
+      });
+    }
+
+    fetchDashboard(rangeSelect?.value || "30");
+  })();
+</script>
+
+

@@ -1,0 +1,71 @@
+<section class="catx-benefits premium-shell fade-slide-in" aria-label="Beneficios de compra">
+  <article class="catx-benefit-card">
+    <span class="catx-benefit-card__icon" aria-hidden="true">01</span>
+    <h3>Compra con confianza</h3>
+    <p>Informacion clara de cada categoria para que tomes decisiones rapidas y seguras.</p>
+  </article>
+
+  <article class="catx-benefit-card">
+    <span class="catx-benefit-card__icon" aria-hidden="true">02</span>
+    <h3>Entrega eficiente</h3>
+    <p>Procesamos cotizaciones y pedidos con rutas de envio optimizadas para tu operacion.</p>
+  </article>
+
+  <article class="catx-benefit-card">
+    <span class="catx-benefit-card__icon" aria-hidden="true">03</span>
+    <h3>Asesoria especializada</h3>
+    <p>Equipo comercial y tecnico para recomendar la linea correcta segun tu industria.</p>
+  </article>
+</section>
+
+<style>
+  .catx-benefits {
+    margin-top: 20px;
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px;
+  }
+
+  .catx-benefit-card {
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 16px;
+    background: linear-gradient(170deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0.015));
+    padding: 16px;
+    box-shadow: 0 16px 34px rgba(0, 0, 0, 0.24);
+    display: grid;
+    gap: 8px;
+  }
+
+  .catx-benefit-card__icon {
+    width: 34px;
+    height: 34px;
+    border-radius: 999px;
+    border: 1px solid rgba(251, 140, 55, 0.5);
+    color: #ffccab;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.72rem;
+    font-weight: 700;
+    background: rgba(251, 140, 55, 0.12);
+  }
+
+  .catx-benefit-card h3 {
+    margin: 0;
+    color: #f8f8fa;
+    font-size: 0.96rem;
+  }
+
+  .catx-benefit-card p {
+    margin: 0;
+    color: rgba(203, 203, 211, 0.78);
+    line-height: 1.55;
+    font-size: 0.86rem;
+  }
+
+  @media (max-width: 900px) {
+    .catx-benefits {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>

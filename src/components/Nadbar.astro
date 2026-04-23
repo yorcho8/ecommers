@@ -1,0 +1,937 @@
+﻿---
+import LoginLogoutButton from "./LoginLogoutButton.jsx";
+
+export interface Props {
+  currentLang: "es" | "en";
+  moveLogoMobile?: boolean;
+}
+
+const { currentLang, moveLogoMobile = false } = Astro.props;
+const locals = Astro.locals as any;
+const session = locals?.user ?? null;
+
+const navItems = [
+  { name: "Inicio", href: `/${currentLang}/` },
+  { name: "Productos", href: `/${currentLang}/productos/todos` },
+  { name: "Categorías", href: `/${currentLang}/categorias` },
+  { name: "Descuentos", href: `/${currentLang}/descuentos` },
+  { name: "Flash", href: `/${currentLang}/flash-descuentos` },
+];
+
+const { pathname } = Astro.url;
+
+const isRouteActive = (route: string) => {
+  if (route === `/${currentLang}/`) {
+    return pathname === `/${currentLang}/` || pathname === "/";
+  }
+  return pathname.startsWith(route);
+};
+---
+
+<header class="premium-navbar" data-lang={currentLang}>
+  <div class="premium-navbar__container">
+    <div class="premium-navbar__left">
+      <button
+        id="mobile-menu-toggle"
+        class="premium-navbar__mobile-menu-btn"
+        aria-label="Abrir menú"
+        aria-expanded="false"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M4 7h16"></path><path d="M4 12h16"></path><path d="M4 17h16"></path>
+        </svg>
+      </button>
+      <a href={`/${currentLang}/`} class="premium-navbar__logo">
+        <svg class="nexus-logo" width="100" height="40" viewBox="0 0 100 40" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <linearGradient id="grad1" x1="0%" y1="0%" x2="100%" y2="0%">
+              <stop offset="0%" style="stop-color:var(--brand-primary-color);stop-opacity:1"></stop>
+              <stop offset="100%" style="stop-color:var(--brand-secondary-color);stop-opacity:1"></stop>
+            </linearGradient>
+          </defs>
+          <path class="nexus-logo__n" d="M10 30 L 10 10 L 20 25 L 20 10 L 30 30 L 30 10" stroke="url(#grad1)" stroke-width="4" fill="none"></path>
+          <path class="nexus-logo__exus" d="M35 10 L 45 30 M 35 30 L 45 10 M 50 10 L 60 20 L 50 30 M 65 10 L 75 30 M 65 20 L 75 20 M 80 10 C 90 10, 90 30, 80 30 M 80 20 L 85 20" stroke="var(--nadbar-text-color)" stroke-width="3" fill="none"></path>
+        </svg>
+      </a>
+    </div>
+
+    <!-- ═══ SEARCH ═══ -->
+    <div class="premium-navbar__center">
+      <div class="premium-navbar__search-container">
+        <form class="gs" role="search" onsubmit="return false;" data-global-search>
+          <div class="gs__bar">
+            <svg class="gs__icon" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="11" cy="11" r="8"></circle>
+              <path d="m21 21-4.3-4.3"></path>
+            </svg>
+            <input
+              type="search"
+              class="gs__input"
+              placeholder="Buscar productos, categorías..."
+              aria-label="Buscar en el sitio"
+              autocomplete="off"
+              data-search-input
+            />
+            <button type="button" class="gs__clear" data-search-clear aria-label="Limpiar búsqueda" hidden>
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M18 6 6 18"></path><path d="m6 6 12 12"></path>
+              </svg>
+            </button>
+            <div class="gs__spinner" data-search-spinner hidden>
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                <circle cx="8" cy="8" r="6.5" stroke="currentColor" stroke-width="1.5" opacity="0.2"></circle>
+                <path d="M14.5 8a6.5 6.5 0 0 0-6.5-6.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"></path>
+              </svg>
+            </div>
+            <kbd class="gs__kbd" data-search-kbd>/</kbd>
+          </div>
+
+          <div class="gs__panel" data-search-panel hidden>
+            <p class="gs__hint" data-search-hint hidden></p>
+            <div class="gs__section" data-search-trending hidden>
+              <p class="gs__section-title" data-section-title-trending>Búsquedas populares</p>
+              <div class="gs__chips" data-search-trending-list></div>
+            </div>
+            <div class="gs__section" data-search-products hidden>
+              <p class="gs__section-title">Productos</p>
+              <div class="gs__results" data-search-products-list></div>
+            </div>
+            <div class="gs__section" data-search-categories hidden>
+              <p class="gs__section-title">Categorías</p>
+              <div class="gs__results" data-search-categories-list></div>
+            </div>
+            <a class="gs__viewall" data-search-view-all href="#">
+              <span>Ver todos los resultados</span>
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M5 12h14"></path><path d="m12 5 7 7-7 7"></path>
+              </svg>
+            </a>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <div class="premium-navbar__right">
+      <nav class="premium-navbar__nav">
+        <ul class="premium-navbar__nav-list">
+          {
+            navItems.map((item) => (
+              <li class="premium-navbar__nav-item nav-item-group">
+                <a
+                  href={item.href}
+                  class:list={['premium-navbar__nav-link', { active: isRouteActive(item.href) }]}>
+                  {item.name}
+                </a>
+                {item.name === 'Productos' && (
+                  <div class="nav-dropdown">
+                    <a class="nav-dropdown__item" href={`/${currentLang}/productos/categoria/vasos`}>Vasos</a>
+                    <a class="nav-dropdown__item" href={`/${currentLang}/productos/categoria/figuras`}>Figuras</a>
+                    <a class="nav-dropdown__item" href={`/${currentLang}/productos/categoria/accesorios`}>Accesorios</a>
+                  </div>
+                )}
+              </li>
+            ))
+          }
+        </ul>
+      </nav>
+      <div class="premium-navbar__actions">
+        <a href={`/${currentLang}/carrito`} class="premium-navbar__cart-btn" aria-label="Carrito">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M6 19m-2 0a2 2 0 1 0 4 0a2 2 0 1 0 -4 0"></path>
+            <path d="M17 19m-2 0a2 2 0 1 0 4 0a2 2 0 1 0 -4 0"></path>
+            <path d="M17 17h-11v-14h-2"></path>
+            <path d="M6 5l14 1l-1 7h-13"></path>
+          </svg>
+          <span class="premium-navbar__cart-count">0</span>
+        </a>
+        <button class="premium-navbar__theme-toggle" aria-label="Cambiar tema">
+          <svg class="sun" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="4"></circle>
+            <path d="M3 12h1m8 -9v1m8 8h1m-9 8v1m-6.364 -14.364l.707 .707m12.727 0l-.707 .707m0 12.727l.707 .707m-12.727 0l-.707 .707"></path>
+          </svg>
+          <svg class="moon" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 3c.132 0 .263 0 .393 0a7.5 7.5 0 0 0 7.92 12.446a9 9 0 1 1 -8.313 -12.454z"></path>
+          </svg>
+        </button>
+        <LoginLogoutButton client:load initialUser={session} currentLang={currentLang} />
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ MOBILE PANEL ═══ -->
+  <div id="mobile-nav-panel" class="premium-navbar__mobile-panel" hidden>
+    <div class="premium-navbar__mobile-panel-content">
+      <form class="gs gs--mobile" role="search" onsubmit="return false;" data-global-search>
+        <div class="gs__bar">
+          <svg class="gs__icon" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="11" cy="11" r="8"></circle>
+            <path d="m21 21-4.3-4.3"></path>
+          </svg>
+          <input
+            type="search"
+            class="gs__input"
+            placeholder="Buscar productos..."
+            aria-label="Buscar en el sitio"
+            autocomplete="off"
+            data-search-input
+          />
+          <button type="button" class="gs__clear" data-search-clear aria-label="Limpiar" hidden>
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M18 6 6 18"></path><path d="m6 6 12 12"></path>
+            </svg>
+          </button>
+          <div class="gs__spinner" data-search-spinner hidden>
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+              <circle cx="8" cy="8" r="6.5" stroke="currentColor" stroke-width="1.5" opacity="0.2"></circle>
+              <path d="M14.5 8a6.5 6.5 0 0 0-6.5-6.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"></path>
+            </svg>
+          </div>
+        </div>
+        <div class="gs__panel" data-search-panel hidden>
+          <p class="gs__hint" data-search-hint hidden></p>
+          <div class="gs__section" data-search-trending hidden>
+            <p class="gs__section-title" data-section-title-trending>Búsquedas populares</p>
+            <div class="gs__chips" data-search-trending-list></div>
+          </div>
+          <div class="gs__section" data-search-products hidden>
+            <p class="gs__section-title">Productos</p>
+            <div class="gs__results" data-search-products-list></div>
+          </div>
+          <div class="gs__section" data-search-categories hidden>
+            <p class="gs__section-title">Categorías</p>
+            <div class="gs__results" data-search-categories-list></div>
+          </div>
+          <a class="gs__viewall" data-search-view-all href="#">
+            <span>Ver todos los resultados</span>
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M5 12h14"></path><path d="m12 5 7 7-7 7"></path>
+            </svg>
+          </a>
+        </div>
+      </form>
+      <nav class="premium-navbar__mobile-nav">
+        <ul>
+          {
+            navItems.map((item) => (
+              <li>
+                <a href={item.href} class:list={[{ active: isRouteActive(item.href) }]}>{item.name}</a>
+              </li>
+            ))
+          }
+        </ul>
+      </nav>
+    </div>
+  </div>
+</header>
+
+<script>
+  // @ts-nocheck
+  function initPremiumNavbar() {
+    const header = document.querySelector(".premium-navbar");
+    if (!(header instanceof HTMLElement)) return;
+    if (header.dataset.navReady === "1") return;
+    header.dataset.navReady = "1";
+
+    const currentLang = header.dataset.lang || "es";
+    const mobileToggle = document.getElementById("mobile-menu-toggle");
+    const mobilePanel = document.getElementById("mobile-nav-panel");
+    const themeBtn = header.querySelector(".premium-navbar__theme-toggle");
+
+    const applyTheme = (isDark) => {
+      if (isDark) {
+        document.documentElement.classList.add("dark");
+        localStorage.setItem("theme", "dark");
+      } else {
+        document.documentElement.classList.remove("dark");
+        localStorage.setItem("theme", "light");
+      }
+    };
+
+    const storedTheme = localStorage.getItem("theme");
+    applyTheme(storedTheme === "dark");
+
+    if (themeBtn instanceof HTMLButtonElement) {
+      themeBtn.addEventListener("click", () => {
+        const isDark = document.documentElement.classList.contains("dark");
+        applyTheme(!isDark);
+      });
+    }
+
+    const onScroll = () => {
+      if (!(header instanceof HTMLElement)) return;
+      header.classList.toggle("is-scrolled", window.scrollY > 8);
+    };
+    window.addEventListener("scroll", onScroll, { passive: true });
+    onScroll();
+
+    if (mobileToggle instanceof HTMLButtonElement && mobilePanel instanceof HTMLElement) {
+      mobileToggle.addEventListener("click", () => {
+        const isOpen = !mobilePanel.hidden;
+        mobilePanel.hidden = isOpen;
+        mobileToggle.setAttribute("aria-expanded", String(!isOpen));
+        document.body.classList.toggle("no-scroll", !isOpen);
+      });
+      mobilePanel.querySelectorAll("a").forEach((link) => {
+        link.addEventListener("click", () => {
+          mobilePanel.hidden = true;
+          mobileToggle.setAttribute("aria-expanded", "false");
+          document.body.classList.remove("no-scroll");
+        });
+      });
+    }
+
+    // "/" keyboard shortcut
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "/" && !["INPUT", "TEXTAREA", "SELECT"].includes(document.activeElement?.tagName || "")) {
+        e.preventDefault();
+        var fi = header.querySelector(".gs__input");
+        if (fi instanceof HTMLInputElement) fi.focus();
+      }
+    });
+
+    // ── Search ──
+    var forms = Array.from(header.querySelectorAll("[data-global-search]")).filter(
+      function(f) { return f instanceof HTMLFormElement; }
+    );
+    if (!forms.length) return;
+
+    var fallbackImg = "https://res.cloudinary.com/dfuzfdrat/image/upload/v1772744553/logob_pw3jsd.png";
+    var categoriesCache = null;
+    var trendingTerms = ["Película Stretch", "Esquineros", "Bolsa de Malla", "Cinta Adhesiva", "Rafia", "Empaque Flexible"];
+
+    function escapeHtml(v) {
+      return String(v || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+    }
+
+    function normalize(v) {
+      return String(v || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+    }
+
+    function debounce(fn, delay) {
+      var timer = null;
+      return function() {
+        var args = arguments;
+        if (timer) clearTimeout(timer);
+        timer = setTimeout(function() { fn.apply(null, args); }, delay || 220);
+      };
+    }
+
+    function fetchCategories() {
+      if (Array.isArray(categoriesCache)) return Promise.resolve(categoriesCache);
+      return fetch("/api/categorias", { credentials: "same-origin" })
+        .then(function(r) { return r.json().catch(function() { return {}; }); })
+        .then(function(data) {
+          categoriesCache = Array.isArray(data?.categorias)
+            ? data.categorias.map(function(c) {
+                return { id: Number(c.Id_Categoria || 0), nombre: String(c.Nombre || ""), imagen: String(c.Imagen_URL || "").trim() || fallbackImg };
+              })
+            : [];
+          return categoriesCache;
+        });
+    }
+
+    function closePanels() {
+      forms.forEach(function(form) {
+        var p = form.querySelector("[data-search-panel]");
+        if (p instanceof HTMLElement) p.hidden = true;
+        form.classList.remove("gs--open");
+      });
+    }
+
+    function highlightMatch(text, query) {
+      if (!query || query.length < 2) return escapeHtml(text);
+      var qNorm = normalize(query);
+      var tNorm = normalize(text);
+      var idx = tNorm.indexOf(qNorm);
+      if (idx === -1) return escapeHtml(text);
+      return escapeHtml(text.slice(0, idx)) + '<mark class="gs-mark">' + escapeHtml(text.slice(idx, idx + query.length)) + '</mark>' + escapeHtml(text.slice(idx + query.length));
+    }
+
+    forms.forEach(function(form) {
+      var input = form.querySelector("[data-search-input]");
+      var panel = form.querySelector("[data-search-panel]");
+      var hint = form.querySelector("[data-search-hint]");
+      var productsSection = form.querySelector("[data-search-products]");
+      var categoriesSection = form.querySelector("[data-search-categories]");
+      var productsList = form.querySelector("[data-search-products-list]");
+      var categoriesList = form.querySelector("[data-search-categories-list]");
+      var viewAll = form.querySelector("[data-search-view-all]");
+      var clearBtn = form.querySelector("[data-search-clear]");
+      var spinner = form.querySelector("[data-search-spinner]");
+      var kbd = form.querySelector("[data-search-kbd]");
+      var trendingSection = form.querySelector("[data-search-trending]");
+      var trendingList = form.querySelector("[data-search-trending-list]");
+
+      if (!(input instanceof HTMLInputElement)) return;
+      if (!(panel instanceof HTMLElement)) return;
+      if (!(productsSection instanceof HTMLElement)) return;
+      if (!(categoriesSection instanceof HTMLElement)) return;
+      if (!(productsList instanceof HTMLElement)) return;
+      if (!(categoriesList instanceof HTMLElement)) return;
+      if (!(viewAll instanceof HTMLAnchorElement)) return;
+
+      var activeIndex = -1;
+
+      // Trending chips
+      if (trendingList instanceof HTMLElement) {
+        trendingList.innerHTML = trendingTerms.map(function(term) {
+          return '<button type="button" class="gs-chip" data-trending-term="' + escapeHtml(term) + '">' + escapeHtml(term) + '</button>';
+        }).join("");
+
+        trendingList.addEventListener("click", function(e) {
+          var chip = e.target.closest("[data-trending-term]");
+          if (!chip) return;
+          input.value = chip.dataset.trendingTerm;
+          input.dispatchEvent(new Event("input"));
+        });
+      }
+
+      // Clear
+      if (clearBtn instanceof HTMLButtonElement) {
+        clearBtn.addEventListener("click", function() {
+          input.value = "";
+          clearBtn.hidden = true;
+          if (kbd instanceof HTMLElement) kbd.hidden = false;
+          input.focus();
+          showInitialState();
+        });
+      }
+
+      function updateClearVisibility() {
+        var has = input.value.trim().length > 0;
+        if (clearBtn instanceof HTMLElement) clearBtn.hidden = !has;
+        if (kbd instanceof HTMLElement) kbd.hidden = has;
+      }
+
+      function getOptions() {
+        return Array.from(panel.querySelectorAll("[data-s-option]")).filter(function(el) { return el instanceof HTMLAnchorElement; });
+      }
+
+      function updateKeyboardFocus() {
+        var opts = getOptions();
+        opts.forEach(function(node, i) {
+          var active = i === activeIndex;
+          node.classList.toggle("is-active", active);
+          if (active) node.scrollIntoView({ block: "nearest" });
+        });
+      }
+
+      function showInitialState() {
+        productsSection.hidden = true;
+        categoriesSection.hidden = true;
+        if (hint instanceof HTMLElement) { hint.textContent = "Escribe para buscar productos y categorías"; hint.hidden = false; }
+        if (trendingSection instanceof HTMLElement) trendingSection.hidden = false;
+        viewAll.href = "/" + currentLang + "/productos/todos";
+        panel.hidden = false;
+        form.classList.add("gs--open");
+      }
+
+      function renderResults(rawValue) {
+        var q = String(rawValue || "").trim();
+        activeIndex = -1;
+
+        if (q.length < 2) { showInitialState(); return; }
+
+        panel.hidden = false;
+        form.classList.add("gs--open");
+        if (trendingSection instanceof HTMLElement) trendingSection.hidden = true;
+        if (spinner instanceof HTMLElement) spinner.hidden = false;
+        if (hint instanceof HTMLElement) hint.hidden = true;
+
+        var query = encodeURIComponent(q);
+        viewAll.href = "/" + currentLang + "/productos/todos?busqueda=" + query;
+
+        Promise.all([
+          fetch("/api/productos/buscar?q=" + query + "&page=1&limit=6", { credentials: "same-origin" }).then(function(r) { return r.json().catch(function() { return {}; }); }),
+          fetchCategories()
+        ]).then(function(results) {
+          var productsData = results[0];
+          var categories = results[1];
+          var products = Array.isArray(productsData?.productos) ? productsData.productos : [];
+          var qNorm = normalize(q);
+          var catMatches = categories.filter(function(c) { return normalize(c.nombre).includes(qNorm); }).slice(0, 4);
+
+          productsList.innerHTML = products.map(function(p) {
+            var pid = Number(p.id || 0);
+            var name = String(p.nombre || "Producto");
+            var category = escapeHtml(p.categoria || "Producto");
+            var image = escapeHtml(p.imagen || fallbackImg);
+            var price = Number(p.precioFinal ?? p.precio ?? 0).toLocaleString("es-MX", { style: "currency", currency: "MXN" });
+            var hasDiscount = p.precioFinal && p.precio && Number(p.precioFinal) < Number(p.precio);
+            var originalPrice = hasDiscount ? Number(p.precio).toLocaleString("es-MX", { style: "currency", currency: "MXN" }) : null;
+
+            return '<a data-s-option class="gs-item" href="/' + currentLang + '/productos/detalle/' + pid + '">'
+              + '<div class="gs-item-img"><img src="' + image + '" alt="' + escapeHtml(name) + '" loading="lazy" decoding="async" /></div>'
+              + '<div class="gs-item-info">'
+              + '<span class="gs-item-name">' + highlightMatch(name, q) + '</span>'
+              + '<span class="gs-item-cat">' + category + '</span>'
+              + '</div>'
+              + '<div class="gs-item-price">'
+              + '<span class="gs-item-amount">' + price + '</span>'
+              + (originalPrice ? '<span class="gs-item-original">' + originalPrice + '</span>' : '')
+              + '</div></a>';
+          }).join("");
+
+          categoriesList.innerHTML = catMatches.map(function(cat) {
+            var id = Number(cat.id || 0);
+            var name = String(cat.nombre || "Categoría");
+            return '<a data-s-option class="gs-item gs-item--cat" href="/' + currentLang + '/productos/categoria/' + id + '">'
+              + '<div class="gs-item-icon"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="4" y="4" width="6" height="6" rx="1"></rect><rect x="14" y="4" width="6" height="6" rx="1"></rect><rect x="4" y="14" width="6" height="6" rx="1"></rect><rect x="14" y="14" width="6" height="6" rx="1"></rect></svg></div>'
+              + '<div class="gs-item-info">'
+              + '<span class="gs-item-name">' + highlightMatch(name, q) + '</span>'
+              + '<span class="gs-item-cat">Categoría</span>'
+              + '</div>'
+              + '<svg class="gs-item-arrow" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m9 18 6-6-6-6"></path></svg>'
+              + '</a>';
+          }).join("");
+
+          productsSection.hidden = products.length === 0;
+          categoriesSection.hidden = catMatches.length === 0;
+          if (hint instanceof HTMLElement) {
+            var noResults = products.length === 0 && catMatches.length === 0;
+            hint.textContent = noResults ? 'Sin resultados para "' + q + '"' : "";
+            hint.hidden = !noResults;
+          }
+        }).catch(function() {
+          productsSection.hidden = true;
+          categoriesSection.hidden = true;
+          if (hint instanceof HTMLElement) { hint.textContent = "Error al buscar. Intenta de nuevo."; hint.hidden = false; }
+        }).finally(function() {
+          if (spinner instanceof HTMLElement) spinner.hidden = true;
+        });
+      }
+
+      var debouncedRender = debounce(renderResults, 220);
+
+      form.addEventListener("submit", function(e) {
+        e.preventDefault();
+        var q = String(input.value || "").trim();
+        window.location.href = q
+          ? "/" + currentLang + "/productos/todos?busqueda=" + encodeURIComponent(q)
+          : "/" + currentLang + "/productos/todos";
+      });
+
+      input.addEventListener("focus", function() {
+        var q = input.value.trim();
+        if (q.length >= 2) { debouncedRender(q); } else { showInitialState(); }
+      });
+
+      input.addEventListener("input", function() {
+        activeIndex = -1;
+        updateKeyboardFocus();
+        updateClearVisibility();
+        debouncedRender(input.value);
+      });
+
+      input.addEventListener("keydown", function(e) {
+        var opts = getOptions();
+        if (e.key === "ArrowDown") {
+          e.preventDefault();
+          if (!opts.length) return;
+          activeIndex = Math.min(activeIndex + 1, opts.length - 1);
+          updateKeyboardFocus();
+        } else if (e.key === "ArrowUp") {
+          e.preventDefault();
+          if (!opts.length) return;
+          activeIndex = Math.max(activeIndex - 1, 0);
+          updateKeyboardFocus();
+        } else if (e.key === "Enter" && activeIndex >= 0) {
+          e.preventDefault();
+          var t = opts[activeIndex];
+          if (t instanceof HTMLAnchorElement) window.location.href = t.href;
+        } else if (e.key === "Escape") {
+          panel.hidden = true;
+          form.classList.remove("gs--open");
+          input.blur();
+        }
+      });
+    });
+
+    document.addEventListener("click", function(e) {
+      if (!(e.target instanceof Node)) return;
+      if (!header.contains(e.target)) closePanels();
+    });
+  }
+
+  document.addEventListener("DOMContentLoaded", initPremiumNavbar);
+  document.addEventListener("astro:after-swap", initPremiumNavbar);
+</script>
+
+<!-- ═══ SCOPED — template elements only ═══ -->
+<style>
+  :root {
+    --header-height: 64px;
+    --header-surface: rgba(8, 8, 10, 0.68);
+    --header-surface-solid: rgba(12, 12, 14, 0.94);
+    --header-border: rgba(255, 255, 255, 0.08);
+    --header-text: rgba(246, 246, 247, 0.92);
+    --header-text-soft: rgba(180, 180, 188, 0.86);
+  }
+
+  :global(body.no-scroll) { overflow: hidden; }
+
+  .premium-navbar {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 9999;
+    background: var(--header-surface);
+    border-bottom: 1px solid transparent;
+    backdrop-filter: blur(20px) saturate(1.4);
+    -webkit-backdrop-filter: blur(20px) saturate(1.4);
+    transition: background 200ms ease, border-color 200ms ease, box-shadow 200ms ease;
+  }
+  .premium-navbar.is-scrolled {
+    background: var(--header-surface-solid);
+    border-bottom-color: var(--header-border);
+    box-shadow: 0 1px 0 0 rgba(255, 255, 255, 0.04);
+  }
+  .premium-navbar__container {
+    max-width: 1320px; width: calc(100% - 32px); margin: 0 auto;
+    height: var(--header-height); display: flex; align-items: center; justify-content: space-between; gap: 16px;
+  }
+  .premium-navbar__left { display: flex; align-items: center; gap: 10px; }
+  .premium-navbar__right { display: flex; align-items: center; gap: 8px; }
+  .premium-navbar__center { flex: 1; display: flex; justify-content: center; }
+  .premium-navbar__search-container { width: 100%; max-width: 560px; }
+  .premium-navbar__actions { display: inline-flex; align-items: center; gap: 6px; }
+  .premium-navbar__nav-list { display: flex; align-items: center; list-style: none; margin: 0; padding: 0; gap: 2px; }
+
+  .premium-navbar__mobile-menu-btn {
+    display: none; width: 36px; height: 36px; border-radius: 10px;
+    border: 1px solid rgba(255, 255, 255, 0.12); color: var(--header-text);
+    background: rgba(255, 255, 255, 0.04); align-items: center; justify-content: center;
+    cursor: pointer; transition: background 150ms ease;
+  }
+  .premium-navbar__mobile-menu-btn:hover { background: rgba(255, 255, 255, 0.08); }
+
+  .premium-navbar__cart-btn {
+    height: 36px; padding: 0 12px; border-radius: 10px;
+    border: 1px solid rgba(255, 255, 255, 0.12); color: var(--header-text);
+    text-decoration: none; display: inline-flex; align-items: center; gap: 6px;
+    font-size: 0.78rem; font-weight: 600; background: rgba(255, 255, 255, 0.04);
+    transition: background 150ms ease, border-color 150ms ease;
+  }
+  .premium-navbar__cart-btn:hover { background: rgba(255, 255, 255, 0.08); border-color: rgba(255, 255, 255, 0.18); }
+  .premium-navbar__cart-count { font-size: 0.72rem; font-weight: 700; min-width: 16px; text-align: center; }
+
+  .premium-navbar__theme-toggle {
+    cursor: pointer; display: inline-flex; align-items: center; justify-content: center;
+    width: 36px; height: 36px; border-radius: 10px;
+    border: 1px solid rgba(255, 255, 255, 0.12); color: var(--header-text);
+    background: rgba(255, 255, 255, 0.04); transition: background 150ms ease;
+  }
+  .premium-navbar__theme-toggle:hover { background: rgba(255, 255, 255, 0.08); }
+  .premium-navbar__theme-toggle .moon { display: none; }
+  .premium-navbar__theme-toggle .sun { display: block; }
+  :global(html.dark) .premium-navbar__theme-toggle .sun { display: none; }
+  :global(html.dark) .premium-navbar__theme-toggle .moon { display: block; }
+
+  .premium-navbar__nav-link {
+    display: inline-flex; align-items: center; justify-content: center;
+    height: 34px; padding: 0 14px; border-radius: 8px;
+    color: var(--header-text-soft); text-decoration: none;
+    font-size: 0.8rem; font-weight: 500; letter-spacing: 0.005em;
+    transition: color 160ms ease, background 160ms ease;
+  }
+  .premium-navbar__nav-link:hover { color: var(--header-text); background: rgba(255, 255, 255, 0.06); }
+  .premium-navbar__nav-link.active { color: #fff; background: rgba(255, 255, 255, 0.10); }
+
+  .nav-item-group { position: relative; list-style: none; }
+  .nav-dropdown {
+    position: absolute; top: calc(100% + 6px); left: 50%; min-width: 180px;
+    background: rgba(18, 18, 22, 0.98); border: 1px solid rgba(255, 255, 255, 0.10);
+    border-radius: 12px; padding: 4px; display: flex; flex-direction: column; gap: 1px;
+    opacity: 0; pointer-events: none; transform: translateX(-50%) translateY(-4px);
+    transition: opacity 150ms ease, transform 150ms ease; backdrop-filter: blur(20px);
+    box-shadow: 0 20px 60px -12px rgba(0, 0, 0, 0.55); z-index: 100;
+  }
+  .nav-item-group:hover .nav-dropdown { opacity: 1; pointer-events: auto; transform: translateX(-50%) translateY(0); }
+  .nav-dropdown__item {
+    height: 36px; padding: 0 12px; border-radius: 8px; text-decoration: none;
+    color: var(--header-text-soft); font-size: 0.8rem; font-weight: 500;
+    display: inline-flex; align-items: center; transition: background 120ms ease, color 120ms ease;
+  }
+  .nav-dropdown__item:hover { background: rgba(255, 255, 255, 0.07); color: #fff; }
+
+  /* ─── Search bar (scoped — template elements) ─── */
+  .gs { position: relative; width: 100%; }
+  .gs__bar {
+    position: relative; display: flex; align-items: center; gap: 0;
+    height: 40px; padding: 0 6px 0 14px; border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.10); background: rgba(255, 255, 255, 0.06);
+    transition: background 180ms ease, border-color 180ms ease, box-shadow 180ms ease;
+  }
+  .gs__bar:hover { background: rgba(255, 255, 255, 0.09); border-color: rgba(255, 255, 255, 0.14); }
+  .gs:focus-within .gs__bar, .gs--open .gs__bar {
+    background: rgba(255, 255, 255, 0.10); border-color: rgba(255, 255, 255, 0.22);
+    box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.04);
+  }
+  .gs--open .gs__bar { border-radius: 12px 12px 0 0; border-bottom-color: transparent; }
+
+  .gs__icon { width: 16px; height: 16px; color: rgba(200, 200, 210, 0.68); flex-shrink: 0; margin-right: 10px; transition: color 180ms ease; }
+  .gs:focus-within .gs__icon { color: rgba(248, 248, 250, 0.94); }
+
+  .gs__input {
+    flex: 1; min-width: 0; border: none; outline: none; background: transparent;
+    color: rgba(248, 248, 250, 0.94); font-size: 0.84rem; font-weight: 500;
+    font-family: "SF Pro Display", -apple-system, "Inter", "Segoe UI", sans-serif;
+    letter-spacing: -0.005em; line-height: 1;
+  }
+  .gs__input::placeholder { color: rgba(200, 200, 210, 0.68); font-weight: 400; }
+  .gs__input::-webkit-search-cancel-button { display: none; }
+
+  .gs__clear {
+    display: flex; align-items: center; justify-content: center;
+    width: 28px; height: 28px; border-radius: 7px; border: none;
+    background: transparent; color: rgba(200, 200, 210, 0.68);
+    cursor: pointer; flex-shrink: 0; transition: background 120ms ease, color 120ms ease;
+  }
+  .gs__clear:hover { background: rgba(255, 255, 255, 0.08); color: rgba(248, 248, 250, 0.94); }
+
+  .gs__spinner { display: flex; align-items: center; justify-content: center; width: 28px; height: 28px; color: rgba(200, 200, 210, 0.68); flex-shrink: 0; }
+  .gs__spinner svg { animation: gs-spin 0.7s linear infinite; }
+  @keyframes gs-spin { to { transform: rotate(360deg); } }
+
+  .gs__kbd {
+    display: inline-flex; align-items: center; justify-content: center;
+    min-width: 22px; height: 22px; padding: 0 6px; border-radius: 6px;
+    border: 1px solid rgba(255, 255, 255, 0.12); background: rgba(255, 255, 255, 0.04);
+    color: rgba(200, 200, 210, 0.68); font-size: 0.68rem; font-family: "SF Mono", monospace;
+    font-weight: 500; flex-shrink: 0; pointer-events: none;
+  }
+
+  .gs__panel {
+    position: absolute; top: 100%; left: 0; right: 0;
+    max-height: 480px; overflow-y: auto; overflow-x: hidden;
+    background: rgba(18, 18, 22, 0.98); border: 1px solid rgba(255, 255, 255, 0.10);
+    border-top: none; border-radius: 0 0 12px 12px; padding: 6px;
+    box-shadow: 0 20px 60px -12px rgba(0, 0, 0, 0.55), 0 0 0 1px rgba(255, 255, 255, 0.06);
+    backdrop-filter: blur(24px) saturate(1.3); -webkit-backdrop-filter: blur(24px) saturate(1.3);
+    z-index: 130; animation: gs-panel-in 160ms ease;
+    scrollbar-width: thin; scrollbar-color: rgba(255, 255, 255, 0.08) transparent;
+  }
+  .gs__panel::-webkit-scrollbar { width: 6px; }
+  .gs__panel::-webkit-scrollbar-track { background: transparent; }
+  .gs__panel::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.1); border-radius: 3px; }
+  @keyframes gs-panel-in { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: translateY(0); } }
+
+  .gs__hint { margin: 0; padding: 12px 10px 8px; color: rgba(200, 200, 210, 0.68); font-size: 0.76rem; font-weight: 400; }
+  .gs__section { margin-top: 2px; }
+  .gs__section + .gs__section { margin-top: 6px; padding-top: 6px; border-top: 1px solid rgba(255, 255, 255, 0.06); }
+  .gs__section-title { margin: 0; padding: 6px 10px 4px; color: rgba(200, 200, 210, 0.68); font-size: 0.68rem; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; }
+  .gs__results { display: flex; flex-direction: column; gap: 1px; }
+  .gs__chips { display: flex; flex-wrap: wrap; gap: 6px; padding: 4px 10px 8px; }
+
+  .gs__viewall {
+    display: flex; align-items: center; justify-content: center; gap: 6px;
+    margin-top: 4px; height: 38px; border-radius: 8px; text-decoration: none;
+    color: rgba(200, 200, 210, 0.68); font-size: 0.76rem; font-weight: 500;
+    transition: background 120ms ease, color 120ms ease;
+  }
+  .gs__viewall:hover { background: rgba(255, 255, 255, 0.05); color: rgba(248, 248, 250, 0.94); }
+  .gs__viewall svg { transition: transform 120ms ease; }
+  .gs__viewall:hover svg { transform: translateX(3px); }
+
+  /* ─── Mobile ─── */
+  .premium-navbar__mobile-panel {
+    border-top: 1px solid rgba(255, 255, 255, 0.08); background: rgba(12, 12, 14, 0.98);
+    backdrop-filter: blur(20px); animation: gs-panel-in 180ms ease;
+  }
+  .premium-navbar__mobile-panel-content { max-width: 1320px; width: calc(100% - 32px); margin: 0 auto; padding: 16px 0 24px; display: grid; gap: 16px; }
+  .premium-navbar__mobile-nav ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
+  .premium-navbar__mobile-nav a {
+    height: 44px; border-radius: 10px; border: 1px solid rgba(255, 255, 255, 0.08);
+    display: inline-flex; align-items: center; padding: 0 14px; text-decoration: none;
+    color: var(--header-text-soft); font-size: 0.86rem; font-weight: 500;
+    background: transparent; width: 100%; transition: background 150ms ease, color 150ms ease;
+  }
+  .premium-navbar__mobile-nav a:hover { background: rgba(255, 255, 255, 0.04); color: var(--header-text); }
+  .premium-navbar__mobile-nav a.active { border-color: rgba(255, 255, 255, 0.15); background: rgba(255, 255, 255, 0.06); color: #fff; }
+
+  .gs--mobile .gs__panel { position: relative; top: auto; border: 1px solid rgba(255, 255, 255, 0.10); border-radius: 12px; margin-top: 8px; box-shadow: none; }
+  .gs--mobile .gs__bar { border-radius: 12px; }
+  .gs--mobile.gs--open .gs__bar { border-radius: 12px; border-bottom-color: rgba(255, 255, 255, 0.22); }
+
+  @media (max-width: 1140px) {
+    .premium-navbar__nav { display: none; }
+    .premium-navbar__mobile-menu-btn { display: inline-flex; }
+    .gs__panel { max-height: 400px; }
+  }
+  @media (max-width: 640px) {
+    .premium-navbar__container { gap: 10px; }
+    .gs__bar { height: 38px; }
+    .gs__kbd { display: none; }
+  }
+
+  /* ═══ LIGHT THEME — scoped ═══ */
+  :global(html:not(.dark)) .premium-navbar { --header-surface: rgba(255,255,255,0.78); --header-surface-solid: rgba(255,255,255,0.95); --header-border: rgba(0,0,0,0.06); --header-text: rgba(15,23,42,0.92); --header-text-soft: rgba(15,23,42,0.55); }
+  :global(html:not(.dark)) .premium-navbar.is-scrolled { box-shadow: 0 1px 3px rgba(0,0,0,0.06); }
+  :global(html:not(.dark)) .premium-navbar__mobile-menu-btn, :global(html:not(.dark)) .premium-navbar__theme-toggle, :global(html:not(.dark)) .premium-navbar__cart-btn { border-color: rgba(0,0,0,0.08); background: rgba(0,0,0,0.03); color: var(--header-text); }
+  :global(html:not(.dark)) .premium-navbar__mobile-menu-btn:hover, :global(html:not(.dark)) .premium-navbar__theme-toggle:hover, :global(html:not(.dark)) .premium-navbar__cart-btn:hover { background: rgba(0,0,0,0.06); }
+  :global(html:not(.dark)) .premium-navbar__nav-link { color: var(--header-text-soft); }
+  :global(html:not(.dark)) .premium-navbar__nav-link:hover { color: var(--header-text); background: rgba(0,0,0,0.04); }
+  :global(html:not(.dark)) .premium-navbar__nav-link.active { color: var(--header-text); background: rgba(0,0,0,0.06); }
+  :global(html:not(.dark)) .gs__bar { border-color: rgba(0,0,0,0.08); background: rgba(0,0,0,0.04); }
+  :global(html:not(.dark)) .gs__bar:hover { background: rgba(0,0,0,0.06); border-color: rgba(0,0,0,0.12); }
+  :global(html:not(.dark)) .gs:focus-within .gs__bar, :global(html:not(.dark)) .gs--open .gs__bar { background: rgba(0,0,0,0.05); border-color: rgba(0,0,0,0.16); box-shadow: 0 0 0 3px rgba(0,0,0,0.03); }
+  :global(html:not(.dark)) .gs__icon { color: rgba(15,23,42,0.42); }
+  :global(html:not(.dark)) .gs:focus-within .gs__icon { color: rgba(15,23,42,0.72); }
+  :global(html:not(.dark)) .gs__input { color: rgba(15,23,42,0.92); }
+  :global(html:not(.dark)) .gs__input::placeholder { color: rgba(15,23,42,0.42); }
+  :global(html:not(.dark)) .gs__clear { color: rgba(15,23,42,0.42); }
+  :global(html:not(.dark)) .gs__clear:hover { background: rgba(0,0,0,0.06); color: rgba(15,23,42,0.72); }
+  :global(html:not(.dark)) .gs__kbd { border-color: rgba(0,0,0,0.1); background: rgba(0,0,0,0.03); color: rgba(15,23,42,0.42); }
+  :global(html:not(.dark)) .gs__panel { background: rgba(255,255,255,0.98); border-color: rgba(0,0,0,0.08); box-shadow: 0 20px 60px -12px rgba(0,0,0,0.15), 0 0 0 1px rgba(0,0,0,0.05); }
+  :global(html:not(.dark)) .gs__panel::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.08); }
+  :global(html:not(.dark)) .gs__hint { color: rgba(15,23,42,0.42); }
+  :global(html:not(.dark)) .gs__section-title { color: rgba(15,23,42,0.42); }
+  :global(html:not(.dark)) .gs__section + .gs__section { border-top-color: rgba(0,0,0,0.06); }
+  :global(html:not(.dark)) .gs__viewall { color: rgba(15,23,42,0.42); }
+  :global(html:not(.dark)) .gs__viewall:hover { background: rgba(0,0,0,0.03); color: rgba(15,23,42,0.72); }
+  :global(html:not(.dark)) .premium-navbar__mobile-panel { border-top-color: rgba(0,0,0,0.06); background: rgba(255,255,255,0.98); }
+  :global(html:not(.dark)) .premium-navbar__mobile-nav a { border-color: rgba(0,0,0,0.06); color: var(--header-text-soft); }
+  :global(html:not(.dark)) .premium-navbar__mobile-nav a:hover { background: rgba(0,0,0,0.03); color: var(--header-text); }
+  :global(html:not(.dark)) .premium-navbar__mobile-nav a.active { border-color: rgba(0,0,0,0.1); background: rgba(0,0,0,0.04); color: var(--header-text); }
+  :global(html:not(.dark)) .nav-dropdown { background: rgba(255,255,255,0.98); border-color: rgba(0,0,0,0.08); box-shadow: 0 20px 60px -12px rgba(0,0,0,0.15); }
+  :global(html:not(.dark)) .nav-dropdown__item { color: var(--header-text-soft); }
+  :global(html:not(.dark)) .nav-dropdown__item:hover { background: rgba(0,0,0,0.04); color: var(--header-text); }
+  :global(html:not(.dark)) .gs--mobile .gs__panel { border-color: rgba(0,0,0,0.08); }
+  :global(html:not(.dark)) .gs--mobile.gs--open .gs__bar { border-bottom-color: rgba(0,0,0,0.16); }
+</style>
+
+<!-- ═══════════════════════════════════════════════════════════════
+     GLOBAL — for JS innerHTML-generated elements
+     (Astro scoping doesn't reach innerHTML content)
+     ═══════════════════════════════════════════════════════════════ -->
+<style is:global>
+  .gs-item {
+    display: grid !important;
+    grid-template-columns: 40px 1fr auto !important;
+    align-items: center !important;
+    gap: 12px !important;
+    min-height: 52px !important;
+    padding: 8px 10px !important;
+    border-radius: 8px !important;
+    text-decoration: none !important;
+    color: rgba(248, 248, 250, 0.94) !important;
+    transition: background 120ms ease !important;
+    cursor: pointer !important;
+  }
+  .gs-item:hover, .gs-item.is-active { background: rgba(255, 255, 255, 0.05) !important; }
+  .gs-item.is-active { background: rgba(255, 255, 255, 0.08) !important; }
+
+  .gs-item-img {
+    width: 40px !important; height: 40px !important;
+    min-width: 40px !important; max-width: 40px !important;
+    min-height: 40px !important; max-height: 40px !important;
+    border-radius: 8px !important; overflow: hidden !important;
+    background: rgba(255, 255, 255, 0.04) !important;
+    border: 1px solid rgba(255, 255, 255, 0.06) !important;
+    flex-shrink: 0 !important;
+  }
+
+  .gs-item-img img {
+    width: 40px !important; height: 40px !important;
+    min-width: 40px !important; max-width: 40px !important;
+    min-height: 40px !important; max-height: 40px !important;
+    object-fit: cover !important; display: block !important;
+  }
+
+  .gs-item-info {
+    min-width: 0 !important; display: flex !important;
+    flex-direction: column !important; gap: 2px !important; overflow: hidden !important;
+  }
+
+  .gs-item-name {
+    font-size: 0.82rem !important; font-weight: 550 !important;
+    color: rgba(255, 255, 255, 0.92) !important;
+    display: -webkit-box !important; -webkit-line-clamp: 1 !important;
+    -webkit-box-orient: vertical !important; overflow: hidden !important;
+    line-height: 1.3 !important;
+  }
+
+  .gs-mark {
+    background: rgba(251, 191, 36, 0.18) !important;
+    color: rgba(251, 191, 36, 0.95) !important;
+    border-radius: 2px !important; padding: 0 1px !important;
+  }
+
+  .gs-item-cat {
+    font-size: 0.7rem !important; color: rgba(200, 200, 210, 0.68) !important;
+    font-weight: 400 !important; line-height: 1.2 !important;
+    white-space: nowrap !important; overflow: hidden !important; text-overflow: ellipsis !important;
+  }
+
+  .gs-item-price {
+    display: flex !important; flex-direction: column !important;
+    align-items: flex-end !important; gap: 1px !important; flex-shrink: 0 !important;
+  }
+
+  .gs-item-amount {
+    font-size: 0.82rem !important; font-weight: 600 !important;
+    color: rgba(255, 255, 255, 0.92) !important;
+    letter-spacing: -0.01em !important; font-variant-numeric: tabular-nums !important;
+    white-space: nowrap !important;
+  }
+
+  .gs-item-original {
+    font-size: 0.66rem !important; color: rgba(200, 200, 210, 0.5) !important;
+    text-decoration: line-through !important; font-weight: 400 !important; white-space: nowrap !important;
+  }
+
+  .gs-item--cat { grid-template-columns: 36px 1fr 14px !important; }
+
+  .gs-item-icon {
+    width: 36px !important; height: 36px !important; border-radius: 8px !important;
+    background: rgba(255, 255, 255, 0.05) !important;
+    border: 1px solid rgba(255, 255, 255, 0.06) !important;
+    display: flex !important; align-items: center !important; justify-content: center !important;
+    color: rgba(200, 200, 210, 0.68) !important; flex-shrink: 0 !important;
+  }
+
+  .gs-item-arrow {
+    color: rgba(255, 255, 255, 0.25) !important; flex-shrink: 0 !important;
+    transition: color 120ms ease, transform 120ms ease !important;
+  }
+  .gs-item--cat:hover .gs-item-arrow { color: rgba(255, 255, 255, 0.5) !important; transform: translateX(2px) !important; }
+
+  .gs-chip {
+    display: inline-flex !important; align-items: center !important;
+    height: 30px !important; padding: 0 12px !important; border-radius: 8px !important;
+    border: 1px solid rgba(255, 255, 255, 0.08) !important;
+    background: rgba(255, 255, 255, 0.03) !important;
+    color: rgba(180, 180, 188, 0.86) !important;
+    font-size: 0.74rem !important; font-weight: 500 !important;
+    cursor: pointer !important;
+    font-family: "SF Pro Display", -apple-system, "Inter", "Segoe UI", sans-serif !important;
+    transition: background 120ms ease, border-color 120ms ease, color 120ms ease !important;
+  }
+  .gs-chip:hover {
+    background: rgba(255, 255, 255, 0.07) !important;
+    border-color: rgba(255, 255, 255, 0.15) !important;
+    color: rgba(246, 246, 247, 0.92) !important;
+  }
+
+  /* ═══ LIGHT — dynamic ═══ */
+  html:not(.dark) .gs-item { color: rgba(15, 23, 42, 0.92) !important; }
+  html:not(.dark) .gs-item:hover, html:not(.dark) .gs-item.is-active { background: rgba(0, 0, 0, 0.03) !important; }
+  html:not(.dark) .gs-item.is-active { background: rgba(0, 0, 0, 0.05) !important; }
+  html:not(.dark) .gs-item-img { background: rgba(0, 0, 0, 0.03) !important; border-color: rgba(0, 0, 0, 0.06) !important; }
+  html:not(.dark) .gs-item-name { color: rgba(15, 23, 42, 0.90) !important; }
+  html:not(.dark) .gs-item-cat { color: rgba(15, 23, 42, 0.42) !important; }
+  html:not(.dark) .gs-item-amount { color: rgba(15, 23, 42, 0.88) !important; }
+  html:not(.dark) .gs-item-original { color: rgba(15, 23, 42, 0.35) !important; }
+  html:not(.dark) .gs-mark { background: rgba(251, 191, 36, 0.22) !important; color: rgba(146, 100, 0, 0.95) !important; }
+  html:not(.dark) .gs-item-icon { background: rgba(0, 0, 0, 0.03) !important; border-color: rgba(0, 0, 0, 0.06) !important; color: rgba(15, 23, 42, 0.42) !important; }
+  html:not(.dark) .gs-item-arrow { color: rgba(0, 0, 0, 0.15) !important; }
+  html:not(.dark) .gs-item--cat:hover .gs-item-arrow { color: rgba(0, 0, 0, 0.35) !important; }
+  html:not(.dark) .gs-chip { border-color: rgba(0, 0, 0, 0.08) !important; background: rgba(0, 0, 0, 0.02) !important; color: rgba(15, 23, 42, 0.55) !important; }
+  html:not(.dark) .gs-chip:hover { background: rgba(0, 0, 0, 0.05) !important; border-color: rgba(0, 0, 0, 0.12) !important; color: rgba(15, 23, 42, 0.8) !important; }
+
+  @media (max-width: 640px) {
+    .gs-item { min-height: 48px !important; gap: 10px !important; padding: 6px 8px !important; }
+    .gs-item-img, .gs-item-img img { width: 36px !important; height: 36px !important; min-width: 36px !important; max-width: 36px !important; min-height: 36px !important; max-height: 36px !important; }
+    .gs-item--cat { grid-template-columns: 32px 1fr 14px !important; }
+    .gs-item-icon { width: 32px !important; height: 32px !important; }
+    .gs-item-name { font-size: 0.78rem !important; }
+    .gs-item-amount { font-size: 0.78rem !important; }
+  }
+</style>

@@ -1,0 +1,330 @@
+---
+import type { CategoryProduct } from "./types";
+
+interface Props {
+  products: CategoryProduct[];
+}
+
+const { products } = Astro.props;
+const firstProduct = products[0];
+---
+
+<section class="catx-showcase premium-shell fade-slide-in" aria-labelledby="catx-showcase-title">
+  <div class="catx-stage premium-card">
+    <p class="catx-stage__kicker">Seleccion actual</p>
+    <h2 id="catx-showcase-title" class="catx-stage__title" data-stage-title>{firstProduct?.title || "Categoria"}</h2>
+    <p class="catx-stage__desc" data-stage-description>{firstProduct?.description || "Explora nuestras lineas de producto."}</p>
+
+    <div class="catx-stage__price" data-stage-price>{firstProduct?.priceLabel || "Cotizacion personalizada"}</div>
+
+    <div class="catx-stage__actions">
+      <a class="catx-stage__cta" data-stage-link href={firstProduct?.href || "/es/productos/todos"}>Ir a categoria</a>
+    </div>
+
+    <figure class="catx-stage__media" aria-live="polite">
+      <img
+        data-stage-image
+        src={firstProduct?.image || "/images/logo/logo.png"}
+        alt={firstProduct?.title || "Categoria"}
+        loading="eager"
+        decoding="async"
+      />
+    </figure>
+
+    <div class="catx-stage__controls" role="group" aria-label="Controles de categorias">
+      <button type="button" data-showcase-prev aria-label="Categoria anterior">Anterior</button>
+      <button type="button" data-showcase-next aria-label="Categoria siguiente">Siguiente</button>
+    </div>
+  </div>
+
+  <aside class="catx-rail premium-card" aria-label="Lista de categorias">
+    <ul class="catx-rail__list" role="list">
+      {products.map((product, index) => (
+        <li>
+          <button
+            class:list={["catx-rail__item", index === 0 && "is-active"]}
+            type="button"
+            data-showcase-item
+            data-title={product.title}
+            data-description={product.description}
+            data-image={product.image}
+            data-price={product.priceLabel || "Cotizacion personalizada"}
+            data-link={product.href}
+            data-alt={product.title}
+            aria-label={`Seleccionar ${product.title}`}
+          >
+            <img src={product.image} alt={product.title} loading="lazy" decoding="async" />
+            <span>
+              <strong>{product.title}</strong>
+              <small>{product.division}</small>
+            </span>
+          </button>
+        </li>
+      ))}
+    </ul>
+  </aside>
+</section>
+
+<script>
+  // @ts-nocheck
+  function initCategoryShowcase() {
+    const root = document.querySelector(".catx-showcase");
+    if (!(root instanceof HTMLElement)) return;
+
+    const titleNode = root.querySelector("[data-stage-title]");
+    const descriptionNode = root.querySelector("[data-stage-description]");
+    const priceNode = root.querySelector("[data-stage-price]");
+    const imageNode = root.querySelector("[data-stage-image]");
+    const linkNode = root.querySelector("[data-stage-link]");
+
+    const itemButtons = Array.from(root.querySelectorAll("[data-showcase-item]")) as HTMLButtonElement[];
+    const prevButton = root.querySelector("[data-showcase-prev]");
+    const nextButton = root.querySelector("[data-showcase-next]");
+
+    if (!itemButtons.length) return;
+
+    let current = itemButtons.findIndex((item) => item.classList.contains("is-active"));
+    if (current < 0) current = 0;
+
+    const applyItem = (button: HTMLButtonElement, nextIndex: number) => {
+      itemButtons.forEach((item) => item.classList.remove("is-active"));
+      button.classList.add("is-active");
+
+      if (titleNode) titleNode.textContent = button.dataset.title || "Categoria";
+      if (descriptionNode) descriptionNode.textContent = button.dataset.description || "";
+      if (priceNode) priceNode.textContent = button.dataset.price || "Cotizacion personalizada";
+      if (imageNode instanceof HTMLImageElement) {
+        imageNode.classList.remove("is-visible");
+        requestAnimationFrame(() => {
+          imageNode.src = button.dataset.image || imageNode.src;
+          imageNode.alt = button.dataset.alt || "Categoria";
+          imageNode.classList.add("is-visible");
+        });
+      }
+      if (linkNode instanceof HTMLAnchorElement) linkNode.href = button.dataset.link || linkNode.href;
+      current = nextIndex;
+    };
+
+    itemButtons.forEach((button, index) => {
+      button.addEventListener("click", () => applyItem(button, index));
+    });
+
+    prevButton?.addEventListener("click", () => {
+      const next = (current - 1 + itemButtons.length) % itemButtons.length;
+      applyItem(itemButtons[next], next);
+    });
+
+    nextButton?.addEventListener("click", () => {
+      const next = (current + 1) % itemButtons.length;
+      applyItem(itemButtons[next], next);
+    });
+
+    if (imageNode instanceof HTMLImageElement) imageNode.classList.add("is-visible");
+  }
+
+  document.addEventListener("DOMContentLoaded", initCategoryShowcase);
+  document.addEventListener("astro:page-load", initCategoryShowcase);
+</script>
+
+<style>
+  .catx-showcase {
+    margin-top: 24px;
+    display: grid;
+    grid-template-columns: minmax(0, 1.08fr) minmax(0, 0.92fr);
+    gap: 16px;
+    align-items: stretch;
+  }
+
+  .catx-stage,
+  .catx-rail {
+    border-radius: 18px;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    background: linear-gradient(165deg, rgba(20, 20, 24, 0.94), rgba(10, 10, 14, 0.93));
+    box-shadow: 0 22px 48px rgba(0, 0, 0, 0.34);
+  }
+
+  .catx-stage {
+    padding: 20px;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(260px, 0.9fr);
+    gap: 16px;
+    align-items: center;
+  }
+
+  .catx-stage__kicker {
+    margin: 0;
+    color: rgba(252, 177, 129, 0.85);
+    font-size: 0.74rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    font-weight: 700;
+  }
+
+  .catx-stage__title {
+    margin: 6px 0 0;
+    color: #fff;
+    font-size: clamp(1.6rem, 3vw, 2.4rem);
+    line-height: 1.05;
+    letter-spacing: -0.02em;
+  }
+
+  .catx-stage__desc {
+    margin: 12px 0 0;
+    color: rgba(212, 212, 221, 0.8);
+    line-height: 1.65;
+    max-width: 46ch;
+  }
+
+  .catx-stage__price {
+    margin-top: 18px;
+    color: #ffd7be;
+    font-size: 1.1rem;
+    font-weight: 700;
+  }
+
+  .catx-stage__actions {
+    margin-top: 14px;
+  }
+
+  .catx-stage__cta {
+    min-height: 46px;
+    padding: 0 18px;
+    border-radius: 999px;
+    border: 1px solid rgba(224, 163, 91, 0.62);
+    background: linear-gradient(130deg, rgba(201, 120, 58, 0.95), rgba(224, 163, 91, 0.9));
+    color: #fff;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    font-weight: 700;
+    font-size: 0.9rem;
+    box-shadow: 0 12px 28px rgba(201, 120, 58, 0.28);
+    transition: transform 180ms ease, box-shadow 180ms ease;
+  }
+
+  .catx-stage__cta:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 16px 34px rgba(201, 120, 58, 0.38);
+  }
+
+  .catx-stage__media {
+    margin: 0;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 16px;
+    background: radial-gradient(120% 100% at 50% 0%, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.01));
+    min-height: 320px;
+    display: grid;
+    place-items: center;
+    padding: 20px;
+  }
+
+  .catx-stage__media img {
+    max-width: 100%;
+    max-height: 320px;
+    object-fit: contain;
+    opacity: 0;
+    transform: translateY(8px) scale(0.98);
+    transition: opacity 220ms ease, transform 220ms ease;
+  }
+
+  .catx-stage__media img.is-visible {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+
+  .catx-stage__controls {
+    grid-column: 1 / -1;
+    display: flex;
+    gap: 10px;
+  }
+
+  .catx-stage__controls button {
+    min-height: 38px;
+    padding: 0 12px;
+    border-radius: 10px;
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    background: rgba(255, 255, 255, 0.04);
+    color: rgba(240, 240, 246, 0.92);
+    cursor: pointer;
+    font-size: 0.82rem;
+    font-weight: 600;
+    transition: border-color 160ms ease, transform 160ms ease;
+  }
+
+  .catx-stage__controls button:hover {
+    border-color: rgba(251, 140, 55, 0.52);
+    transform: translateY(-1px);
+  }
+
+  .catx-rail {
+    padding: 12px;
+  }
+
+  .catx-rail__list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: 8px;
+  }
+
+  .catx-rail__item {
+    width: 100%;
+    text-align: left;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.02);
+    color: inherit;
+    display: grid;
+    grid-template-columns: 68px minmax(0, 1fr);
+    gap: 10px;
+    align-items: center;
+    padding: 9px;
+    cursor: pointer;
+    transition: border-color 160ms ease, background 160ms ease, transform 160ms ease;
+  }
+
+  .catx-rail__item:hover {
+    border-color: rgba(251, 140, 55, 0.4);
+    transform: translateX(2px);
+  }
+
+  .catx-rail__item.is-active {
+    border-color: rgba(251, 140, 55, 0.56);
+    background: rgba(251, 140, 55, 0.12);
+  }
+
+  .catx-rail__item img {
+    width: 68px;
+    height: 68px;
+    border-radius: 10px;
+    object-fit: cover;
+    background: rgba(255, 255, 255, 0.04);
+  }
+
+  .catx-rail__item strong {
+    color: #f6f6fa;
+    font-size: 0.85rem;
+    line-height: 1.35;
+    display: block;
+  }
+
+  .catx-rail__item small {
+    color: rgba(190, 190, 199, 0.72);
+    font-size: 0.74rem;
+  }
+
+  @media (max-width: 1080px) {
+    .catx-showcase {
+      grid-template-columns: 1fr;
+    }
+
+    .catx-stage {
+      grid-template-columns: 1fr;
+    }
+
+    .catx-stage__media {
+      min-height: 280px;
+    }
+  }
+</style>

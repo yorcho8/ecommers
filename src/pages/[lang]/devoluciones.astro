@@ -1,0 +1,725 @@
+---
+import BaseLayout from "../../layouts/BaseLayout.astro";
+export function getStaticPaths() {
+  return [{ params: { lang: "es" } }];
+}
+
+const currentLang = "es";
+---
+
+<BaseLayout title="Políticas de Devolución" currentLang={currentLang}>
+
+  <main class="rp-page">
+
+    <!-- Hero -->
+    <section class="rp-hero">
+      <div class="rp-hero__inner">
+        <span class="rp-hero__badge">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14l-4-4 4-4"/><path d="M5 10h11a4 4 0 010 8h-1"/></svg>
+          Políticas
+        </span>
+        <h1 class="rp-hero__title">Políticas de Devolución</h1>
+        <p class="rp-hero__sub">Conoce tus derechos y nuestro compromiso con tu satisfacción.<br/>Aplica para clientes B2B (distribuidores) y B2C (consumidor final).</p>
+        <div class="rp-hero__updated">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+          Última actualización: Abril 2026
+        </div>
+      </div>
+    </section>
+
+    <!-- Quick nav -->
+    <nav class="rp-nav">
+      <div class="rp-nav__inner">
+        <a href="#general" class="rp-nav__link">General</a>
+        <a href="#b2c" class="rp-nav__link rp-nav__link--green">B2C</a>
+        <a href="#b2b" class="rp-nav__link rp-nav__link--blue">B2B</a>
+        <a href="#proceso" class="rp-nav__link">Proceso</a>
+        <a href="#excepciones" class="rp-nav__link">Excepciones</a>
+        <a href="#contacto" class="rp-nav__link">Contacto</a>
+      </div>
+    </nav>
+
+    <!-- Content -->
+    <div class="rp-content">
+      <div class="rp-content__inner">
+
+        <!-- 1. Disposiciones generales -->
+        <section id="general" class="rp-section">
+          <div class="rp-section__icon-row">
+            <div class="rp-icon-circle rp-icon-circle--purple">
+              <svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+            </div>
+            <div>
+              <h2 class="rp-section__title">1. Disposiciones Generales</h2>
+              <p class="rp-section__subtitle">Marco legal y compromiso de calidad</p>
+            </div>
+          </div>
+          <div class="rp-card">
+            <p>En <strong>GO Empaques</strong> nos comprometemos a ofrecer productos de la más alta calidad. Todas nuestras políticas de devolución se rigen conforme a la <strong>Ley Federal de Protección al Consumidor (LFPC)</strong> y las disposiciones de <strong>PROFECO</strong>.</p>
+            <p>Si el producto que recibiste no cumple con las especificaciones acordadas, presenta defectos de fabricación o no corresponde a lo que fue solicitado, tienes derecho a solicitar una devolución o cambio.</p>
+            <div class="rp-highlight">
+              <div class="rp-highlight__icon">
+                <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 16v.01M12 8v4"/></svg>
+              </div>
+              <div>
+                <strong>Importante:</strong> Conforme a la LFPC, el consumidor cuenta con un plazo de hasta <strong>60 días naturales</strong> para presentar una reclamación por producto defectuoso, y el proveedor tiene <strong>15 días hábiles</strong> para dar resolución.
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- 2. Clientes B2C -->
+        <section id="b2c" class="rp-section">
+          <div class="rp-section__icon-row">
+            <div class="rp-icon-circle rp-icon-circle--green">
+              <svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+            </div>
+            <div>
+              <h2 class="rp-section__title">2. Consumidor Final (B2C)</h2>
+              <p class="rp-section__subtitle">Compras realizadas a través de nuestra tienda en línea o directamente</p>
+            </div>
+          </div>
+
+          <div class="rp-card rp-card--green">
+            <h3 class="rp-card__heading">Plazo para solicitar devolución</h3>
+            <div class="rp-timeline">
+              <div class="rp-timeline__item">
+                <div class="rp-timeline__dot rp-timeline__dot--green"></div>
+                <div class="rp-timeline__content">
+                  <strong>5 días hábiles</strong> después de la entrega para cancelar compras en línea sin necesidad de justificación (derecho de desistimiento).
+                </div>
+              </div>
+              <div class="rp-timeline__item">
+                <div class="rp-timeline__dot rp-timeline__dot--green"></div>
+                <div class="rp-timeline__content">
+                  <strong>30 días naturales</strong> para reportar productos con defectos de fabricación, error en especificaciones o producto incorrecto.
+                </div>
+              </div>
+              <div class="rp-timeline__item">
+                <div class="rp-timeline__dot rp-timeline__dot--green"></div>
+                <div class="rp-timeline__content">
+                  <strong>60 días naturales</strong> para presentar reclamación formal ante PROFECO en caso de producto que no cumpla con la calidad, marca o especificaciones ofrecidas.
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="rp-card rp-card--green">
+            <h3 class="rp-card__heading">¿Qué puedes solicitar?</h3>
+            <div class="rp-options-grid">
+              <div class="rp-option">
+                <div class="rp-option__icon rp-option__icon--green">
+                  <svg viewBox="0 0 24 24"><path d="M9 14l-4-4 4-4"/><path d="M5 10h11a4 4 0 010 8h-1"/></svg>
+                </div>
+                <div>
+                  <strong>Reembolso completo</strong>
+                  <p>Devolución del importe total pagado por el mismo medio de pago original.</p>
+                </div>
+              </div>
+              <div class="rp-option">
+                <div class="rp-option__icon rp-option__icon--green">
+                  <svg viewBox="0 0 24 24"><path d="M21 12a9 9 0 11-9-9c2.52 0 4.93 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/></svg>
+                </div>
+                <div>
+                  <strong>Cambio de producto</strong>
+                  <p>Reemplazo por el producto correcto o uno de igual o mayor valor.</p>
+                </div>
+              </div>
+              <div class="rp-option">
+                <div class="rp-option__icon rp-option__icon--green">
+                  <svg viewBox="0 0 24 24"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>
+                </div>
+                <div>
+                  <strong>Bonificación</strong>
+                  <p>En caso de producto defectuoso o incumplimiento, bonificación no menor al 20% del precio pagado conforme a la LFPC.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- 3. Clientes B2B -->
+        <section id="b2b" class="rp-section">
+          <div class="rp-section__icon-row">
+            <div class="rp-icon-circle rp-icon-circle--blue">
+              <svg viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
+            </div>
+            <div>
+              <h2 class="rp-section__title">3. Distribuidores y Empresas (B2B)</h2>
+              <p class="rp-section__subtitle">Pedidos mayoristas y cuentas empresariales</p>
+            </div>
+          </div>
+
+          <div class="rp-card rp-card--blue">
+            <h3 class="rp-card__heading">Condiciones de devolución B2B</h3>
+            <div class="rp-grid-2">
+              <div class="rp-info-block">
+                <span class="rp-info-block__label">Plazo máximo</span>
+                <span class="rp-info-block__value rp-info-block__value--blue">15 días hábiles</span>
+                <span class="rp-info-block__note">A partir de la recepción del pedido para reportar inconformidades.</span>
+              </div>
+              <div class="rp-info-block">
+                <span class="rp-info-block__label">Evidencia requerida</span>
+                <span class="rp-info-block__value rp-info-block__value--blue">Fotografías + Remisión</span>
+                <span class="rp-info-block__note">Documentar el estado del producto con evidencia fotográfica y número de pedido.</span>
+              </div>
+            </div>
+            <div class="rp-divider"></div>
+            <p>Para pedidos a medida (personalización de calibre, medida, impresión o especificación), las devoluciones aplican <strong>únicamente</strong> si el producto no cumple con las especificaciones acordadas en la orden de compra o cotización aceptada.</p>
+            <p>Los pedidos B2B que hayan sido fabricados bajo especificaciones personalizadas del cliente <strong>no son elegibles</strong> para devolución por cambio de opinión.</p>
+          </div>
+
+          <div class="rp-card rp-card--blue">
+            <h3 class="rp-card__heading">Resolución para clientes B2B</h3>
+            <div class="rp-options-grid">
+              <div class="rp-option">
+                <div class="rp-option__icon rp-option__icon--blue">
+                  <svg viewBox="0 0 24 24"><path d="M21 12a9 9 0 11-9-9c2.52 0 4.93 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/></svg>
+                </div>
+                <div>
+                  <strong>Reposición del producto</strong>
+                  <p>Envío de reemplazo sin costo adicional por defectos de fabricación.</p>
+                </div>
+              </div>
+              <div class="rp-option">
+                <div class="rp-option__icon rp-option__icon--blue">
+                  <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6"/><path d="M16 13H8M16 17H8M10 9H8"/></svg>
+                </div>
+                <div>
+                  <strong>Nota de crédito</strong>
+                  <p>Aplicable a tu siguiente pedido por el valor del producto devuelto.</p>
+                </div>
+              </div>
+              <div class="rp-option">
+                <div class="rp-option__icon rp-option__icon--blue">
+                  <svg viewBox="0 0 24 24"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>
+                </div>
+                <div>
+                  <strong>Reembolso</strong>
+                  <p>En casos específicos, reembolso parcial o total según evaluación del caso.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- 4. Proceso -->
+        <section id="proceso" class="rp-section">
+          <div class="rp-section__icon-row">
+            <div class="rp-icon-circle rp-icon-circle--purple">
+              <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6"/><path d="M12 18v-6"/><path d="M9 15l3 3 3-3"/></svg>
+            </div>
+            <div>
+              <h2 class="rp-section__title">4. Proceso de Devolución</h2>
+              <p class="rp-section__subtitle">Pasos para solicitar una devolución o cambio</p>
+            </div>
+          </div>
+
+          <div class="rp-steps">
+            <div class="rp-step">
+              <div class="rp-step__number">1</div>
+              <div class="rp-step__body">
+                <h4>Contacta a nuestro equipo</h4>
+                <p>Envía un correo a <strong>devoluciones@goempaques.com</strong> o comunícate por WhatsApp indicando tu número de pedido, el motivo de la devolución y fotografías del producto (si aplica).</p>
+              </div>
+            </div>
+            <div class="rp-step">
+              <div class="rp-step__number">2</div>
+              <div class="rp-step__body">
+                <h4>Evaluación del caso</h4>
+                <p>Nuestro equipo revisará tu solicitud en un máximo de <strong>3 días hábiles</strong> y te enviará la resolución junto con las instrucciones para proceder.</p>
+              </div>
+            </div>
+            <div class="rp-step">
+              <div class="rp-step__number">3</div>
+              <div class="rp-step__body">
+                <h4>Envío del producto</h4>
+                <p>Si la devolución es aprobada, te indicaremos cómo y dónde enviar el producto. Para defectos de fabricación, <strong>nosotros cubrimos el costo de envío</strong>.</p>
+              </div>
+            </div>
+            <div class="rp-step">
+              <div class="rp-step__number">4</div>
+              <div class="rp-step__body">
+                <h4>Resolución</h4>
+                <p>Una vez recibido y verificado el producto, procesamos tu reembolso, cambio o nota de crédito en un máximo de <strong>10 días hábiles</strong>. El reembolso se realizará por el mismo medio de pago original.</p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- 5. Excepciones -->
+        <section id="excepciones" class="rp-section">
+          <div class="rp-section__icon-row">
+            <div class="rp-icon-circle rp-icon-circle--red">
+              <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M15 9l-6 6M9 9l6 6"/></svg>
+            </div>
+            <div>
+              <h2 class="rp-section__title">5. Excepciones y No Elegibilidad</h2>
+              <p class="rp-section__subtitle">Casos en los que no aplica la devolución</p>
+            </div>
+          </div>
+
+          <div class="rp-card rp-card--red">
+            <div class="rp-exceptions-list">
+              <div class="rp-exception">
+                <span class="rp-exception__x">✕</span>
+                <span>Productos que hayan sido utilizados, modificados o dañados por el cliente después de la entrega.</span>
+              </div>
+              <div class="rp-exception">
+                <span class="rp-exception__x">✕</span>
+                <span>Pedidos fabricados bajo especificaciones personalizadas (medida, calibre, impresión, color) cuando cumplen con lo acordado.</span>
+              </div>
+              <div class="rp-exception">
+                <span class="rp-exception__x">✕</span>
+                <span>Productos cuyo empaque original haya sido abierto o dañado sin justificación para inspección.</span>
+              </div>
+              <div class="rp-exception">
+                <span class="rp-exception__x">✕</span>
+                <span>Solicitudes fuera del plazo establecido (5 días B2C online / 15 días B2B / 30 días defectos).</span>
+              </div>
+              <div class="rp-exception">
+                <span class="rp-exception__x">✕</span>
+                <span>Diferencias menores de color o tono que se encuentren dentro de la tolerancia estándar de fabricación industrial.</span>
+              </div>
+              <div class="rp-exception">
+                <span class="rp-exception__x">✕</span>
+                <span>Productos adquiridos en liquidación o con descuento especial marcados como "venta final".</span>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- 6. Contacto -->
+        <section id="contacto" class="rp-section">
+          <div class="rp-section__icon-row">
+            <div class="rp-icon-circle rp-icon-circle--purple">
+              <svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
+            </div>
+            <div>
+              <h2 class="rp-section__title">6. Contacto y Soporte</h2>
+              <p class="rp-section__subtitle">¿Tienes dudas? Estamos para ayudarte</p>
+            </div>
+          </div>
+
+          <div class="rp-contact-grid">
+            <div class="rp-contact-card">
+              <div class="rp-contact-card__icon">
+                <svg viewBox="0 0 24 24"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><path d="M22 6l-10 7L2 6"/></svg>
+              </div>
+              <h4>Correo electrónico</h4>
+              <p>devoluciones@goempaques.com</p>
+            </div>
+            <div class="rp-contact-card">
+              <div class="rp-contact-card__icon">
+                <svg viewBox="0 0 24 24"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6 19.79 19.79 0 01-3.07-8.67A2 2 0 014.11 2h3a2 2 0 012 1.72 12.84 12.84 0 00.7 2.81 2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45 12.84 12.84 0 002.81.7A2 2 0 0122 16.92z"/></svg>
+              </div>
+              <h4>WhatsApp</h4>
+              <p>+52 (443) 000-0000</p>
+            </div>
+            <div class="rp-contact-card">
+              <div class="rp-contact-card__icon">
+                <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+              </div>
+              <h4>Horario de atención</h4>
+              <p>Lunes a Viernes: 9:00 – 18:00 hrs</p>
+            </div>
+          </div>
+
+          <div class="rp-profeco-note">
+            <svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+            <div>
+              <strong>Tus derechos como consumidor están protegidos.</strong>
+              <p>Si consideras que no hemos resuelto tu caso de manera satisfactoria, puedes acudir a la Procuraduría Federal del Consumidor (PROFECO) a través de su línea <strong>55 5568 8722</strong> o en <a href="https://www.gob.mx/profeco" target="_blank" rel="noopener">www.gob.mx/profeco</a>.</p>
+            </div>
+          </div>
+        </section>
+
+      </div>
+    </div>
+
+  </main>
+
+  <style is:global>
+    /* ═══════════════════════════════════════════════════════════
+       RETURN POLICY PAGE — PREMIUM DARK (go-platform)
+       ═══════════════════════════════════════════════════════════ */
+    :root {
+      --rp-bg: #0b0e14;
+      --rp-surface: rgba(18,22,31,.85);
+      --rp-surface-solid: #12161f;
+      --rp-surface-2: #181d28;
+      --rp-border: rgba(255,255,255,.07);
+      --rp-text: #f0f2f5;
+      --rp-text-2: #8b95a5;
+      --rp-text-3: #5a6478;
+      --rp-accent: #a855f7;
+      --rp-accent-hover: #c084fc;
+      --rp-accent-glow: rgba(168,85,247,.12);
+      --rp-accent-border: rgba(168,85,247,.25);
+      --rp-green: #22c55e;
+      --rp-green-bg: rgba(34,197,94,.08);
+      --rp-green-border: rgba(34,197,94,.2);
+      --rp-blue: #60a5fa;
+      --rp-blue-bg: rgba(96,165,250,.08);
+      --rp-blue-border: rgba(96,165,250,.2);
+      --rp-red: #ef4444;
+      --rp-red-bg: rgba(239,68,68,.06);
+      --rp-red-border: rgba(239,68,68,.18);
+    }
+
+    .rp-page {
+      min-height: 100vh;
+      background: var(--rp-bg);
+      color: var(--rp-text);
+      font-size: 15px;
+      line-height: 1.7;
+    }
+
+    /* ── Hero ── */
+    .rp-hero {
+      position: relative;
+      padding: 80px 24px 60px;
+      text-align: center;
+      overflow: hidden;
+    }
+    .rp-hero::before {
+      content: '';
+      position: absolute;
+      top: -120px; left: 50%; transform: translateX(-50%);
+      width: 700px; height: 700px;
+      background: radial-gradient(circle, rgba(168,85,247,.1) 0%, transparent 65%);
+      pointer-events: none;
+    }
+    .rp-hero__inner { position: relative; max-width: 680px; margin: 0 auto; }
+    .rp-hero__badge {
+      display: inline-flex; align-items: center; gap: 6px;
+      font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: .12em;
+      color: var(--rp-accent-hover);
+      background: var(--rp-accent-glow);
+      border: 1px solid var(--rp-accent-border);
+      border-radius: 24px;
+      padding: 5px 16px;
+      margin-bottom: 16px;
+    }
+    .rp-hero__badge svg { stroke: currentColor; fill: none; }
+    .rp-hero__title {
+      margin: 0 0 14px;
+      font-size: clamp(2rem, 5vw, 3rem);
+      font-weight: 800;
+      letter-spacing: -.03em;
+      line-height: 1.1;
+      background: linear-gradient(135deg, #fff 0%, #c4b5fd 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .rp-hero__sub {
+      margin: 0 0 18px;
+      color: var(--rp-text-2);
+      font-size: 15px;
+      line-height: 1.7;
+    }
+    .rp-hero__updated {
+      display: inline-flex; align-items: center; gap: 6px;
+      font-size: 11px; color: var(--rp-text-3); font-weight: 600;
+    }
+    .rp-hero__updated svg { stroke: currentColor; fill: none; }
+
+    /* ── Quick Nav ── */
+    .rp-nav {
+      position: sticky; top: 0; z-index: 100;
+      background: rgba(11,14,20,.92);
+      backdrop-filter: blur(16px);
+      border-bottom: 1px solid var(--rp-border);
+    }
+    .rp-nav__inner {
+      display: flex; gap: 4px; padding: 10px 24px;
+      max-width: 900px; margin: 0 auto;
+      overflow-x: auto;
+      scrollbar-width: none;
+    }
+    .rp-nav__inner::-webkit-scrollbar { display: none; }
+    .rp-nav__link {
+      flex-shrink: 0;
+      padding: 6px 16px;
+      border-radius: 20px;
+      font-size: 12px; font-weight: 700;
+      color: var(--rp-text-2);
+      text-decoration: none;
+      border: 1px solid var(--rp-border);
+      background: rgba(255,255,255,.02);
+      transition: all .2s;
+    }
+    .rp-nav__link:hover {
+      background: var(--rp-accent-glow);
+      border-color: var(--rp-accent-border);
+      color: var(--rp-accent-hover);
+    }
+    .rp-nav__link--green:hover { background: var(--rp-green-bg); border-color: var(--rp-green-border); color: var(--rp-green); }
+    .rp-nav__link--blue:hover { background: var(--rp-blue-bg); border-color: var(--rp-blue-border); color: var(--rp-blue); }
+
+    /* ── Content ── */
+    .rp-content { padding: 40px 24px 80px; }
+    .rp-content__inner { max-width: 860px; margin: 0 auto; }
+
+    /* ── Sections ── */
+    .rp-section { margin-bottom: 48px; }
+    .rp-section__icon-row {
+      display: flex; align-items: center; gap: 16px;
+      margin-bottom: 20px;
+    }
+    .rp-section__title {
+      margin: 0;
+      font-size: 20px; font-weight: 800;
+      color: var(--rp-text);
+    }
+    .rp-section__subtitle {
+      margin: 2px 0 0;
+      font-size: 13px; color: var(--rp-text-3);
+    }
+
+    /* ── Icon circles ── */
+    .rp-icon-circle {
+      width: 48px; height: 48px; flex-shrink: 0;
+      border-radius: 14px;
+      display: grid; place-items: center;
+    }
+    .rp-icon-circle svg {
+      width: 22px; height: 22px;
+      stroke: currentColor; fill: none;
+      stroke-width: 2; stroke-linecap: round; stroke-linejoin: round;
+    }
+    .rp-icon-circle--purple { background: var(--rp-accent-glow); color: var(--rp-accent-hover); border: 1px solid var(--rp-accent-border); }
+    .rp-icon-circle--green  { background: var(--rp-green-bg);    color: var(--rp-green);        border: 1px solid var(--rp-green-border); }
+    .rp-icon-circle--blue   { background: var(--rp-blue-bg);     color: var(--rp-blue);         border: 1px solid var(--rp-blue-border); }
+    .rp-icon-circle--red    { background: var(--rp-red-bg);      color: var(--rp-red);          border: 1px solid var(--rp-red-border); }
+
+    /* ── Cards ── */
+    .rp-card {
+      background: var(--rp-surface);
+      border: 1px solid var(--rp-border);
+      border-radius: 16px;
+      padding: 24px 28px;
+      margin-bottom: 14px;
+      backdrop-filter: blur(12px);
+    }
+    .rp-card p { margin: 0 0 12px; color: var(--rp-text-2); }
+    .rp-card p:last-child { margin-bottom: 0; }
+    .rp-card strong { color: var(--rp-text); }
+    .rp-card--green { border-left: 3px solid var(--rp-green); }
+    .rp-card--blue  { border-left: 3px solid var(--rp-blue); }
+    .rp-card--red   { border-left: 3px solid var(--rp-red); }
+    .rp-card__heading {
+      margin: 0 0 16px;
+      font-size: 14px; font-weight: 800;
+      color: var(--rp-text);
+      text-transform: uppercase;
+      letter-spacing: .05em;
+    }
+
+    /* ── Highlight ── */
+    .rp-highlight {
+      display: flex; gap: 14px; align-items: flex-start;
+      background: var(--rp-accent-glow);
+      border: 1px solid var(--rp-accent-border);
+      border-radius: 12px;
+      padding: 16px 20px;
+      margin-top: 16px;
+      font-size: 14px;
+      color: var(--rp-text-2);
+    }
+    .rp-highlight strong { color: var(--rp-accent-hover); }
+    .rp-highlight__icon {
+      flex-shrink: 0;
+      width: 32px; height: 32px;
+      border-radius: 8px;
+      background: rgba(168,85,247,.15);
+      display: grid; place-items: center;
+      color: var(--rp-accent-hover);
+    }
+    .rp-highlight__icon svg {
+      width: 16px; height: 16px;
+      stroke: currentColor; fill: none;
+      stroke-width: 2; stroke-linecap: round;
+    }
+
+    /* ── Timeline ── */
+    .rp-timeline { display: flex; flex-direction: column; gap: 0; }
+    .rp-timeline__item {
+      display: flex; gap: 16px; align-items: flex-start;
+      padding: 14px 0;
+      border-bottom: 1px solid rgba(255,255,255,.04);
+    }
+    .rp-timeline__item:last-child { border-bottom: none; padding-bottom: 0; }
+    .rp-timeline__dot {
+      width: 10px; height: 10px; flex-shrink: 0;
+      border-radius: 50%;
+      margin-top: 6px;
+    }
+    .rp-timeline__dot--green { background: var(--rp-green); box-shadow: 0 0 10px rgba(34,197,94,.4); }
+    .rp-timeline__content { color: var(--rp-text-2); font-size: 14px; }
+    .rp-timeline__content strong { color: var(--rp-text); }
+
+    /* ── Options grid ── */
+    .rp-options-grid { display: flex; flex-direction: column; gap: 12px; }
+    .rp-option {
+      display: flex; gap: 14px; align-items: flex-start;
+      padding: 14px 16px;
+      background: rgba(255,255,255,.02);
+      border: 1px solid var(--rp-border);
+      border-radius: 12px;
+    }
+    .rp-option strong { color: var(--rp-text); display: block; margin-bottom: 2px; font-size: 14px; }
+    .rp-option p { margin: 0; color: var(--rp-text-2); font-size: 13px; }
+    .rp-option__icon {
+      width: 36px; height: 36px; flex-shrink: 0;
+      border-radius: 10px;
+      display: grid; place-items: center;
+    }
+    .rp-option__icon svg {
+      width: 18px; height: 18px;
+      stroke: currentColor; fill: none;
+      stroke-width: 2; stroke-linecap: round; stroke-linejoin: round;
+    }
+    .rp-option__icon--green { background: var(--rp-green-bg); color: var(--rp-green); border: 1px solid var(--rp-green-border); }
+    .rp-option__icon--blue  { background: var(--rp-blue-bg);  color: var(--rp-blue);  border: 1px solid var(--rp-blue-border); }
+
+    /* ── Grid 2 ── */
+    .rp-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    .rp-info-block {
+      display: flex; flex-direction: column; gap: 4px;
+      background: rgba(255,255,255,.02);
+      border: 1px solid var(--rp-border);
+      border-radius: 12px;
+      padding: 16px;
+    }
+    .rp-info-block__label { font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: .08em; color: var(--rp-text-3); }
+    .rp-info-block__value { font-size: 18px; font-weight: 800; }
+    .rp-info-block__value--blue { color: var(--rp-blue); }
+    .rp-info-block__note { font-size: 12px; color: var(--rp-text-3); }
+    .rp-divider { height: 1px; background: var(--rp-border); margin: 20px 0; }
+
+    /* ── Steps ── */
+    .rp-steps { display: flex; flex-direction: column; gap: 0; position: relative; }
+    .rp-steps::before {
+      content: '';
+      position: absolute;
+      left: 19px; top: 20px; bottom: 20px;
+      width: 2px;
+      background: linear-gradient(180deg, var(--rp-accent), rgba(168,85,247,.1));
+      border-radius: 2px;
+    }
+    .rp-step {
+      display: flex; gap: 20px; align-items: flex-start;
+      padding: 16px 0;
+      position: relative;
+    }
+    .rp-step__number {
+      width: 40px; height: 40px; flex-shrink: 0;
+      border-radius: 12px;
+      background: linear-gradient(135deg, var(--rp-accent), #7c3aed);
+      color: #fff;
+      font-size: 16px; font-weight: 800;
+      display: grid; place-items: center;
+      box-shadow: 0 4px 16px rgba(168,85,247,.3);
+      position: relative; z-index: 1;
+    }
+    .rp-step__body h4 {
+      margin: 0 0 4px;
+      font-size: 15px; font-weight: 700;
+      color: var(--rp-text);
+    }
+    .rp-step__body p {
+      margin: 0;
+      font-size: 14px; color: var(--rp-text-2);
+    }
+    .rp-step__body strong { color: var(--rp-text); }
+
+    /* ── Exceptions ── */
+    .rp-exceptions-list { display: flex; flex-direction: column; gap: 10px; }
+    .rp-exception {
+      display: flex; gap: 12px; align-items: flex-start;
+      font-size: 14px; color: var(--rp-text-2);
+      padding: 10px 14px;
+      background: rgba(239,68,68,.03);
+      border-radius: 10px;
+    }
+    .rp-exception__x {
+      flex-shrink: 0;
+      color: var(--rp-red);
+      font-weight: 800;
+      font-size: 13px;
+      margin-top: 1px;
+    }
+
+    /* ── Contact ── */
+    .rp-contact-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 14px;
+      margin-bottom: 20px;
+    }
+    .rp-contact-card {
+      background: var(--rp-surface);
+      border: 1px solid var(--rp-border);
+      border-radius: 14px;
+      padding: 20px;
+      text-align: center;
+    }
+    .rp-contact-card__icon {
+      width: 44px; height: 44px;
+      border-radius: 12px;
+      background: var(--rp-accent-glow);
+      border: 1px solid var(--rp-accent-border);
+      display: grid; place-items: center;
+      margin: 0 auto 12px;
+      color: var(--rp-accent-hover);
+    }
+    .rp-contact-card__icon svg {
+      width: 20px; height: 20px;
+      stroke: currentColor; fill: none;
+      stroke-width: 2; stroke-linecap: round; stroke-linejoin: round;
+    }
+    .rp-contact-card h4 {
+      margin: 0 0 4px;
+      font-size: 13px; font-weight: 700; color: var(--rp-text);
+    }
+    .rp-contact-card p {
+      margin: 0;
+      font-size: 13px; color: var(--rp-text-2);
+    }
+
+    /* ── PROFECO Note ── */
+    .rp-profeco-note {
+      display: flex; gap: 16px; align-items: flex-start;
+      background: var(--rp-accent-glow);
+      border: 1px solid var(--rp-accent-border);
+      border-radius: 14px;
+      padding: 20px 24px;
+    }
+    .rp-profeco-note > svg {
+      width: 28px; height: 28px; flex-shrink: 0;
+      stroke: var(--rp-accent-hover); fill: none;
+      stroke-width: 2; stroke-linecap: round; stroke-linejoin: round;
+      margin-top: 2px;
+    }
+    .rp-profeco-note strong { color: var(--rp-text); display: block; margin-bottom: 4px; font-size: 14px; }
+    .rp-profeco-note p { margin: 0; font-size: 13px; color: var(--rp-text-2); }
+    .rp-profeco-note a {
+      color: var(--rp-accent-hover);
+      text-decoration: underline;
+      text-underline-offset: 2px;
+    }
+    .rp-profeco-note a:hover { color: #fff; }
+
+    /* ── Responsive ── */
+    @media (max-width: 768px) {
+      .rp-hero { padding: 60px 20px 40px; }
+      .rp-grid-2 { grid-template-columns: 1fr; }
+      .rp-contact-grid { grid-template-columns: 1fr; }
+      .rp-card { padding: 20px; }
+      .rp-section__icon-row { gap: 12px; }
+    }
+  </style>
+
+</BaseLayout>

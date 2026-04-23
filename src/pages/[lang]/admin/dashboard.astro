@@ -1,0 +1,749 @@
+﻿---
+import BaseLayout from "../../../layouts/BaseLayout.astro";
+export function getStaticPaths() {
+  return [{ params: { lang: "es" } }];
+}
+
+const currentLang = "es";
+const cspNonce = Astro.locals?.cspNonce || "";
+
+const role = String(Astro.locals?.user?.rol || "").trim().toLowerCase().replace(/[\s_-]/g, "")
+  .replace(/^superadmin$|^superuser$|^superusuario$/, "superusuario");
+
+if (!role) return Astro.redirect(`/${currentLang}/login`);
+if (role !== "admin" && role !== "superusuario") return Astro.redirect(`/${currentLang}`);
+---
+
+<BaseLayout title="Dashboard | NEXUS" currentLang={currentLang}>
+<div class="dx-root">
+<main class="dx">
+
+  {/* â”€â”€ Hero toolbar â”€â”€ */}
+  <header class="dx-hero">
+    <div class="dx-hero__glow" aria-hidden="true"></div>
+    <div class="dx-hero__content">
+      <div class="dx-hero__left">
+        <p class="dx-hero__kicker">Business Intelligence</p>
+        <h1 class="dx-hero__title">Dashboard Ejecutivo</h1>
+        <p class="dx-hero__sub">Control de ingresos, ganancias y comportamiento comercial</p>
+      </div>
+      <div class="dx-hero__right">
+        <div class="dx-seg" role="radiogroup" aria-label="Rango">
+          <button class="dx-seg__btn" data-range="7" type="button">7d</button>
+          <button class="dx-seg__btn is-active" data-range="30" type="button">30d</button>
+          <button class="dx-seg__btn" data-range="90" type="button">90d</button>
+        </div>
+        <a href={`/${currentLang}/admin/pedidos`} class="dx-cta">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/></svg>
+          Pedidos
+        </a>
+      </div>
+    </div>
+    <span id="updatedAt" class="dx-hero__updated">Cargandoâ€¦</span>
+  </header>
+
+  {/* â”€â”€ KPIs â”€â”€ */}
+  <section id="kpisGrid" class="dx-kpis" aria-live="polite">
+    <article class="dx-kpi dx-kpi--main is-loading"></article>
+    <article class="dx-kpi is-loading"></article>
+    <article class="dx-kpi is-loading"></article>
+    <article class="dx-kpi is-loading"></article>
+  </section>
+
+  {/* â”€â”€ Trend chart â”€â”€ */}
+  <section class="dx-panel dx-panel--chart">
+    <div class="dx-panel__head">
+      <div>
+        <p class="dx-panel__kicker">Tendencia</p>
+        <h2 class="dx-panel__title">Ingresos por dÃ­a</h2>
+      </div>
+      <span id="trendSummary" class="dx-panel__meta">Preparandoâ€¦</span>
+    </div>
+    <div class="dx-chart-wrap">
+      <svg id="trendChart" viewBox="0 0 920 260" preserveAspectRatio="none" aria-label="GrÃ¡fica de ingresos diarios">
+        <defs>
+          <linearGradient id="trendFill" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="rgba(122,37,50,0.22)"></stop>
+            <stop offset="100%" stop-color="rgba(122,37,50,0)"></stop>
+          </linearGradient>
+        </defs>
+        <g id="trendGrid"></g>
+        <path id="trendAreaPath" d="" fill="url(#trendFill)"></path>
+        <path id="trendPath" d="" fill="none" stroke="url(#trendStroke)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"></path>
+        <defs>
+          <linearGradient id="trendStroke" x1="0" y1="0" x2="1" y2="0">
+            <stop offset="0%" stop-color="#2f4a8a"></stop>
+            <stop offset="100%" stop-color="#7a2532"></stop>
+          </linearGradient>
+        </defs>
+        <g id="trendDots"></g>
+      </svg>
+    </div>
+  </section>
+
+  {/* â”€â”€ Two columns â”€â”€ */}
+  <div class="dx-cols">
+    <section class="dx-panel">
+      <div class="dx-panel__head">
+        <div>
+          <p class="dx-panel__kicker">DistribuciÃ³n</p>
+          <h2 class="dx-panel__title">Estado de pedidos</h2>
+        </div>
+        <strong id="statusTotal" class="dx-badge">0</strong>
+      </div>
+      <div id="statusBars" class="dx-bars" aria-label="DistribuciÃ³n por estado"></div>
+    </section>
+
+    <section class="dx-panel">
+      <div class="dx-panel__head">
+        <div>
+          <p class="dx-panel__kicker">Ranking</p>
+          <h2 class="dx-panel__title">Top productos del mes</h2>
+        </div>
+      </div>
+      <div class="dx-table-wrap">
+        <table class="dx-table" id="productsTable">
+          <thead><tr><th scope="col">Producto</th><th scope="col" class="dx-num">Uds.</th><th scope="col" class="dx-num">Ingresos</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </section>
+  </div>
+
+  {/* â”€â”€ Daily detail â”€â”€ */}
+  <section class="dx-panel">
+    <div class="dx-panel__head">
+      <div>
+        <p class="dx-panel__kicker">HistÃ³rico</p>
+        <h2 class="dx-panel__title">Detalle diario del rango</h2>
+      </div>
+    </div>
+    <div class="dx-table-wrap">
+      <table class="dx-table" id="dailyTable">
+        <thead><tr><th scope="col">Fecha</th><th scope="col" class="dx-num">Ã“rdenes</th><th scope="col" class="dx-num">Ingresos</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </section>
+
+</main>
+</div>
+
+<style is:global>
+/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+   DASHBOARD EJECUTIVO â€” Premium v4
+   Isolated via .dx-root
+   â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
+
+.dx-root {
+  --dx-bg: #060a14;
+  --dx-s1: #0c1322;
+  --dx-s2: #111a2e;
+  --dx-s3: #172237;
+  --dx-line: rgba(148,163,184,0.16);
+  --dx-line-h: rgba(148,163,184,0.28);
+  --dx-t1: #eef2fa;
+  --dx-t2: #94a3b8;
+  --dx-t3: #64748b;
+  --dx-brand: #7a2532;
+  --dx-brand-soft: rgba(122,37,50,0.12);
+  --dx-brand-glow: rgba(122,37,50,0.2);
+  --dx-cyan: #22d3ee;
+  --dx-good: #34d399;
+  --dx-bad: #fb7185;
+  --dx-r: 20px;
+  --dx-r-sm: 12px;
+
+  background: var(--dx-bg) !important;
+  min-height: 100vh;
+  position: relative;
+  z-index: 1;
+}
+
+/* Nuclear reset â€” kill typography.css inherited styles */
+.dx-root .dx *,
+.dx-root .dx *::before,
+.dx-root .dx *::after {
+  font-family: 'Inter', -apple-system, 'SF Pro Display', system-ui, sans-serif !important;
+  text-transform: none !important;
+  letter-spacing: normal !important;
+  text-shadow: none !important;
+  -webkit-text-fill-color: unset !important;
+  -webkit-text-stroke: 0 !important;
+  background-clip: unset !important;
+  -webkit-background-clip: unset !important;
+}
+
+/* Force ALL heading sizes â€” kills any global h1/h2/h3 rules */
+.dx-root .dx h1 {
+  font-size: clamp(1.5rem, 2.8vw, 2.1rem) !important;
+  line-height: 1.1 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  color: var(--dx-t1) !important;
+  background: none !important;
+}
+
+.dx-root .dx h2 {
+  font-size: 1.05rem !important;
+  line-height: 1.3 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  color: var(--dx-t1) !important;
+  background: none !important;
+}
+
+.dx-root .dx h3 {
+  font-size: 1rem !important;
+  line-height: 1.3 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  background: none !important;
+}
+
+.dx-root .dx {
+  max-width: 1320px;
+  margin: 0 auto;
+  padding: 120px 24px 64px;
+  display: grid;
+  gap: 16px;
+  color: var(--dx-t1);
+}
+
+/* â”€â”€ Hero â”€â”€ */
+.dx-root .dx-hero {
+  position: relative;
+  border: 1px solid var(--dx-line);
+  border-radius: var(--dx-r);
+  padding: 28px;
+  overflow: hidden;
+  background: linear-gradient(155deg, var(--dx-s2), var(--dx-s1));
+  box-shadow: 0 24px 56px rgba(0,0,0,0.35);
+}
+
+.dx-root .dx-hero__glow {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse at 8% -10%, rgba(122,37,50,0.2), transparent 50%),
+    radial-gradient(ellipse at 90% 0%, rgba(34,211,238,0.12), transparent 45%);
+  pointer-events: none;
+}
+
+.dx-root .dx-hero__content {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.dx-root .dx-hero__kicker {
+  margin: 0;
+  font-size: 0.68rem !important;
+  font-weight: 700;
+  text-transform: uppercase !important;
+  letter-spacing: 0.14em !important;
+  color: rgba(255,191,146,0.9);
+}
+
+.dx-root .dx-hero__title {
+  margin: 4px 0 0 !important;
+  font-size: clamp(1.5rem, 2.8vw, 2.1rem) !important;
+  font-weight: 800 !important;
+  line-height: 1.1 !important;
+  color: var(--dx-t1) !important;
+}
+
+.dx-root .dx-hero__sub {
+  margin: 6px 0 0;
+  color: var(--dx-t2);
+  font-size: 0.88rem;
+  max-width: 56ch;
+}
+
+.dx-root .dx-hero__updated {
+  position: relative;
+  display: block;
+  margin-top: 10px;
+  font-size: 0.72rem;
+  color: var(--dx-t3);
+}
+
+.dx-root .dx-hero__right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+/* Segmented control */
+.dx-root .dx-seg {
+  display: inline-flex;
+  border-radius: 999px;
+  border: 1px solid var(--dx-line-h);
+  background: rgba(15,23,42,0.5);
+  padding: 4px;
+  gap: 3px;
+}
+
+.dx-root .dx-seg__btn {
+  border: none;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--dx-t3);
+  font-size: 0.78rem;
+  font-weight: 700;
+  padding: 8px 16px;
+  cursor: pointer;
+  transition: all 0.18s;
+}
+
+.dx-root .dx-seg__btn:hover { color: var(--dx-t2); }
+
+.dx-root .dx-seg__btn.is-active {
+  background: rgba(255,255,255,0.1);
+  color: var(--dx-t1);
+  box-shadow: 0 0 0 1px rgba(148,163,184,0.2);
+}
+
+.dx-root .dx-seg__btn:focus-visible {
+  outline: 2px solid var(--dx-brand);
+  outline-offset: 1px;
+}
+
+/* CTA */
+.dx-root .dx-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 9px 18px;
+  border-radius: 999px;
+  background: linear-gradient(135deg, var(--dx-brand), #ff8c38);
+  border: 1px solid rgba(255,159,105,0.5);
+  color: #1b120a;
+  font-size: 0.8rem;
+  font-weight: 800;
+  text-decoration: none;
+  transition: all 0.2s;
+  box-shadow: 0 4px 16px rgba(122,37,50,0.3);
+}
+
+.dx-root .dx-cta:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 28px rgba(122,37,50,0.4);
+}
+
+/* â”€â”€ KPIs â”€â”€ */
+.dx-root .dx-kpis {
+  display: grid;
+  grid-template-columns: repeat(12, 1fr);
+  gap: 12px;
+}
+
+.dx-root .dx-kpi {
+  grid-column: span 3;
+  border: 1px solid var(--dx-line);
+  border-radius: var(--dx-r-sm);
+  background: linear-gradient(155deg, var(--dx-s2), var(--dx-s1));
+  padding: 18px 20px;
+  min-height: 110px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 2px;
+  transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+}
+
+.dx-root .dx-kpi:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 12px 32px rgba(0,0,0,0.2);
+  border-color: var(--dx-line-h);
+}
+
+.dx-root .dx-kpi--main {
+  grid-column: span 6;
+  background:
+    linear-gradient(125deg, rgba(122,37,50,0.1), rgba(34,211,238,0.08)),
+    linear-gradient(155deg, var(--dx-s2), var(--dx-s1));
+  border-color: rgba(122,37,50,0.25);
+}
+
+.dx-root .dx-kpi--main:hover {
+  border-color: rgba(122,37,50,0.4);
+  box-shadow: 0 16px 40px rgba(122,37,50,0.1);
+}
+
+.dx-root .dx-kpi.is-loading {
+  background: linear-gradient(90deg, rgba(255,255,255,0.03) 35%, rgba(255,255,255,0.1) 50%, rgba(255,255,255,0.03) 65%) !important;
+  background-size: 220% 100% !important;
+  animation: dx-shimmer 1.3s linear infinite !important;
+}
+
+@keyframes dx-shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+
+.dx-root .dx-kpi__label {
+  margin: 0;
+  font-size: 0.7rem !important;
+  font-weight: 700;
+  text-transform: uppercase !important;
+  letter-spacing: 0.1em !important;
+  color: var(--dx-t3);
+}
+
+.dx-root .dx-kpi__value {
+  margin: 5px 0 2px;
+  font-size: clamp(1.2rem, 1.8vw, 1.5rem) !important;
+  font-weight: 800 !important;
+  color: var(--dx-t1);
+  line-height: 1.1;
+}
+
+.dx-root .dx-kpi--main .dx-kpi__value {
+  font-size: clamp(1.5rem, 2.6vw, 2.2rem) !important;
+}
+
+.dx-root .dx-kpi__delta { margin: 0; font-size: 0.75rem; font-weight: 650; color: var(--dx-t3); }
+.dx-root .dx-kpi__delta.up { color: var(--dx-good); }
+.dx-root .dx-kpi__delta.down { color: var(--dx-bad); }
+
+/* â”€â”€ Panels â”€â”€ */
+.dx-root .dx-panel {
+  border: 1px solid var(--dx-line);
+  border-radius: var(--dx-r);
+  background: linear-gradient(155deg, var(--dx-s2), var(--dx-s1));
+  padding: 22px;
+  box-shadow: 0 8px 28px rgba(0,0,0,0.18);
+  transition: border-color 0.2s;
+}
+
+.dx-root .dx-panel:hover { border-color: var(--dx-line-h); }
+
+.dx-root .dx-panel__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.dx-root .dx-panel__kicker {
+  margin: 0;
+  font-size: 0.65rem !important;
+  font-weight: 700;
+  text-transform: uppercase !important;
+  letter-spacing: 0.12em !important;
+  color: var(--dx-t3);
+}
+
+.dx-root .dx-panel__title {
+  margin: 2px 0 0 !important;
+  font-size: 1.05rem !important;
+  font-weight: 750 !important;
+  color: var(--dx-t1) !important;
+}
+
+.dx-root .dx-panel__meta { font-size: 0.78rem; color: var(--dx-t3); }
+
+.dx-root .dx-badge {
+  padding: 4px 12px;
+  border-radius: 999px;
+  background: rgba(255,255,255,0.08);
+  border: 1px solid var(--dx-line);
+  color: var(--dx-t2);
+  font-size: 0.78rem;
+  font-weight: 750;
+}
+
+/* Chart */
+.dx-root .dx-panel--chart { padding-bottom: 14px; }
+
+.dx-root .dx-chart-wrap {
+  border-radius: var(--dx-r-sm);
+  background: linear-gradient(180deg, rgba(15,23,42,0.3), rgba(15,23,42,0.05));
+  overflow: hidden;
+}
+
+.dx-root #trendChart { width: 100%; height: 270px; display: block; }
+
+.dx-root #trendPath {
+  stroke-dasharray: 2200;
+  stroke-dashoffset: 2200;
+  animation: dx-draw 1.2s ease-out forwards;
+}
+
+@keyframes dx-draw { to { stroke-dashoffset: 0; } }
+
+/* Columns */
+.dx-root .dx-cols {
+  display: grid;
+  grid-template-columns: 0.95fr 1.05fr;
+  gap: 16px;
+}
+
+/* Bars */
+.dx-root .dx-bars { display: flex; flex-direction: column; gap: 10px; }
+
+.dx-root .dx-bar-item {
+  display: grid;
+  grid-template-columns: 110px 1fr auto;
+  align-items: center;
+  gap: 10px;
+}
+
+.dx-root .dx-bar-item__label { font-size: 0.82rem; color: var(--dx-t2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.dx-root .dx-bar-item__track { height: 8px; border-radius: 999px; background: rgba(148,163,184,0.12); overflow: hidden; }
+.dx-root .dx-bar-item__fill { height: 100%; border-radius: 999px; transition: width 0.6s ease-out; }
+.dx-root .dx-bar-item__count { min-width: 28px; text-align: right; font-size: 0.82rem; font-weight: 750; color: var(--dx-t1); }
+
+/* Tables */
+.dx-root .dx-table-wrap {
+  overflow: auto;
+  max-height: 360px;
+  border: 1px solid var(--dx-line);
+  border-radius: var(--dx-r-sm);
+  background: rgba(6,10,20,0.4);
+}
+
+.dx-root .dx-table { width: 100%; border-collapse: collapse; font-size: 0.86rem; }
+
+.dx-root .dx-table thead th {
+  position: sticky; top: 0; z-index: 1;
+  text-align: left;
+  font-size: 0.7rem !important; font-weight: 700;
+  text-transform: uppercase !important; letter-spacing: 0.08em !important;
+  color: var(--dx-t3);
+  background: rgba(9,14,25,0.95);
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--dx-line);
+}
+
+.dx-root .dx-table thead th.dx-num,
+.dx-root .dx-table td.dx-num { text-align: right; }
+
+.dx-root .dx-table td {
+  padding: 10px 14px;
+  color: var(--dx-t2);
+  border-bottom: 1px solid rgba(148,163,184,0.08);
+}
+
+.dx-root .dx-table td:first-child { color: var(--dx-t1); font-weight: 600; }
+
+.dx-root .dx-table tbody tr {
+  transition: background 0.15s;
+}
+
+.dx-root .dx-table tbody tr:hover { background: rgba(34,211,238,0.06); }
+
+/* â”€â”€ Responsive â”€â”€ */
+@media (max-width: 980px) {
+  .dx-root .dx { padding: 100px 16px 48px; }
+  .dx-root .dx-kpis { grid-template-columns: repeat(6, 1fr); }
+  .dx-root .dx-kpi { grid-column: span 3; }
+  .dx-root .dx-kpi--main { grid-column: span 6; }
+  .dx-root .dx-cols { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 640px) {
+  .dx-root .dx { padding: 92px 12px 40px; }
+  .dx-root .dx-hero { padding: 20px; }
+  .dx-root .dx-hero__content { flex-direction: column; align-items: flex-start; }
+  .dx-root .dx-hero__right { width: 100%; }
+  .dx-root .dx-seg { flex: 1; }
+  .dx-root .dx-seg__btn { flex: 1; text-align: center; }
+  .dx-root .dx-kpis { grid-template-columns: 1fr; }
+  .dx-root .dx-kpi, .dx-root .dx-kpi--main { grid-column: span 1; }
+  .dx-root .dx-kpi--main .dx-kpi__value { font-size: 1.4rem !important; }
+  .dx-root #trendChart { height: 200px; }
+}
+
+/* â”€â”€ Light mode â”€â”€ */
+html:not(.dark) .dx-root {
+  --dx-bg: #f1f5f9;
+  --dx-s1: #ffffff;
+  --dx-s2: #f8fafc;
+  --dx-s3: #e2e8f0;
+  --dx-line: rgba(15,23,42,0.12);
+  --dx-line-h: rgba(15,23,42,0.2);
+  --dx-t1: #0f172a;
+  --dx-t2: #475569;
+  --dx-t3: #94a3b8;
+  --dx-good: #059669;
+  --dx-bad: #dc2626;
+}
+
+html:not(.dark) .dx-root .dx-hero__glow {
+  background:
+    radial-gradient(ellipse at 8% -10%, rgba(122,37,50,0.1), transparent 50%),
+    radial-gradient(ellipse at 90% 0%, rgba(34,211,238,0.06), transparent 45%);
+}
+
+html:not(.dark) .dx-root .dx-hero__kicker { color: #c2410c; }
+
+html:not(.dark) .dx-root .dx-chart-wrap {
+  background: linear-gradient(180deg, rgba(226,232,240,0.5), rgba(241,245,249,0.8));
+}
+
+html:not(.dark) .dx-root .dx-table thead th {
+  background: rgba(241,245,249,0.95);
+}
+
+html:not(.dark) .dx-root .dx-kpi.is-loading {
+  background: linear-gradient(90deg, rgba(148,163,184,0.08) 35%, rgba(148,163,184,0.2) 50%, rgba(148,163,184,0.08) 65%) !important;
+  background-size: 220% 100% !important;
+}
+
+html:not(.dark) .dx-root .dx-cta {
+  color: #fff;
+}
+
+html:not(.dark) .dx-root .dx-table tbody tr:hover {
+  background: rgba(122,37,50,0.04);
+}
+</style>
+
+<script nonce={cspNonce} is:inline>
+(function () {
+  var $ = function (s) { return document.querySelector(s); };
+  var $$ = function (s) { return document.querySelectorAll(s); };
+
+  var kpisGrid = $("#kpisGrid");
+  var trendPath = $("#trendPath");
+  var trendAreaPath = $("#trendAreaPath");
+  var trendDots = $("#trendDots");
+  var trendGrid = $("#trendGrid");
+  var trendSummary = $("#trendSummary");
+  var updatedAt = $("#updatedAt");
+  var statusBars = $("#statusBars");
+  var statusTotal = $("#statusTotal");
+  var productsBody = $("#productsTable tbody");
+  var dailyBody = $("#dailyTable tbody");
+  var segBtns = $$(".dx-seg__btn");
+
+  var barColors = ["#22d3ee","#38bdf8","#34d399","#f59e0b","#7a2532","#ef4444","#a3e635"];
+
+  var money = function (v) {
+    return "$" + Number(v || 0).toLocaleString("es-MX", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  };
+
+  var compact = function (v) {
+    return new Intl.NumberFormat("es-MX", { style:"currency", currency:"MXN", notation:"compact", maximumFractionDigits:1 }).format(Number(v||0));
+  };
+
+  var pctMeta = function (v) {
+    var n = Number(v || 0);
+    if (n === 0) return { text: "Sin cambio", cls: "" };
+    return { text: (n > 0 ? "â†‘" : "â†“") + " " + Math.abs(n).toFixed(1) + "% vs mes anterior", cls: n > 0 ? "up" : "down" };
+  };
+
+  /* Segmented control */
+  var currentRange = "30";
+  segBtns.forEach(function (btn) {
+    btn.addEventListener("click", function () {
+      segBtns.forEach(function (b) { b.classList.remove("is-active"); });
+      btn.classList.add("is-active");
+      currentRange = btn.dataset.range || "30";
+      load(currentRange);
+    });
+  });
+
+  /* KPIs */
+  function renderKpis(k) {
+    if (!kpisGrid) return;
+    var g = pctMeta(k?.crecimientoMensual);
+    var cards = [
+      { main: true, label: "Ingresos del mes", value: money(k?.ingresosMes), delta: g.text, cls: g.cls },
+      { label: "Ganancias est.", value: money(k?.gananciasEstimadasMes), delta: Number(k?.margenEstimado||0).toFixed(1)+"% margen", cls: "" },
+      { label: "Ticket promedio", value: money(k?.ticketPromedioMes), delta: Number(k?.ordenesMes||0)+" Ã³rdenes", cls: "" },
+      { label: "Hoy", value: money(k?.ingresosHoy), delta: Number(k?.ordenesHoy||0)+" Ã³rdenes", cls: "" },
+    ];
+    kpisGrid.innerHTML = cards.map(function (c) {
+      return '<article class="dx-kpi'+(c.main?" dx-kpi--main":"")+'"><p class="dx-kpi__label">'+c.label+'</p><p class="dx-kpi__value">'+c.value+'</p><p class="dx-kpi__delta '+c.cls+'">'+c.delta+'</p></article>';
+    }).join("");
+  }
+
+  /* Trend */
+  function renderTrend(trend) {
+    if (!trendPath || !Array.isArray(trend) || !trend.length) return;
+    var W=920,H=260,L=44,R=12,T=12,B=24;
+    var iW=W-L-R, iH=H-T-B;
+    var vals=trend.map(function(r){return Number(r.ingresos||0);});
+    var max=Math.max.apply(null,vals.concat([1])), min=Math.min.apply(null,vals.concat([0])), span=max-min||1;
+    var pts=vals.map(function(v,i){return{x:L+(trend.length===1?iW/2:(i/(trend.length-1))*iW),y:T+iH-((v-min)/span)*iH,v:v,d:trend[i].date,o:trend[i].ordenes};});
+
+    var line=pts.map(function(p,i){return(i?"L":"M")+p.x.toFixed(1)+" "+p.y.toFixed(1);}).join(" ");
+    var area=line+" L"+pts[pts.length-1].x.toFixed(1)+" "+(H-B)+" L"+pts[0].x.toFixed(1)+" "+(H-B)+"Z";
+    trendPath.setAttribute("d",line);
+    trendAreaPath.setAttribute("d",area);
+
+    trendGrid.innerHTML=[0.25,0.5,0.75,1].map(function(p){
+      var y=T+(1-p)*iH;
+      return '<line x1="'+L+'" y1="'+y.toFixed(1)+'" x2="'+(W-R)+'" y2="'+y.toFixed(1)+'" stroke="rgba(255,255,255,0.04)"/><text x="4" y="'+(y+3).toFixed(1)+'" fill="#64748b" font-size="10">'+compact(max*p)+'</text>';
+    }).join("");
+
+    trendDots.innerHTML=pts.map(function(p){
+      return '<circle cx="'+p.x.toFixed(1)+'" cy="'+p.y.toFixed(1)+'" r="3.5" fill="#7a2532" opacity="0"><title>'+p.d+": "+money(p.v)+" Â· "+p.o+' ord.</title><animate attributeName="opacity" from="0" to="1" dur="0.3s" begin="0.8s" fill="freeze"/></circle>';
+    }).join("");
+
+    var t=vals.reduce(function(a,b){return a+b;},0);
+    var o=trend.reduce(function(a,r){return a+Number(r.ordenes||0);},0);
+    if(trendSummary)trendSummary.textContent=money(t)+" en "+o+" Ã³rdenes";
+  }
+
+  /* Status bars */
+  function renderStatus(rows) {
+    if(!statusBars||!statusTotal)return;
+    var data=Array.isArray(rows)?rows:[];
+    var total=data.reduce(function(s,r){return s+Number(r.total||0);},0);
+    statusTotal.textContent=String(total);
+    if(!total){statusBars.innerHTML='<p style="font-size:0.8rem;color:var(--dx-t3)">Sin datos</p>';return;}
+    var names={pagado:"Pagado",enviado:"Enviado",entregado:"Entregado",pendiente:"Pendiente",cancelado:"Cancelado",devolucion_solicitada:"DevoluciÃ³n"};
+    statusBars.innerHTML=data.map(function(r,i){
+      var n=Number(r.total||0),pct=((n/total)*100).toFixed(1);
+      var color=barColors[i%barColors.length];
+      var name=names[r.estado]||String(r.estado).replace(/_/g," ");
+      return '<div class="dx-bar-item"><span class="dx-bar-item__label">'+name+'</span><div class="dx-bar-item__track"><div class="dx-bar-item__fill" style="width:'+pct+'%;background:'+color+'"></div></div><span class="dx-bar-item__count">'+n+'</span></div>';
+    }).join("");
+  }
+
+  /* Tables */
+  function renderProducts(rows) {
+    if(!productsBody)return;
+    var d=Array.isArray(rows)?rows:[];
+    productsBody.innerHTML=d.length?d.map(function(r){return'<tr><td>'+String(r.nombre||"â€”")+'</td><td class="dx-num">'+Number(r.unidades||0)+'</td><td class="dx-num">'+money(r.ingresos)+'</td></tr>';}).join(""):'<tr><td colspan="3">Sin datos</td></tr>';
+  }
+
+  function renderDaily(rows) {
+    if(!dailyBody)return;
+    var d=Array.isArray(rows)?rows:[];
+    dailyBody.innerHTML=d.length?d.slice().reverse().map(function(r){return'<tr><td>'+String(r.date||"â€”")+'</td><td class="dx-num">'+Number(r.ordenes||0)+'</td><td class="dx-num">'+money(r.ingresos)+'</td></tr>';}).join(""):'<tr><td colspan="3">Sin datos</td></tr>';
+  }
+
+  /* Fetch */
+  async function load(range) {
+    try {
+      var res=await fetch("/api/admin/dashboard-ventas?range="+encodeURIComponent(range),{credentials:"same-origin",cache:"no-store"});
+      var data=await res.json().catch(function(){return{};});
+      if(!res.ok||!data?.success)throw new Error(data?.error||"Error al cargar");
+      renderKpis(data.kpis||{});
+      renderTrend(data.trend||[]);
+      renderStatus(data.estadoPedidosMes||[]);
+      renderProducts(data.topProductosMes||[]);
+      renderDaily(data.trend||[]);
+      if(updatedAt){var d=new Date(data.updatedAt||Date.now());updatedAt.textContent=d.toLocaleString("es-MX",{day:"2-digit",month:"short",hour:"2-digit",minute:"2-digit"});}
+    }catch(err){
+      if(kpisGrid)kpisGrid.innerHTML='<article class="dx-kpi dx-kpi--main"><p class="dx-kpi__label">Error</p><p class="dx-kpi__value">â€”</p><p class="dx-kpi__delta down">'+String(err?.message||"No disponible")+'</p></article>';
+      [productsBody,dailyBody].forEach(function(tb){if(tb)tb.innerHTML='<tr><td colspan="3">Sin datos</td></tr>';});
+      if(statusBars)statusBars.innerHTML="";
+      if(trendSummary)trendSummary.textContent="Sin datos";
+    }
+  }
+
+  load(currentRange);
+})();
+</script>
+</BaseLayout>
+
+

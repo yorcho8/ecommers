@@ -1,0 +1,596 @@
+﻿---
+import BaseLayout from "../../../layouts/BaseLayout.astro";
+export function getStaticPaths() {
+  return [{ params: { lang: "es" } }];
+}
+
+const currentLang = "es";
+const cspNonce = Astro.locals?.cspNonce || "";
+
+const role = String(Astro.locals?.user?.rol || "").trim().toLowerCase().replace(/[\s_-]/g, "")
+  .replace(/^superadmin$|^superuser$|^superusuario$/, "superusuario");
+
+if (!role) return Astro.redirect(`/${currentLang}/login`);
+if (role !== "admin" && role !== "superusuario") return Astro.redirect(`/${currentLang}`);
+---
+
+<BaseLayout title="Pagos de Publicidad | Admin" currentLang={currentLang}>
+<div class="pp-root">
+<main class="pp">
+
+  <!-- Hero -->
+  <header class="pp-hero">
+    <div class="pp-hero__glow" aria-hidden="true"></div>
+    <div class="pp-hero__content">
+      <div>
+        <span class="pp-hero__badge">Admin</span>
+        <h1 class="pp-hero__title">Pagos de Publicidad</h1>
+        <p class="pp-hero__sub">Historial de campaÃ±as pagadas por empresas Â· FacturaciÃ³n Nexus â†’ Empresa</p>
+      </div>
+      <div class="pp-hero__actions">
+        <a class="pp-back" href={`/${currentLang}/admin/dashboard`}>â† Volver</a>
+      </div>
+    </div>
+  </header>
+
+  <!-- Status bar -->
+  <section id="ppStatus" class="pp-status" hidden></section>
+
+  <!-- Toolbar -->
+  <div class="pp-toolbar">
+    <div class="pp-toolbar__left">
+      <div class="pp-search-bar">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+        <input id="ppSearch" type="search" placeholder="Buscar empresa, RFC, productoâ€¦" autocomplete="off" />
+      </div>
+      <select id="ppEstado" class="pp-select">
+        <option value="">Todos los estados</option>
+        <option value="activa">Activa</option>
+        <option value="vencida">Vencida</option>
+      </select>
+    </div>
+    <div class="pp-toolbar__right">
+      <span id="ppCount" class="pp-count"></span>
+      <select id="ppPerPage" class="pp-select">
+        <option value="20">20 / pÃ¡g</option>
+        <option value="50">50 / pÃ¡g</option>
+        <option value="100">100 / pÃ¡g</option>
+      </select>
+    </div>
+  </div>
+
+  <!-- Table -->
+  <div class="pp-table-wrap">
+    <table class="pp-table">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Empresa</th>
+          <th>Producto</th>
+          <th>PosiciÃ³n</th>
+          <th>DÃ­as</th>
+          <th>Monto</th>
+          <th>Estado</th>
+          <th>Fecha</th>
+          <th>Factura</th>
+          <th>Acciones</th>
+        </tr>
+      </thead>
+      <tbody id="ppTableBody">
+        <tr><td colspan="10" class="pp-loading-cell">Cargandoâ€¦</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Pagination -->
+  <div class="pp-pagination">
+    <span id="ppPageInfo" class="pp-page-info"></span>
+    <div id="ppPageControls" class="pp-page-controls"></div>
+  </div>
+
+</main>
+</div>
+
+<!-- â”€â”€ Modal emitir factura â”€â”€ -->
+<div id="ppModal" class="pp-overlay" hidden>
+  <div class="pp-overlay__bg" id="ppModalBg"></div>
+  <article class="pp-dialog" role="dialog" aria-modal="true" aria-labelledby="ppModalTitle">
+    <button id="ppModalClose" class="pp-dialog__close" type="button" aria-label="Cerrar">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
+    </button>
+    <h3 id="ppModalTitle" class="pp-dialog__title">Emitir Factura de Publicidad</h3>
+    <p id="ppModalSubtitle" class="pp-dialog__sub"></p>
+
+    <form id="ppFacturaForm" autocomplete="off" novalidate>
+      <input type="hidden" id="ppCampanaId" value="" />
+
+      <div class="pp-field">
+        <label for="ppRfc">RFC Receptor *</label>
+        <input id="ppRfc" name="rfc" type="text" placeholder="RFC12 Ã³ RFC123456789" maxlength="13" required />
+        <p class="pp-field__hint">12 chars = Persona Moral Â· 13 chars = Persona FÃ­sica</p>
+      </div>
+
+      <div class="pp-field">
+        <label for="ppNombre">RazÃ³n social / Nombre *</label>
+        <input id="ppNombre" name="nombre" type="text" placeholder="Nombre exacto en SAT" required />
+      </div>
+
+      <div class="pp-field">
+        <label for="ppRegimen">RÃ©gimen Fiscal *</label>
+        <select id="ppRegimen" name="regimenFiscal">
+          <option value="601">601 - General de Ley Personas Morales</option>
+          <option value="603">603 - Personas Morales con Fines No Lucrativos</option>
+          <option value="605">605 - Sueldos y Salarios e Ingresos Asimilados</option>
+          <option value="606">606 - Arrendamiento</option>
+          <option value="612">612 - Personas FÃ­sicas con Act. Empresariales</option>
+          <option value="616">616 - Sin Obligaciones Fiscales (â†’ UsoCFDI S01)</option>
+          <option value="626">626 - RÃ©gimen Simplificado de Confianza</option>
+        </select>
+      </div>
+
+      <div class="pp-grid2">
+        <div class="pp-field">
+          <label for="ppUsoCfdi">Uso CFDI *</label>
+          <select id="ppUsoCfdi" name="usoCfdi">
+            <option value="G03">G03 - Gastos en General</option>
+            <option value="G01">G01 - AdquisiciÃ³n de Mercancias</option>
+            <option value="G02">G02 - Devoluciones, Descuentos o Bonificaciones</option>
+            <option value="P01">P01 - Por Definir</option>
+            <option value="S01">S01 - Sin efectos fiscales</option>
+          </select>
+        </div>
+        <div class="pp-field">
+          <label for="ppCp">CP Fiscal Receptor *</label>
+          <input id="ppCp" name="cpFiscal" type="text" placeholder="64000" maxlength="5" />
+        </div>
+      </div>
+
+      <div id="ppFormError" class="pp-form-error" hidden></div>
+
+      <div class="pp-dialog__actions">
+        <button type="button" id="ppModalCancelBtn" class="pp-btn pp-btn--ghost">Cancelar</button>
+        <button type="submit" id="ppFormSubmit" class="pp-btn pp-btn--primary">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+          Generar Factura
+        </button>
+      </div>
+    </form>
+  </article>
+</div>
+
+<!-- â”€â”€ Modal cancelar factura â”€â”€ -->
+<div id="ppCancelModal" class="pp-overlay" hidden>
+  <div class="pp-overlay__bg" id="ppCancelModalBg"></div>
+  <article class="pp-dialog pp-dialog--sm" role="dialog" aria-modal="true">
+    <button id="ppCancelModalClose" class="pp-dialog__close" type="button" aria-label="Cerrar">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
+    </button>
+    <h3 class="pp-dialog__title pp-dialog__title--danger">Cancelar Factura</h3>
+    <p class="pp-dialog__sub">Selecciona el motivo de cancelaciÃ³n SAT. Esta acciÃ³n no se puede deshacer.</p>
+
+    <form id="ppCancelForm" autocomplete="off">
+      <input type="hidden" id="ppCancelCampanaId" value="" />
+
+      <div class="pp-field">
+        <label for="ppCancelMotivo">Motivo SAT *</label>
+        <select id="ppCancelMotivo" name="motivo">
+          <option value="02">02 - Comprobante emitido con errores sin relaciÃ³n</option>
+          <option value="01">01 - Comprobante emitido con errores con relaciÃ³n</option>
+          <option value="03">03 - No se llevÃ³ a cabo la operaciÃ³n</option>
+          <option value="04">04 - OperaciÃ³n nominativa en factura global</option>
+        </select>
+      </div>
+
+      <div id="ppFolioSustField" class="pp-field" hidden>
+        <label for="ppFolioSust">UUID CFDI que sustituye (motivo 01) *</label>
+        <input id="ppFolioSust" name="folioSustitucion" type="text" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" maxlength="36" />
+      </div>
+
+      <div id="ppCancelError" class="pp-form-error" hidden></div>
+
+      <div class="pp-dialog__actions">
+        <button type="button" id="ppCancelCancelBtn" class="pp-btn pp-btn--ghost">Volver</button>
+        <button type="submit" id="ppCancelSubmit" class="pp-btn pp-btn--danger">Cancelar Factura</button>
+      </div>
+    </form>
+  </article>
+</div>
+
+<style>
+/* â”€â”€ Root â”€â”€ */
+.pp-root { min-height: 100vh; background: var(--bg, #0d0d0d); color: var(--fg, #f0f0f0); }
+.pp { max-width: 1440px; margin: 0 auto; padding: 2rem 1.5rem 4rem; }
+
+/* â”€â”€ Hero â”€â”€ */
+.pp-hero { position: relative; overflow: hidden; border-radius: 1.25rem; background: linear-gradient(135deg, #1a0a10 0%, #0d0d0d 60%); border: 1px solid rgba(200,50,80,.18); padding: 2.5rem 2rem; margin-bottom: 1.75rem; }
+.pp-hero__glow { position: absolute; inset: 0; background: radial-gradient(ellipse 60% 55% at 10% 50%, rgba(200,50,80,.12) 0%, transparent 70%); pointer-events: none; }
+.pp-hero__content { position: relative; display: flex; justify-content: space-between; align-items: center; gap: 1rem; flex-wrap: wrap; }
+.pp-hero__badge { display: inline-block; padding: .25rem .75rem; background: rgba(200,50,80,.18); border: 1px solid rgba(200,50,80,.35); border-radius: 2rem; font-size: .72rem; font-weight: 600; color: #e87; letter-spacing: .06em; text-transform: uppercase; margin-bottom: .5rem; }
+.pp-hero__title { font-size: clamp(1.4rem,3vw,2rem); font-weight: 700; color: #fff; margin: 0 0 .3rem; }
+.pp-hero__sub { font-size: .85rem; color: #888; margin: 0; }
+.pp-hero__actions { display: flex; gap: .75rem; align-items: center; }
+.pp-back { padding: .5rem 1.25rem; border-radius: .6rem; border: 1px solid rgba(255,255,255,.12); color: #ccc; font-size: .82rem; text-decoration: none; transition: background .15s; }
+.pp-back:hover { background: rgba(255,255,255,.06); }
+
+/* â”€â”€ Status â”€â”€ */
+.pp-status { padding: .75rem 1.25rem; border-radius: .6rem; margin-bottom: 1rem; font-size: .85rem; }
+.pp-status--ok  { background: rgba(40,170,80,.12); border: 1px solid rgba(40,170,80,.3); color: #5d9; }
+.pp-status--err { background: rgba(200,50,80,.12); border: 1px solid rgba(200,50,80,.3); color: #e87; }
+
+/* â”€â”€ Toolbar â”€â”€ */
+.pp-toolbar { display: flex; justify-content: space-between; align-items: center; gap: 1rem; flex-wrap: wrap; margin-bottom: 1.25rem; }
+.pp-toolbar__left, .pp-toolbar__right { display: flex; gap: .75rem; align-items: center; flex-wrap: wrap; }
+.pp-search-bar { display: flex; align-items: center; gap: .5rem; background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.1); border-radius: .6rem; padding: .45rem .85rem; min-width: 260px; }
+.pp-search-bar svg { flex-shrink: 0; color: #666; }
+.pp-search-bar input { background: none; border: none; outline: none; color: #f0f0f0; font-size: .85rem; width: 100%; }
+.pp-search-bar input::placeholder { color: #555; }
+.pp-select { background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.1); border-radius: .6rem; color: #ccc; font-size: .82rem; padding: .45rem .75rem; cursor: pointer; }
+.pp-count { font-size: .8rem; color: #666; }
+
+/* â”€â”€ Table â”€â”€ */
+.pp-table-wrap { overflow-x: auto; border-radius: .75rem; border: 1px solid rgba(255,255,255,.07); }
+.pp-table { width: 100%; border-collapse: collapse; font-size: .83rem; }
+.pp-table thead th { padding: .75rem 1rem; text-align: left; font-weight: 600; color: #888; font-size: .75rem; letter-spacing: .04em; text-transform: uppercase; border-bottom: 1px solid rgba(255,255,255,.07); white-space: nowrap; background: rgba(255,255,255,.02); }
+.pp-table tbody tr { border-bottom: 1px solid rgba(255,255,255,.04); transition: background .1s; }
+.pp-table tbody tr:hover { background: rgba(255,255,255,.025); }
+.pp-table tbody td { padding: .7rem 1rem; color: #ccc; vertical-align: middle; }
+.pp-loading-cell { text-align: center; padding: 2rem; color: #555; }
+
+/* â”€â”€ Badges â”€â”€ */
+.pp-badge { display: inline-block; padding: .2rem .6rem; border-radius: 2rem; font-size: .72rem; font-weight: 600; letter-spacing: .04em; }
+.pp-badge--activa  { background: rgba(40,170,80,.15); color: #5d9; border: 1px solid rgba(40,170,80,.3); }
+.pp-badge--vencida { background: rgba(120,120,120,.15); color: #888; border: 1px solid rgba(120,120,120,.3); }
+.pp-badge--vigente { background: rgba(80,140,240,.15); color: #8af; border: 1px solid rgba(80,140,240,.3); }
+.pp-badge--cancelada { background: rgba(200,50,80,.12); color: #e87; border: 1px solid rgba(200,50,80,.3); }
+.pp-badge--sin { background: rgba(255,255,255,.05); color: #666; border: 1px solid rgba(255,255,255,.08); }
+
+/* â”€â”€ Action buttons in table â”€â”€ */
+.pp-action-group { display: flex; gap: .4rem; align-items: center; flex-wrap: nowrap; }
+.pp-act { display: inline-flex; align-items: center; gap: .3rem; padding: .3rem .65rem; border-radius: .45rem; font-size: .75rem; font-weight: 600; border: none; cursor: pointer; transition: opacity .15s; white-space: nowrap; }
+.pp-act--emit  { background: rgba(200,50,80,.15); color: #e87; border: 1px solid rgba(200,50,80,.3); }
+.pp-act--emit:hover  { background: rgba(200,50,80,.28); }
+.pp-act--pdf   { background: rgba(80,140,240,.12); color: #8af; border: 1px solid rgba(80,140,240,.25); }
+.pp-act--pdf:hover   { background: rgba(80,140,240,.22); }
+.pp-act--xml   { background: rgba(255,200,60,.1); color: #fc6; border: 1px solid rgba(255,200,60,.25); }
+.pp-act--xml:hover   { background: rgba(255,200,60,.2); }
+.pp-act--cancel { background: rgba(200,50,80,.08); color: #e66; border: 1px solid rgba(200,50,80,.2); }
+.pp-act--cancel:hover { background: rgba(200,50,80,.2); }
+.pp-act:disabled  { opacity: .4; cursor: not-allowed; }
+
+/* â”€â”€ Pagination â”€â”€ */
+.pp-pagination { display: flex; justify-content: space-between; align-items: center; margin-top: 1.25rem; flex-wrap: wrap; gap: .75rem; }
+.pp-page-info { font-size: .8rem; color: #666; }
+.pp-page-controls { display: flex; gap: .4rem; }
+.pp-page-btn { padding: .4rem .7rem; border-radius: .45rem; border: 1px solid rgba(255,255,255,.1); background: rgba(255,255,255,.03); color: #ccc; font-size: .8rem; cursor: pointer; transition: background .15s; }
+.pp-page-btn:hover { background: rgba(255,255,255,.08); }
+.pp-page-btn.is-active { background: rgba(200,50,80,.2); border-color: rgba(200,50,80,.4); color: #e87; }
+.pp-page-btn:disabled { opacity: .35; cursor: not-allowed; }
+
+/* â”€â”€ Overlay / Modal â”€â”€ */
+.pp-overlay { position: fixed; inset: 0; z-index: 900; display: flex; align-items: center; justify-content: center; padding: 1rem; }
+.pp-overlay[hidden] { display: none; }
+.pp-overlay__bg { position: absolute; inset: 0; background: rgba(0,0,0,.7); backdrop-filter: blur(4px); }
+.pp-dialog { position: relative; background: #161616; border: 1px solid rgba(255,255,255,.1); border-radius: 1rem; padding: 2rem; width: 100%; max-width: 520px; max-height: 90vh; overflow-y: auto; z-index: 1; box-shadow: 0 24px 80px rgba(0,0,0,.5); }
+.pp-dialog--sm { max-width: 420px; }
+.pp-dialog__close { position: absolute; top: 1rem; right: 1rem; background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.1); color: #ccc; border-radius: .4rem; padding: .35rem; cursor: pointer; line-height: 0; }
+.pp-dialog__close:hover { background: rgba(255,255,255,.12); }
+.pp-dialog__title { font-size: 1.05rem; font-weight: 700; color: #fff; margin: 0 0 .3rem; }
+.pp-dialog__title--danger { color: #e87; }
+.pp-dialog__sub { font-size: .82rem; color: #888; margin: 0 0 1.4rem; }
+.pp-dialog__actions { display: flex; gap: .75rem; justify-content: flex-end; margin-top: 1.4rem; flex-wrap: wrap; }
+
+/* â”€â”€ Form fields â”€â”€ */
+.pp-field { margin-bottom: 1rem; }
+.pp-field label { display: block; font-size: .78rem; font-weight: 600; color: #aaa; margin-bottom: .35rem; }
+.pp-field input, .pp-field select {
+  width: 100%; padding: .55rem .85rem; background: rgba(255,255,255,.05);
+  border: 1px solid rgba(255,255,255,.12); border-radius: .55rem; color: #f0f0f0;
+  font-size: .85rem; box-sizing: border-box; transition: border-color .15s;
+}
+.pp-field input:focus, .pp-field select:focus { outline: none; border-color: rgba(200,50,80,.5); }
+.pp-field select option { background: #1e1e1e; }
+.pp-field__hint { font-size: .72rem; color: #666; margin: .25rem 0 0; }
+.pp-grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+.pp-form-error { background: rgba(200,50,80,.12); border: 1px solid rgba(200,50,80,.3); border-radius: .55rem; padding: .65rem .9rem; font-size: .82rem; color: #e87; margin-top: .5rem; }
+
+/* â”€â”€ Buttons â”€â”€ */
+.pp-btn { display: inline-flex; align-items: center; gap: .4rem; padding: .55rem 1.2rem; border-radius: .6rem; font-size: .85rem; font-weight: 600; border: none; cursor: pointer; transition: opacity .15s, background .15s; }
+.pp-btn--primary { background: linear-gradient(135deg, #c83250 0%, #a0243e 100%); color: #fff; }
+.pp-btn--primary:hover { opacity: .88; }
+.pp-btn--ghost { background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.12); color: #ccc; }
+.pp-btn--ghost:hover { background: rgba(255,255,255,.1); }
+.pp-btn--danger { background: rgba(200,50,80,.2); border: 1px solid rgba(200,50,80,.4); color: #e87; }
+.pp-btn--danger:hover { background: rgba(200,50,80,.35); }
+.pp-btn:disabled { opacity: .4; cursor: not-allowed; }
+
+@media (max-width: 640px) {
+  .pp-grid2 { grid-template-columns: 1fr; }
+  .pp-dialog { padding: 1.25rem; }
+}
+</style>
+
+<script nonce={cspNonce} is:inline>
+(function () {
+  /* â”€â”€ helpers â”€â”€ */
+  const $ = id => document.getElementById(id);
+  const money = v => '$' + Number(v || 0).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' MXN';
+  const dateStr = v => v ? new Date(v).toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric' }) : 'â€”';
+  const positionLabel = p => ({ hero: 'Hero', top1: 'Top 1', grid: 'Grid' })[p] || p;
+
+  /* â”€â”€ state â”€â”€ */
+  let allPagos = [], page = 1, totalPages = 1, totalCount = 0;
+  const perPageSel = () => Number($('ppPerPage')?.value || 20);
+
+  /* â”€â”€ status â”€â”€ */
+  function showStatus(msg, isErr) {
+    const el = $('ppStatus');
+    el.textContent = msg;
+    el.className = 'pp-status ' + (isErr ? 'pp-status--err' : 'pp-status--ok');
+    el.hidden = false;
+    setTimeout(() => { el.hidden = true; }, 5000);
+  }
+
+  /* â”€â”€ load pagos â”€â”€ */
+  async function loadPagos() {
+    const q = $('ppSearch')?.value.trim() || '';
+    const estado = $('ppEstado')?.value || '';
+    const perPage = perPageSel();
+    const params = new URLSearchParams({ page, perPage });
+    if (q) params.set('q', q);
+    if (estado) params.set('estado', estado);
+
+    const tbody = $('ppTableBody');
+    tbody.innerHTML = '<tr><td colspan="10" class="pp-loading-cell">Cargandoâ€¦</td></tr>';
+
+    try {
+      const res = await fetch('/api/admin/publicidad/pagos?' + params.toString());
+      const data = await res.json();
+      if (!data.success) throw new Error(data.error || 'Error al cargar');
+
+      allPagos = data.pagos || [];
+      totalCount = data.pagination?.total || 0;
+      totalPages = data.pagination?.pages || 1;
+
+      $('ppCount').textContent = totalCount + ' pagos';
+      renderTable();
+      renderPagination();
+    } catch (err) {
+      tbody.innerHTML = '<tr><td colspan="10" class="pp-loading-cell" style="color:#e87">Error: ' + err.message + '</td></tr>';
+    }
+  }
+
+  /* â”€â”€ render table â”€â”€ */
+  function renderTable() {
+    const tbody = $('ppTableBody');
+    if (!allPagos.length) {
+      tbody.innerHTML = '<tr><td colspan="10" class="pp-loading-cell">Sin resultados</td></tr>';
+      return;
+    }
+    tbody.innerHTML = allPagos.map(p => {
+      const facBadge = p.factura
+        ? `<span class="pp-badge pp-badge--${p.factura.estado}">${p.factura.estado}</span>`
+        : `<span class="pp-badge pp-badge--sin">Sin factura</span>`;
+
+      const actions = p.factura?.estado === 'vigente'
+        ? `<div class="pp-action-group">
+             <button class="pp-act pp-act--pdf" onclick="dlFactura(${p.id},'pdf')">â¬‡ PDF</button>
+             <button class="pp-act pp-act--xml" onclick="dlFactura(${p.id},'xml')">â¬‡ XML</button>
+             <button class="pp-act pp-act--cancel" onclick="openCancelModal(${p.id})">âœ• Cancelar</button>
+           </div>`
+        : `<button class="pp-act pp-act--emit" onclick="openEmitModal(${p.id},'${esc(p.empresa.nombre)}','${esc(p.empresa.rfc||'')}','${esc(p.empresa.regimenFiscal||'601')}',${p.monto})">
+             Emitir Factura
+           </button>`;
+
+      return `<tr>
+        <td style="color:#666;font-size:.75rem">${p.id}</td>
+        <td>
+          <div style="font-weight:600;color:#f0f0f0">${esc(p.empresa.nombre)}</div>
+          <div style="font-size:.72rem;color:#666">${p.empresa.rfc ? esc(p.empresa.rfc) : 'Sin RFC'}</div>
+        </td>
+        <td style="max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${esc(p.producto)}">${esc(p.producto)}</td>
+        <td><span class="pp-badge pp-badge--activa" style="background:rgba(255,170,60,.12);color:#fa6;border-color:rgba(255,170,60,.3)">${positionLabel(p.posicion)}</span></td>
+        <td>${p.duracionDias}d</td>
+        <td style="font-weight:600">${money(p.monto)}</td>
+        <td><span class="pp-badge pp-badge--${p.estado}">${p.estado}</span></td>
+        <td style="font-size:.78rem;color:#888">${dateStr(p.fechaCreacion)}</td>
+        <td>${facBadge}</td>
+        <td>${actions}</td>
+      </tr>`;
+    }).join('');
+  }
+
+  /* â”€â”€ render pagination â”€â”€ */
+  function renderPagination() {
+    $('ppPageInfo').textContent = `PÃ¡gina ${page} de ${totalPages} Â· ${totalCount} total`;
+    const ctrl = $('ppPageControls');
+    const btns = [];
+    if (page > 1) btns.push(`<button class="pp-page-btn" onclick="goPage(${page-1})">â€¹ Ant</button>`);
+    const start = Math.max(1, page - 2), end = Math.min(totalPages, page + 2);
+    for (let i = start; i <= end; i++) {
+      btns.push(`<button class="pp-page-btn ${i===page?'is-active':''}" onclick="goPage(${i})">${i}</button>`);
+    }
+    if (page < totalPages) btns.push(`<button class="pp-page-btn" onclick="goPage(${page+1})">Sig â€º</button>`);
+    ctrl.innerHTML = btns.join('');
+  }
+
+  window.goPage = function(p) { page = p; loadPagos(); };
+
+  /* â”€â”€ download â”€â”€ */
+  window.dlFactura = function(campanaId, tipo) {
+    var a = document.createElement('a');
+    a.href = '/api/admin/publicidad/pagos/' + campanaId + '/factura?download=' + tipo;
+    a.rel = 'noopener';
+    a.style.display = 'none';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+  };
+
+  /* â”€â”€ escape html â”€â”€ */
+  function esc(s) {
+    return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  /* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ Emit Modal â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+  window.openEmitModal = function(campanaId, empresa, rfc, regimen, monto) {
+    $('ppCampanaId').value = campanaId;
+    $('ppModalSubtitle').textContent = 'CampaÃ±a #' + campanaId + ' Â· ' + empresa + ' Â· ' + money(monto);
+    // Pre-fill RFC and nombre from empresa data if available
+    $('ppRfc').value = rfc || '';
+    $('ppNombre').value = empresa || '';
+    // Pre-fill rÃ©gimen
+    const regimenSel = $('ppRegimen');
+    if (rfc && rfc.length === 12) regimenSel.value = regimen || '601';
+    else if (rfc && rfc.length === 13) regimenSel.value = regimen || '612';
+    else regimenSel.value = regimen || '601';
+    $('ppFormError').hidden = true;
+    $('ppModal').hidden = false;
+  };
+
+  function closeEmitModal() { $('ppModal').hidden = true; }
+  $('ppModalClose').onclick = closeEmitModal;
+  $('ppModalCancelBtn').onclick = closeEmitModal;
+  $('ppModalBg').onclick = closeEmitModal;
+
+  // Auto-detect rÃ©gimen by RFC length
+  $('ppRfc').addEventListener('input', function() {
+    const len = this.value.trim().replace(/\s+/g, '').length;
+    const regSel = $('ppRegimen');
+    if (len === 12) regSel.value = '601';
+    else if (len === 13) regSel.value = '612';
+  });
+
+  // Auto-set S01 when rÃ©gimen 616
+  $('ppRegimen').addEventListener('change', function() {
+    if (this.value === '616') $('ppUsoCfdi').value = 'S01';
+  });
+
+  // Submit emit form
+  $('ppFacturaForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    const errEl = $('ppFormError');
+    errEl.hidden = true;
+
+    const campanaId = Number($('ppCampanaId').value);
+    const rfc = $('ppRfc').value.trim().toUpperCase();
+    const nombre = $('ppNombre').value.trim();
+    const regimenFiscal = $('ppRegimen').value;
+    const usoCfdi = $('ppUsoCfdi').value;
+    const cpFiscal = $('ppCp').value.trim();
+
+    if (!rfc || rfc.length < 12) { errEl.textContent = 'RFC invÃ¡lido'; errEl.hidden = false; return; }
+    if (!nombre || nombre.length < 3) { errEl.textContent = 'Nombre demasiado corto'; errEl.hidden = false; return; }
+    if (!cpFiscal || cpFiscal.length < 4) { errEl.textContent = 'Ingresa el CP Fiscal'; errEl.hidden = false; return; }
+
+    const btn = $('ppFormSubmit');
+    btn.disabled = true;
+    btn.textContent = 'Generandoâ€¦';
+
+    try {
+      const res = await fetch('/api/admin/publicidad/pagos/' + campanaId + '/factura', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ rfc, nombre, usoCfdi, regimenFiscal, cpFiscal }),
+      });
+      const data = await res.json();
+
+      if (!data.success) {
+        errEl.textContent = data.error || 'Error al generar factura';
+        errEl.hidden = false;
+        return;
+      }
+
+      closeEmitModal();
+      showStatus('âœ“ Factura generada: UUID ' + (data.factura?.uuid || 'â€”'), false);
+      page = 1;
+      await loadPagos();
+      // Auto-descarga PDF
+      setTimeout(() => dlFactura(campanaId, 'pdf'), 400);
+    } catch (err) {
+      errEl.textContent = 'Error de red: ' + err.message;
+      errEl.hidden = false;
+    } finally {
+      btn.disabled = false;
+      btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg> Generar Factura';
+    }
+  });
+
+  /* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ Cancel Modal â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+  window.openCancelModal = function(campanaId) {
+    $('ppCancelCampanaId').value = campanaId;
+    $('ppCancelMotivo').value = '02';
+    $('ppFolioSustField').hidden = true;
+    $('ppFolioSust').value = '';
+    $('ppCancelError').hidden = true;
+    $('ppCancelModal').hidden = false;
+  };
+
+  function closeCancelModal() { $('ppCancelModal').hidden = true; }
+  $('ppCancelModalClose').onclick = closeCancelModal;
+  $('ppCancelCancelBtn').onclick = closeCancelModal;
+  $('ppCancelModalBg').onclick = closeCancelModal;
+
+  $('ppCancelMotivo').addEventListener('change', function() {
+    $('ppFolioSustField').hidden = this.value !== '01';
+  });
+
+  $('ppCancelForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    const errEl = $('ppCancelError');
+    errEl.hidden = true;
+
+    const campanaId = Number($('ppCancelCampanaId').value);
+    const motivo = $('ppCancelMotivo').value;
+    const folioSustitucion = $('ppFolioSust').value.trim() || null;
+
+    if (motivo === '01' && !folioSustitucion) {
+      errEl.textContent = 'El motivo 01 requiere el UUID del CFDI sustituto';
+      errEl.hidden = false;
+      return;
+    }
+
+    const btn = $('ppCancelSubmit');
+    btn.disabled = true;
+    btn.textContent = 'Cancelandoâ€¦';
+
+    try {
+      const res = await fetch('/api/admin/publicidad/pagos/' + campanaId + '/factura', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ motivo, folioSustitucion }),
+      });
+      const data = await res.json();
+
+      if (!data.success) {
+        errEl.textContent = data.error || 'Error al cancelar';
+        errEl.hidden = false;
+        return;
+      }
+
+      closeCancelModal();
+      showStatus('âœ“ Factura cancelada exitosamente', false);
+      page = 1;
+      await loadPagos();
+    } catch (err) {
+      errEl.textContent = 'Error de red: ' + err.message;
+      errEl.hidden = false;
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'Cancelar Factura';
+    }
+  });
+
+  /* â”€â”€ search & filters â”€â”€ */
+  let searchTimer;
+  $('ppSearch').addEventListener('input', () => {
+    clearTimeout(searchTimer);
+    searchTimer = setTimeout(() => { page = 1; loadPagos(); }, 400);
+  });
+  $('ppEstado').addEventListener('change', () => { page = 1; loadPagos(); });
+  $('ppPerPage').addEventListener('change', () => { page = 1; loadPagos(); });
+
+  /* â”€â”€ init â”€â”€ */
+  loadPagos();
+})();
+</script>
+</BaseLayout>

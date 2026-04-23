@@ -1,0 +1,826 @@
+﻿/* ============================================================================
+   CATALOGO.CSS â€” archivo Ãºnico
+   â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+   FusiÃ³n de catalogo.css + catalogo-carousel.css.
+   typography.css se importa ANTES (vÃ­a BaseLayout).
+
+   Este archivo NUNCA declara:
+     Â· @font-face             â†’ typography.css
+     Â· font-family directa    â†’ var(--font-*)
+     Â· font-size directa      â†’ var(--fs-*)   (excepto .lang-flag = emoji)
+     Â· font-weight directa    â†’ var(--fw-*)
+     Â· letter-spacing directa â†’ var(--ls-*)
+     Â· --section-gap ni variables tipogrÃ¡ficas
+
+   ÃNDICE
+     1.  Variables de color y animaciÃ³n del carrusel
+     2.  Reset y base
+     3.  Hero â€” layout
+     4.  Hero â€” tipografÃ­a
+     5.  Hero â€” grid de idiomas
+     6.  Hero â€” scroll indicator
+     7.  Animaciones globales
+     8.  Carousel section â€” layout y cabecera
+     9.  Carousel â€” introduce (tipografÃ­a)
+    10.  Carousel â€” acciones escritorio
+    11.  Carousel â€” posiciones y animaciones
+    12.  Responsive PC pequeÃ±o (â‰¤ 1280px)
+    13.  Responsive tablet (â‰¤ 992px)
+    14.  Responsive mÃ³vil (â‰¤ 767px)
+    15.  Responsive mÃ³vil pequeÃ±o (â‰¤ 380px)
+    16.  Responsive muy angosto (â‰¤ 359px)
+   ============================================================================ */
+
+  @import "./brand-colors.css";
+
+
+/* ============================================================================
+   1. VARIABLES DE COLOR Y ANIMACIÃ“N
+   ============================================================================ */
+:root {
+  /* â”€â”€ Colores â”€â”€ */
+  --body-bg    : #ffffff;
+  --text-color : #000000;
+  --text-muted : #555555;
+  --tech-orange: var(--brand-accent);
+
+  /* â”€â”€ Curvas de animaciÃ³n (igual que el reveal) â”€â”€ */
+  --ease-elegant: cubic-bezier(0.65, 0, 0.35, 1);
+
+  /* â”€â”€ Posiciones del carrusel â”€â”€ */
+  --item1-transform: translateX(-100%) translateY(-2%) scale(1.5);
+  --item1-filter   : blur(40px);
+  --item1-zIndex   : 11;
+  --item1-opacity  : 0;
+  --item2-transform: translateX(0);
+  --item2-filter   : blur(0px);
+  --item2-zIndex   : 10;
+  --item2-opacity  : 1;
+  --item3-transform: translate(50%, 10%) scale(0.8);
+  --item3-filter   : blur(0px);
+  --item3-zIndex   : 9;
+  --item3-opacity  : 1;
+  --item4-transform: translate(90%, 20%) scale(0.5);
+  --item4-filter   : blur(0px);
+  --item4-zIndex   : 8;
+  --item4-opacity  : 1;
+  --item5-transform: translate(120%, 30%) scale(0.3);
+  --item5-filter   : blur(40px);
+  --item5-zIndex   : 7;
+  --item5-opacity  : 0;
+}
+
+
+/* ============================================================================
+   2. RESET Y BASE
+   ============================================================================ */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body, html {
+  background    : var(--body-bg);
+  color         : var(--text-color);
+  scroll-behavior: smooth;
+}
+
+.catalog-mobile-controls { display: none !important; }
+.mobile-catalog-info      { display: none !important; }
+
+
+/* ============================================================================
+   3. HERO â€” LAYOUT
+   ============================================================================ */
+.hero-section {
+  position: relative;
+  width: 100%; height: 100vh; height: 100dvh;
+  overflow: hidden;
+}
+
+.hero-video-container {
+  position: absolute; top: 0; left: 0;
+  width: 100%; height: 100%; z-index: 1;
+  display: flex; align-items: center; justify-content: center;
+}
+
+.video-wrapper {
+  position: relative; width: 100%; height: 100%; overflow: hidden;
+}
+
+.video-wrapper video {
+  width: 100%; height: 100%;
+  object-fit: cover; opacity: 0.75;
+}
+
+.hero-overlay {
+  position: absolute; top: 0; left: 0;
+  width: 100%; height: 100%;
+  z-index: 2; pointer-events: none;
+  background: linear-gradient(
+    to bottom,
+    rgba(0,0,0,0.5)  0%,
+    rgba(0,0,0,0.2) 50%,
+    rgba(0,0,0,0.7) 100%
+  );
+}
+
+.hero-content {
+  position: relative; z-index: 3; height: 100%;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  padding: 0 5vw; text-align: center;
+}
+
+
+/* ============================================================================
+   4. HERO â€” TIPOGRAFÃA
+   ============================================================================ */
+.hero-label {
+  font-family    : var(--font-body);
+  font-size      : var(--fs-body-lg);
+  font-weight    : var(--fw-label);
+  letter-spacing : var(--ls-loose);
+  line-height    : var(--lh-label);
+  text-transform : uppercase;
+  color          : var(--tech-orange);
+  margin-bottom  : 18px;
+  opacity        : 1;
+  transform      : translateY(0);
+  transition     : all 0.8s var(--ease-elegant);
+}
+.hero-section.animate-hero .hero-label {
+  animation: fadeInUp 0.8s var(--ease-elegant) 0.1s both;
+}
+
+.hero-title {
+  font-size      : var(--fs-display-xl);
+  line-height    : var(--lh-display);
+  letter-spacing : var(--ls-display);
+  color          : #ffffff;
+  margin         : 0 0 30px;
+  text-transform : uppercase;
+  text-shadow    : 0 4px 40px rgba(0, 0, 0, 0.55);
+  opacity        : 1;
+  transform      : translateY(0) scale(1);
+  transition     : all 1s var(--ease-elegant);
+}
+.hero-section.animate-hero .hero-title {
+  animation: fadeInUpScale 1s var(--ease-elegant) 0.2s both;
+}
+
+.hero-desc {
+  font-size   : var(--fs-subtitle-md);
+  font-weight : var(--fw-body);
+  line-height : var(--lh-body);
+  color       : rgba(255, 255, 255, 0.9);
+  margin      : 0 0 70px;
+  max-width   : 750px;
+  opacity     : 1;
+  transform   : translateY(0);
+  transition  : all 0.9s var(--ease-elegant);
+}
+.hero-section.animate-hero .hero-desc {
+  animation: fadeInUp 0.9s var(--ease-elegant) 0.3s both;
+}
+
+
+/* ============================================================================
+   5. HERO â€” GRID DE IDIOMAS
+   ============================================================================ */
+.hero-download-grid {
+  display              : grid;
+  grid-template-columns: repeat(2, 220px);
+  gap                  : 18px;
+  width                : fit-content;
+  margin               : 0 auto;
+  justify-content      : center;
+}
+
+.hero-download-item {
+  padding        : 26px 22px;
+  background     : rgba(255, 255, 255, 0.09);
+  border         : 1px solid rgba(255, 255, 255, 0.25);
+  border-radius  : 14px;
+  color          : #ffffff;
+  cursor         : pointer;
+  transition     : all 0.45s var(--ease-elegant);
+  text-align     : center;
+  font-family    : var(--font-body);
+  font-size      : var(--fs-body-sm);
+  font-weight    : var(--fw-label);
+  letter-spacing : var(--ls-label-xs);
+  display        : flex;
+  flex-direction : column;
+  align-items    : center;
+  gap            : 14px;
+  text-decoration: none;
+  backdrop-filter: blur(25px);
+  opacity        : 1;
+  transform      : translateY(0);
+}
+.hero-section.animate-hero .hero-download-item {
+  animation: fadeInUp 0.6s var(--ease-elegant) both;
+}
+.hero-section.animate-hero .hero-download-item:nth-child(1) { animation-delay: 0.40s; }
+.hero-section.animate-hero .hero-download-item:nth-child(2) { animation-delay: 0.45s; }
+.hero-section.animate-hero .hero-download-item:nth-child(3) { animation-delay: 0.50s; }
+.hero-section.animate-hero .hero-download-item:nth-child(4) { animation-delay: 0.55s; }
+.hero-section.animate-hero .hero-download-item:nth-child(5) { animation-delay: 0.60s; }
+.hero-section.animate-hero .hero-download-item:nth-child(6) { animation-delay: 0.65s; }
+
+.hero-download-item .lang-flag {
+  font-size : 2.2rem;
+  filter    : grayscale(30%);
+  transition: all 0.35s ease;
+}
+.hero-download-item:hover {
+  background  : var(--tech-orange);
+  border-color: var(--tech-orange);
+  color       : #ffffff;
+  transform   : translateY(-7px);
+  box-shadow  : 0 18px 45px rgba(251, 103, 11, 0.55);
+}
+.hero-download-item:hover .lang-flag { filter: grayscale(0%); transform: scale(1.15); }
+
+
+/* ============================================================================
+   6. HERO â€” SCROLL INDICATOR
+   ============================================================================ */
+.scroll-indicator {
+  position: absolute; bottom: 55px; left: 50%;
+  transform: translateX(-50%);
+  z-index: 4;
+  display: flex; flex-direction: column; align-items: center;
+  gap: 14px; cursor: pointer; opacity: 1;
+}
+.hero-section.animate-hero .scroll-indicator {
+  animation: fadeInFloat 0.8s ease 0.7s both;
+}
+.scroll-indicator span {
+  font-family    : var(--font-body);
+  font-size      : var(--fs-body-xs);
+  font-weight    : var(--fw-label);
+  letter-spacing : 0.28em;
+  text-transform : uppercase;
+  color          : rgba(255, 255, 255, 0.75);
+}
+.scroll-indicator svg { width: 30px; height: 30px; color: rgba(255, 255, 255, 0.75); }
+
+
+/* ============================================================================
+   7. ANIMACIONES GLOBALES
+   ============================================================================ */
+@keyframes float {
+  0%, 100% { transform: translateX(-50%) translateY(0); }
+  50%       { transform: translateX(-50%) translateY(-14px); }
+}
+@keyframes fadeInFloat {
+  from { opacity: 0; transform: translateX(-50%) translateY(20px); }
+  to   { opacity: 1; transform: translateX(-50%) translateY(0); }
+}
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(30px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes fadeInUpScale {
+  from { opacity: 0; transform: translateY(40px) scale(0.95); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* âœ… showContent igual al reveal: scale(0.95)+blur(10px) â†’ scale(1)+blur(0) */
+@keyframes showContent {
+  from { transform: translateY(-14px); opacity: 0; }
+  to   { transform: translateY(0);     opacity: 1; }
+}
+
+
+/* ============================================================================
+   8. CAROUSEL SECTION â€” LAYOUT Y CABECERA
+   ============================================================================ */
+.carousel-section {
+  position: relative; width: 100%;
+  height: 100vh; height: 100dvh;
+  overflow: hidden;
+  display: flex; flex-direction: column;
+  justify-content: center; align-items: center;
+  padding-top: 60px;
+}
+
+.carousel-video-bg {
+  position: absolute; top: 0; left: 0;
+  width: 100%; height: 100%; z-index: 0;
+  display: flex; align-items: center; justify-content: center;
+}
+.carousel-video-bg video {
+  width: 100%; height: 100%;
+  object-fit: contain; opacity: 0.15;
+  filter: grayscale(40%) blur(2px);
+}
+
+.carousel-overlay {
+  position: absolute; top: 0; left: 0;
+  width: 100%; height: 100%; z-index: 1;
+}
+
+.section-divider {
+  position   : relative; z-index: 2; width: 100%;
+  margin     : 0 0 var(--section-gap);
+  text-align : center; flex-shrink: 0;
+}
+
+.section-divider .division-label {
+  font-family    : var(--font-body);
+  font-size      : var(--fs-body-sm);
+  font-weight    : var(--fw-label);
+  letter-spacing : var(--ls-loose);
+  text-transform : uppercase;
+  color          : var(--tech-orange);
+  margin-bottom  : 18px;
+  opacity        : 0;
+  transform      : translateY(20px);
+  transition     : all 0.8s var(--ease-elegant);
+}
+.section-divider .division-label.animate-in { opacity: 1; transform: translateY(0); }
+
+.section-divider h2 {
+  font-size      : var(--fs-display-lg);
+  line-height    : var(--lh-display);
+  letter-spacing : var(--ls-display);
+  color          : var(--text-color);
+  text-transform : uppercase;
+  opacity        : 0;
+  transform      : translateY(30px) scale(0.95);
+  transition     : all 1s var(--ease-elegant);
+  transition-delay: 0.1s;
+}
+.section-divider h2.animate-in { opacity: 1; transform: translateY(0) scale(1); }
+
+.carousel {
+  position: relative; width: 100%; height: 65vh; flex-grow: 0;
+  display: flex; align-items: center; justify-content: center;
+  z-index: 2; background: transparent;
+}
+.carousel.dragging { cursor: grabbing; }
+
+.carousel .list {
+  position: absolute; width: 100%; max-width: 1600px; height: 100%;
+  left: 50%; top: 50%; transform: translate(-50%, -50%);
+}
+
+.carousel .list .item {
+  position: absolute; left: 0%; width: 70%; height: 100%;
+  transition: left 0.5s, opacity 0.5s, width 0.5s;
+}
+
+.carousel .list .item img.catalog-thumb {
+  width: 45%; height: auto; max-height: 80%;
+  object-fit: contain;
+  position: absolute; right: 5%; top: 50%;
+  transform: translateY(-50%); transition: right 1.5s;
+}
+
+.carousel .list .item .introduce {
+  left: 10%; max-width: 35%;
+  opacity: 0; color: var(--text-color); pointer-events: none;
+  position: absolute; top: 50%; transform: translateY(-50%);
+  z-index: 20;
+  display: flex; flex-direction: column; justify-content: center; gap: 20px;
+}
+.carousel .list .item:nth-child(2) .introduce {
+  opacity: 1; pointer-events: auto; transition: opacity 0.5s;
+}
+
+
+/* ============================================================================
+   9. CAROUSEL â€” INTRODUCE (TIPOGRAFÃA)
+   ============================================================================ */
+.carousel .list .item .introduce .title {
+  font-family    : var(--font-body);
+  font-size      : var(--fs-body-sm);
+  font-weight    : var(--fw-label);
+  letter-spacing : var(--ls-label);
+  line-height    : var(--lh-label);
+  text-transform : uppercase;
+  color          : var(--tech-orange);
+  margin-bottom  : 0;
+}
+
+.carousel .list .item .introduce .topic {
+  font-family    : var(--font-display);
+  font-size      : var(--fs-display-xl);
+  font-weight    : var(--fw-display);
+  line-height    : var(--lh-display);
+  letter-spacing : var(--ls-display);
+  font-synthesis : none;
+  text-transform : uppercase;
+  white-space    : nowrap;
+  text-shadow    : 10px 10px 20px rgba(0, 0, 0, 0.25);
+  color          : var(--text-color);
+}
+
+.carousel .list .item .introduce .des {
+  font-family : var(--font-body);
+  font-size   : var(--fs-body-md);
+  font-weight : var(--fw-body);
+  line-height : var(--lh-body-tight);
+  color       : var(--text-muted);
+  max-width   : 400px;
+}
+
+
+/* ============================================================================
+   10. CAROUSEL â€” ACCIONES ESCRITORIO
+   ============================================================================ */
+.catalog-actions {
+  margin-top: 35px; display: flex; flex-direction: column; gap: 15px;
+}
+
+.language-selector label {
+  display        : block;
+  font-family    : var(--font-body);
+  font-size      : var(--fs-body-xs);
+  font-weight    : var(--fw-display);
+  letter-spacing : var(--ls-label-sm);
+  text-transform : uppercase;
+  margin-bottom  : 8px;
+  color          : var(--text-muted);
+  opacity        : 1;
+}
+:global(.dark) .language-selector label,
+[data-theme="dark"] .language-selector label {
+  color: #ffffff; opacity: 0.8;
+  text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+}
+
+.lang-options {
+  display: grid; grid-template-columns: repeat(6, 1fr); gap: 6px;
+}
+
+.lang-btn {
+  padding      : 8px 0;
+  background   : linear-gradient(135deg, #ffffff 0%, #e0e0e0 100%);
+  border       : none; border-radius: 4px; color: #000;
+  font-family  : var(--font-body);
+  font-size    : var(--fs-body-xs);
+  font-weight  : var(--fw-display);
+  cursor       : pointer; transition: all 0.3s var(--ease-elegant);
+  text-align   : center; box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+}
+.lang-btn:hover,
+.lang-btn.active {
+  background: linear-gradient(135deg, var(--tech-orange) 0%, #2f4a8a 100%);
+  color: white; transform: translateY(-2px);
+  box-shadow: 0 5px 15px rgba(251, 103, 11, 0.4);
+}
+
+.download-btn {
+  width: fit-content; min-width: 200px; align-self: center; margin-top: 5px;
+  padding: 12px 30px;
+  background     : linear-gradient(135deg, #ffffff 0%, #e0e0e0 100%);
+  color          : #000; border: none; border-radius: 50px;
+  font-family    : var(--font-body);
+  font-size      : var(--fs-body-sm);
+  font-weight    : var(--fw-display);
+  letter-spacing : var(--ls-label-xs);
+  cursor         : pointer; transition: all 0.3s var(--ease-elegant);
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  text-decoration: none; text-transform: uppercase;
+  box-shadow     : 0 4px 10px rgba(0,0,0,0.2);
+}
+.download-btn:hover {
+  transform: translateY(-2px);
+  background: linear-gradient(135deg, var(--tech-orange) 0%, #2f4a8a 100%);
+  color: white; box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+}
+
+
+/* ============================================================================
+   11. CAROUSEL â€” POSICIONES Y ANIMACIONES
+   Animaciones idÃ©nticas al reveal:
+     Â· scale(0.95) blur(10px) opacity 0  â†’  scale(1) blur(0) opacity 1
+     Â· opacity 1s ease-out | transform 1.2s ease-elegant | filter 0.8s ease-out
+     Â· transition-delay escalonado: 0.4s Â· 0.5s Â· 0.6s Â· 0.7s
+   ============================================================================ */
+
+.carousel .list .item:nth-child(1)   { transform: var(--item1-transform); filter: var(--item1-filter); z-index: var(--item1-zIndex); opacity: var(--item1-opacity); pointer-events: none; }
+.carousel .list .item:nth-child(2)   { z-index: 10; transform: translateX(0); }
+.carousel .list .item:nth-child(3)   { transform: var(--item3-transform); filter: var(--item3-filter); z-index: var(--item3-zIndex); }
+.carousel .list .item:nth-child(4)   { transform: var(--item4-transform); filter: var(--item4-filter); z-index: var(--item4-zIndex); }
+.carousel .list .item:nth-child(5)   { transform: var(--item5-transform); filter: var(--item5-filter); opacity: var(--item5-opacity); pointer-events: none; }
+.carousel .list .item:nth-child(n+6) { opacity: 0; }
+
+/* â”€â”€ Estado inicial de los textos (igual que reveal-content img) â”€â”€ */
+.carousel .list .item .introduce .title,
+.carousel .list .item .introduce .topic,
+.carousel .list .item .introduce .des,
+.carousel .list .item .introduce .catalog-actions {
+  transform : scale(0.95);
+  opacity   : 0;
+  filter    : blur(10px);
+  transition:
+    opacity   1s   ease-out,
+    transform 1.2s var(--ease-elegant),
+    filter    0.8s ease-out;
+}
+
+/* â”€â”€ Estado activo: :nth-child(2) â€” igual que .reveal-container.active .reveal-content img â”€â”€ */
+.carousel .list .item:nth-child(2) .introduce .title {
+  transform        : scale(1);
+  opacity          : 1;
+  filter           : blur(0px);
+  transition-delay : 0.4s;
+}
+.carousel .list .item:nth-child(2) .introduce .topic {
+  transform        : scale(1);
+  opacity          : 1;
+  filter           : blur(0px);
+  transition-delay : 0.5s;
+}
+.carousel .list .item:nth-child(2) .introduce .des {
+  transform        : scale(1);
+  opacity          : 1;
+  filter           : blur(0px);
+  transition-delay : 0.6s;
+}
+.carousel .list .item:nth-child(2) .introduce .catalog-actions {
+  transform        : scale(1);
+  opacity          : 1;
+  filter           : blur(0px);
+  transition-delay : 0.7s;
+}
+
+/* â”€â”€ Next / Prev â€” duraciÃ³n alineada con el reveal (1.2s, ease-elegant) â”€â”€ */
+.carousel.next .item:nth-child(1) { animation: transformFromPosition2 1.2s var(--ease-elegant) 1 forwards; }
+.carousel.next .item:nth-child(2) { animation: transformFromPosition3 1.2s var(--ease-elegant) 1 forwards; }
+.carousel.next .item:nth-child(3) { animation: transformFromPosition4 1.2s var(--ease-elegant) 1 forwards; }
+.carousel.next .item:nth-child(4) { animation: transformFromPosition5 1.2s var(--ease-elegant) 1 forwards; }
+.carousel.prev .list .item:nth-child(5) { animation: transformFromPosition4 1.2s var(--ease-elegant) 1 forwards; }
+.carousel.prev .list .item:nth-child(4) { animation: transformFromPosition3 1.2s var(--ease-elegant) 1 forwards; }
+.carousel.prev .list .item:nth-child(3) { animation: transformFromPosition2 1.2s var(--ease-elegant) 1 forwards; }
+.carousel.prev .list .item:nth-child(2) { animation: transformFromPosition1 1.2s var(--ease-elegant) 1 forwards; }
+
+@keyframes transformFromPosition1 { from { transform: var(--item1-transform); filter: var(--item1-filter); opacity: var(--item1-opacity); } }
+@keyframes transformFromPosition2 { from { transform: var(--item2-transform); filter: var(--item2-filter); opacity: var(--item2-opacity); } }
+@keyframes transformFromPosition3 { from { transform: var(--item3-transform); filter: var(--item3-filter); opacity: var(--item3-opacity); } }
+@keyframes transformFromPosition4 { from { transform: var(--item4-transform); filter: var(--item4-filter); opacity: var(--item4-opacity); } }
+@keyframes transformFromPosition5 { from { transform: var(--item5-transform); filter: var(--item5-filter); opacity: var(--item5-opacity); } }
+/* ============================================================================
+   12. RESPONSIVE â€” PC PEQUEÃ‘O (â‰¤ 1280px)
+   ============================================================================ */
+@media (max-width: 1280px) {
+
+  .hero-content {
+    justify-content: center;
+    padding-bottom: 90px;
+  }
+
+  .hero-desc {
+    margin-bottom: 30px;
+  }
+
+  .hero-download-item {
+    padding: 14px 12px;
+    gap: 8px;
+    border-radius: 10px;
+  }
+
+  .hero-download-item .lang-flag {
+    font-size: 1.7rem;
+  }
+
+  .hero-download-grid {
+    gap: 10px;
+    max-width: 800px;
+  }
+
+  .scroll-indicator {
+    bottom: 24px;
+    gap: 8px;
+  }
+
+  .scroll-indicator svg {
+    width: 22px;
+    height: 22px;
+  }
+
+  .carousel .list .item .introduce {
+    gap: 12px;
+  }
+
+  .catalog-actions {
+    margin-top: 16px;
+    gap: 12px;
+  }
+
+  .download-btn {
+    margin-top: 16px;
+    padding: 12px 28px;
+    min-width: 180px;
+  }
+}
+
+
+/* ============================================================================
+   13. RESPONSIVE â€” TABLET (â‰¤ 992px)
+   ============================================================================ */
+@media (max-width: 992px) {
+  .hero-download-grid {
+    max-width: 400px;
+  }
+}
+
+/* ============================================================================
+   14. RESPONSIVE â€” MÃ“VIL (â‰¤ 767px)
+   ============================================================================ */
+@media screen and (max-width: 767px) {
+
+  .hero-content { padding: 0 10px; justify-content: center; padding-bottom: 70px; }
+  .hero-label   { margin-bottom: 8px; }
+  .hero-title   { margin-bottom: 15px; }
+  .hero-desc    { margin-bottom: 25px; padding: 0 5px; max-width: 100%; }
+
+  .hero-download-grid {
+    display: flex;
+    justify-content: center;
+    gap: 12px;
+    width: 100%;
+  }
+  .hero-download-item {
+    width: 130px;
+    padding: 16px 10px;
+    border-radius: 10px;
+    gap: 8px;
+    flex-shrink: 0;
+  }
+  .hero-download-item .lang-flag { font-size: 1.6rem; margin-bottom: 0; line-height: 1; }
+  .hero-download-item span { white-space: nowrap; }
+
+  .scroll-indicator { bottom: 20px; gap: 6px; }
+  .scroll-indicator svg { width: 22px; height: 22px; }
+
+  .catalogo-main .carousel-section {
+    height: 100vh; height: 100dvh; min-height: 650px;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: flex-start;
+    padding: 0;
+    background: var(--body-bg);
+    transition: background 0.3s ease;
+  }
+
+  .catalogo-main .section-divider {
+    display: block !important; position: relative;
+    width: 100%; text-align: center;
+    padding: max(env(safe-area-inset-top), 60px) 20px 30px;
+    margin: 0; z-index: 15; background: transparent;
+  }
+
+  .catalogo-main .section-divider .division-label {
+    font-family    : var(--font-body);
+    font-size      : var(--fs-subtitle-sm);
+    font-weight    : var(--fw-label);
+    letter-spacing : var(--ls-loose);
+    color          : var(--tech-orange);
+    text-transform : uppercase;
+    margin-bottom  : 12px; opacity: 1;
+  }
+
+  .catalogo-main .section-divider h2 {
+    font-size      : var(--fs-display-lg) !important;
+    font-weight    : var(--fw-display)    !important;
+    font-synthesis : none;
+    line-height    : var(--lh-display)    !important;
+    letter-spacing : var(--ls-display)    !important;
+    color: var(--text-color) !important;
+    text-transform : uppercase; text-shadow: none;
+    margin: 0 !important; padding: 0 !important;
+    transition: color 0.3s ease;
+  }
+
+  .catalogo-main .carousel .list .item .introduce { display: none !important; }
+  .catalogo-main .carousel .list .item::before    { display: none !important; }
+  .catalogo-main .carousel .list .item::after     { display: none !important; }
+
+  .catalogo-main .carousel { width: 100%; flex: 1; display: flex; flex-direction: column; align-items: center; }
+  .catalogo-main .carousel .list { width: 100%; height: 100%; }
+  .catalogo-main .carousel .list .item {
+    width: 100%; height: 100%;
+    display: flex; flex-direction: column; align-items: center; padding: 0 20px;
+  }
+  .catalogo-main .carousel .list .item img.catalog-thumb {
+    position: relative !important; width: auto !important;
+    max-width: 65vw !important; max-height: 35vh !important;
+    object-fit: contain !important; transform: none !important;
+    top: auto !important; left: auto !important; right: auto !important;
+    margin: 0 auto 20px; order: 1;
+    filter: drop-shadow(0 20px 50px rgba(0,0,0,0.15)) !important;
+  }
+
+  .catalog-mobile-controls {
+    display: flex !important; flex-direction: column;
+    align-items: center; gap: 20px; width: 100%;
+    z-index: 20; position: relative;
+    padding: 0 20px calc(env(safe-area-inset-bottom) + 24px);
+    background: var(--body-bg);
+    transition: background 0.3s ease;
+    order: 2;
+  }
+  body.dark .catalogo-main .section-divider h2 {
+    color: #ffffff !important;
+  }
+
+  .mobile-lang-label {
+    display: block; width: 100%; max-width: 420px; text-align: left;
+    font-family    : var(--font-body);
+    font-size      : var(--fs-body-sm);
+    font-weight    : var(--fw-label);
+    letter-spacing : var(--ls-label-sm);
+    color          : var(--text-muted);
+    text-transform : uppercase; margin-bottom: -8px;
+    transition: color 0.3s ease;
+  }
+
+  .mobile-lang-selector {
+    display: flex; flex-direction: row; gap: 6px;
+    width: 100%; max-width: 420px;
+    justify-content: center; flex-wrap: nowrap;
+  }
+
+  .mobile-lang-btn {
+    flex: 1; min-width: auto; height: 42px; padding: 0 2px;
+    background: #f5f5f5; border: 2px solid transparent; border-radius: 6px;
+    font-family    : var(--font-body);
+    font-size      : var(--fs-body-xs);
+    font-weight    : var(--fw-label);
+    color: #333333;
+    display: flex; align-items: center; justify-content: center;
+    text-transform: uppercase; white-space: nowrap;
+    transition: all 0.3s var(--ease-elegant);
+  }
+  .mobile-lang-btn.active {
+    background: var(--tech-orange); color: white;
+    border-color: var(--tech-orange);
+    box-shadow: 0 4px 12px rgba(255, 107, 0, 0.25);
+  }
+
+  .mobile-download-btn {
+    width: 100%; max-width: 420px; padding: 18px 36px;
+    background: #ffffff; color: #000000;
+    border: 2px solid #000000; border-radius: 50px;
+    font-family    : var(--font-body);
+    font-size      : var(--fs-body-lg);
+    font-weight    : var(--fw-display);
+    letter-spacing : var(--ls-label-xs);
+    text-transform : uppercase; text-decoration: none !important;
+    cursor: pointer; transition: all 0.3s var(--ease-elegant);
+    display: flex; align-items: center; justify-content: center; gap: 12px;
+    box-shadow: none; position: relative; overflow: hidden;
+  }
+  .mobile-download-btn:hover {
+    background: var(--tech-orange);
+    border-color: var(--tech-orange);
+    color: #ffffff;
+    box-shadow: 0 8px 25px rgba(251, 103, 11, 0.45);
+  }
+  .mobile-download-btn:active { transform: scale(0.97); background: #000000; color: white; }
+  .mobile-download-btn svg { width: 22px; height: 22px; stroke-width: 2.5; stroke: currentColor; }
+
+  .catalogo-main .arrows {
+    z-index: 60; pointer-events: auto;
+    position: absolute; width: 100%; top: 45%; transform: translateY(-50%);
+    display: flex; justify-content: space-between; padding: 0 15px;
+  }
+  body.dark .catalogo-main .arrows button {
+    background: #000000 !important;
+    box-shadow: 0 4px 16px rgba(255, 255, 255, 0.15) !important;
+  }
+  body.dark .catalogo-main .arrows button svg {
+    stroke: #ffffff !important;
+  }
+  .section-divider { margin-bottom: var(--section-gap); }
+
+  @keyframes fadeInScale { from { opacity: 0; transform: scale(0.9); } to { opacity: 1; transform: scale(1); } }
+  .mobile-controls { animation: fadeInUp 0.6s var(--ease-elegant) 0.3s both; }
+  .catalogo-main .section-divider { animation: fadeInScale 0.8s var(--ease-elegant) both; }
+  .catalogo-main .carousel .list .item img.catalog-thumb { animation: fadeInScale 0.7s var(--ease-elegant) 0.2s both; }
+}
+
+
+/* ============================================================================
+   15. RESPONSIVE â€” MÃ“VIL PEQUEÃ‘O (â‰¤ 380px)
+   ============================================================================ */
+@media (max-width: 380px) {
+  .hero-desc          { display: none; }
+  .hero-download-grid { gap: 8px; }
+  .hero-download-item { width: 110px; padding: 12px 8px; }
+}
+
+
+/* ============================================================================
+   16. RESPONSIVE â€” PANTALLAS MUY ANGOSTAS (â‰¤ 359px)
+   ============================================================================ */
+@media screen and (max-width: 359px) {
+  .hero-download-grid { gap: 4px; }
+  .mobile-lang-btn    { height: 38px; }
+}
+
+/* ============================================================================
+   17. DARK MODE MÃ“VIL
+   ============================================================================ */

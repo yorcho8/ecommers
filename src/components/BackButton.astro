@@ -1,0 +1,138 @@
+---
+// src/components/BackButton.astro
+
+interface Props {
+  href: string;
+  ariaLabel?: string;
+  isFixedDesktop?: boolean; // Opcional: si quieres que en escritorio también flote
+}
+
+const { href, ariaLabel = "Volver atrás", isFixedDesktop = false } = Astro.props;
+---
+
+<a 
+  href={href} 
+  class:list={["back-arrow-btn", { "force-fixed": isFixedDesktop }]}
+  aria-label={ariaLabel}
+>
+  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <line x1="19" y1="12" x2="5" y2="12" />
+    <polyline points="12 19 5 12 12 5" />
+  </svg>
+</a>
+
+<style>
+  /* =========================================
+     ESTILOS BASE (ESCRITORIO / GENERAL)
+     ========================================= */
+  .back-arrow-btn {
+    /* Variables locales por si no existen las globales */
+    --btn-orange: var(--tech-orange, #FB670B);
+    --btn-text: var(--text-color, #1a1a1a);
+    --btn-bg-hover: var(--tech-orange, #FB670B);
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    
+    /* Tamaño Desktop por defecto */
+    width: clamp(30px, 5vh, 45px);
+    height: clamp(30px, 5vh, 45px);
+    border-radius: 50%;
+    
+    /* Estilo visual */
+    border: 1px solid rgba(255, 145, 0, 0.35);
+    color: var(--btn-text);
+    background: transparent;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    z-index: 50;
+    
+    /* Por defecto en escritorio sigue el flujo normal, 
+       a menos que uses la prop isFixedDesktop */
+  }
+
+  /* Hover Effects */
+  .back-arrow-btn:hover {
+    background: var(--btn-bg-hover);
+    color: #fff;
+    transform: scale(1.1);
+    border-color: transparent;
+  }
+
+  /* Soporte Dark Mode (si usas la clase .dark en html) */
+  :global(html.dark) .back-arrow-btn {
+    --btn-text: #ffffff;
+  }
+
+  /* OPCIONAL: Forzar fijo en escritorio si se pasa la prop */
+  .back-arrow-btn.force-fixed {
+    position: fixed;
+    top: 40px;
+    left: 40px;
+    z-index: 100;
+  }
+
+  /* =========================================
+     TABLET (600px - 1024px)
+     ========================================= */
+  @media screen and (min-width: 600px) and (max-width: 1024px) {
+    .back-arrow-btn {
+      position: fixed !important; /* Mantiene tu lógica de posición fija */
+      top: 35px;
+      left: 35px;
+      width: 60px;
+      height: 60px;
+      margin-bottom: 0;
+      z-index: 4000;
+      background: #ffffff !important; /* Fondo sólido en tablet */
+      border: none !important;
+      box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
+      color: #000000 !important; /* Forzar negro en móvil/tablet */
+    }
+
+    .back-arrow-btn svg {
+      width: 28px;
+      height: 28px;
+    }
+  }
+
+  /* =========================================
+     MÓVIL (< 600px / < 1024px genérico)
+     ========================================= */
+  @media screen and (max-width: 1024px) {
+    .back-arrow-btn {
+      position: fixed !important; /* CRUCIAL: Se queda pegado a la pantalla */
+      top: 28px;
+      left: 25px;
+      margin-bottom: 0;
+      z-index: 4000;
+      
+      width: 44px;
+      height: 44px;
+      border-radius: 12px; /* Cuadrado redondeado en móvil */
+      
+      background: #ffffff !important;
+      border: none !important;
+      box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
+      color: #000000 !important;
+    }
+
+    .back-arrow-btn svg {
+      stroke: #000000 !important;
+      width: 20px;
+      height: 20px;
+    }
+
+    .back-arrow-btn:active {
+      transform: scale(0.92);
+      background: #f5f5f5 !important;
+    }
+
+    .back-arrow-btn:hover {
+      background: #ffffff !important;
+      transform: none; /* En móvil quitamos el hover scale exagerado */
+    }
+  }
+</style>

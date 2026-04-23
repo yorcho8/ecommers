@@ -1,0 +1,88 @@
+/* ===============================
+   CIRCLE PAGE REVEAL
+================================ */
+
+.reveal-circle {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  pointer-events: none;
+
+  background: radial-gradient(
+    circle,
+    #ff7a18 0%,
+    #fb670b 45%,
+    #000 100%
+  );
+
+  /* 🔥 INVISIBLE */
+  clip-path: circle(0% at 50% 50%);
+  transition: clip-path 1.35s cubic-bezier(.77,0,.175,1);
+}
+
+/* ACTIVO */
+.reveal-circle.active {
+  pointer-events: all;
+  clip-path: circle(150% at 50% 50%);
+}
+/* ===============================
+   BASE REVEAL
+================================ */
+.reveal-circle {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  pointer-events: none;
+}
+
+/* ===============================
+   TRANSICIÓN 1 – CÍRCULO (la actual)
+================================ */
+.reveal-circle.circle {
+  background: radial-gradient(circle, #ff7a18 0%, #fb670b 45%, #000 100%);
+  clip-path: circle(0% at 50% 50%);
+  transition: clip-path 1.35s cubic-bezier(.77,0,.175,1);
+}
+
+.reveal-circle.circle.active {
+  clip-path: circle(150% at 50% 50%);
+}
+
+/* ===============================
+   TRANSICIÓN 2 – LIQUIDA TOP → BOTTOM
+================================ */
+.reveal-circle.liquid {
+  background: linear-gradient(180deg, #fb670b, #000);
+  clip-path: inset(0 0 100% 0);
+  transition: clip-path 1.1s cubic-bezier(.65,0,.35,1);
+}
+
+.reveal-circle.liquid.active {
+  clip-path: inset(0 0 0 0);
+}
+
+/* ===============================
+   TRANSICIÓN 3 – WIPE DIAGONAL
+================================ */
+.reveal-circle.diagonal {
+  background: linear-gradient(135deg, #fb670b, #000);
+  clip-path: polygon(0 0, 0 0, 0 100%, 0 100%);
+  transition: clip-path 1.2s ease-in-out;
+}
+
+.reveal-circle.diagonal.active {
+  clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%);
+}
+
+/* ===============================
+   TRANSICIÓN 4 – SLIDE LEFT
+================================ */
+.reveal-circle.slide {
+  background: #fb670b;
+  transform: translateX(-100%);
+  transition: transform 1s cubic-bezier(.77,0,.175,1);
+}
+
+.reveal-circle.slide.active {
+  transform: translateX(0);
+}

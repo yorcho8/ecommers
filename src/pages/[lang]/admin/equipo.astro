@@ -1,0 +1,351 @@
+﻿---
+import BaseLayout from "../../../layouts/BaseLayout.astro";
+
+export function getStaticPaths() {
+  return [{ params: { lang: "es" } }];
+}
+
+const currentLang = "es";
+const cspNonce = Astro.locals?.cspNonce || "";
+
+const role = String(Astro.locals?.user?.rol || "").trim().toLowerCase().replace(/[\s_-]/g, "")
+  .replace(/^superadmin$|^superuser$|^superusuario$/, "superusuario");
+
+if (!role) return Astro.redirect(`/${currentLang}/login`);
+if (role !== "admin" && role !== "superusuario") return Astro.redirect(`/${currentLang}`);
+---
+
+<BaseLayout title="Equipo admin | GOecomers" currentLang={currentLang}>
+  <main class="team-admin-page">
+    <section class="team-admin-shell">
+      <header class="team-header">
+        <div>
+          <p class="team-kicker">Panel admin</p>
+          <h1>Equipo de administracion</h1>
+          <p class="team-subtitle">Crea nuevos admins para tu empresa sin salir del panel.</p>
+        </div>
+        <a class="team-back" href={`/${currentLang}/admin/dashboard`}>Volver al dashboard</a>
+      </header>
+
+      <article class="team-card team-card-form">
+        <h2>Crear admin</h2>
+        <p class="team-note">El nuevo usuario queda vinculado automaticamente a tu empresa.</p>
+        <form id="teamCreateForm" class="team-form">
+          <label>Nombre *<input id="newNombre" type="text" required /></label>
+          <label>Apellido paterno *<input id="newApellidoPaterno" type="text" required /></label>
+          <label>Apellido materno<input id="newApellidoMaterno" type="text" /></label>
+          <label>Correo *<input id="newCorreo" type="email" required /></label>
+          <label>Telefono<input id="newTelefono" type="text" /></label>
+          <label>Contrasena temporal *<input id="newPassword" type="password" minlength="8" required /></label>
+          <label>Rol en empresa
+            <select id="newRolEmpresa">
+              <option value="Admin">Admin</option>
+              <option value="Operador">Operador</option>
+              <option value="Supervisor">Supervisor</option>
+            </select>
+          </label>
+          <div class="team-actions">
+            <button type="submit" id="btnCreateAdmin">Crear admin</button>
+            <button type="button" id="btnReloadTeam" class="ghost">Actualizar lista</button>
+          </div>
+          <p id="teamStatus" class="team-status" aria-live="polite"></p>
+        </form>
+      </article>
+
+      <article class="team-card">
+        <div class="team-list-head">
+          <h2>Admins de la empresa</h2>
+          <span id="teamEmpresaName" class="team-company">Cargando...</span>
+        </div>
+        <div class="team-table-wrap">
+          <table class="team-table">
+            <thead>
+              <tr>
+                <th>Nombre</th>
+                <th>Correo</th>
+                <th>Rol empresa</th>
+                <th>Telefono</th>
+                <th>Asignacion</th>
+              </tr>
+            </thead>
+            <tbody id="teamRows"></tbody>
+          </table>
+        </div>
+      </article>
+    </section>
+  </main>
+
+  <script nonce={cspNonce} is:inline>
+    const teamRows = document.getElementById("teamRows");
+    const teamStatus = document.getElementById("teamStatus");
+    const teamEmpresaName = document.getElementById("teamEmpresaName");
+    const form = document.getElementById("teamCreateForm");
+    const btnReloadTeam = document.getElementById("btnReloadTeam");
+    const btnCreateAdmin = document.getElementById("btnCreateAdmin");
+
+    function formatDate(value) {
+      if (!value) return "-";
+      const d = new Date(value);
+      if (Number.isNaN(d.getTime())) return "-";
+      return d.toLocaleDateString("es-MX", { year: "numeric", month: "short", day: "2-digit" });
+    }
+
+    function setStatus(text, type) {
+      if (!(teamStatus instanceof HTMLElement)) return;
+      teamStatus.textContent = text || "";
+      teamStatus.dataset.type = type || "info";
+    }
+
+    async function loadTeam() {
+      if (!(teamRows instanceof HTMLElement)) return;
+      teamRows.innerHTML = '<tr><td colspan="5">Cargando...</td></tr>';
+      try {
+        const response = await fetch("/api/admin/empresa-admins", { credentials: "include" });
+        const data = await response.json().catch(() => ({}));
+
+        if (!response.ok || !data?.success) {
+          throw new Error(data?.error || "No se pudo cargar el equipo");
+        }
+
+        if (teamEmpresaName instanceof HTMLElement) {
+          teamEmpresaName.textContent = data?.empresa?.nombre || "Sin empresa asociada";
+        }
+
+        const admins = Array.isArray(data?.admins) ? data.admins : [];
+        if (!admins.length) {
+          teamRows.innerHTML = '<tr><td colspan="5">No hay admins registrados para esta empresa.</td></tr>';
+          return;
+        }
+
+        teamRows.innerHTML = admins.map((admin) => {
+          const fullName = [admin?.nombre, admin?.apellidoPaterno, admin?.apellidoMaterno].filter(Boolean).join(" ");
+          return `
+            <tr>
+              <td>${fullName || "-"}</td>
+              <td>${admin?.correo || "-"}</td>
+              <td><span class="role-chip">${admin?.rolEmpresa || "Admin"}</span></td>
+              <td>${admin?.telefono || "-"}</td>
+              <td>${formatDate(admin?.fechaAsignacion)}</td>
+            </tr>
+          `;
+        }).join("");
+      } catch (error) {
+        teamRows.innerHTML = '<tr><td colspan="5">Error cargando equipo.</td></tr>';
+        setStatus(String(error?.message || "Error cargando equipo"), "error");
+      }
+    }
+
+    form?.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      if (!(btnCreateAdmin instanceof HTMLButtonElement)) return;
+
+      const payload = {
+        nombre: document.getElementById("newNombre") instanceof HTMLInputElement ? document.getElementById("newNombre").value.trim() : "",
+        apellidoPaterno: document.getElementById("newApellidoPaterno") instanceof HTMLInputElement ? document.getElementById("newApellidoPaterno").value.trim() : "",
+        apellidoMaterno: document.getElementById("newApellidoMaterno") instanceof HTMLInputElement ? document.getElementById("newApellidoMaterno").value.trim() : "",
+        correo: document.getElementById("newCorreo") instanceof HTMLInputElement ? document.getElementById("newCorreo").value.trim() : "",
+        telefono: document.getElementById("newTelefono") instanceof HTMLInputElement ? document.getElementById("newTelefono").value.trim() : "",
+        contrasena: document.getElementById("newPassword") instanceof HTMLInputElement ? document.getElementById("newPassword").value : "",
+        rolEmpresa: document.getElementById("newRolEmpresa") instanceof HTMLSelectElement ? document.getElementById("newRolEmpresa").value : "Admin",
+      };
+
+      btnCreateAdmin.disabled = true;
+      btnCreateAdmin.textContent = "Creando...";
+      setStatus("", "info");
+
+      try {
+        const response = await fetch("/api/admin/empresa-admins", {
+          method: "POST",
+          credentials: "include",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok || !data?.success) {
+          throw new Error(data?.error || "No se pudo crear el admin");
+        }
+
+        form.reset();
+        setStatus("Admin creado correctamente.", "success");
+        await loadTeam();
+      } catch (error) {
+        setStatus(String(error?.message || "Error creando admin"), "error");
+      } finally {
+        btnCreateAdmin.disabled = false;
+        btnCreateAdmin.textContent = "Crear admin";
+      }
+    });
+
+    btnReloadTeam?.addEventListener("click", () => {
+      loadTeam();
+    });
+
+    loadTeam();
+  </script>
+
+  <style>
+    .team-admin-page {
+      padding: 22px;
+    }
+    .team-admin-shell {
+      max-width: 1120px;
+      margin: 0 auto;
+      display: grid;
+      gap: 16px;
+    }
+    .team-header {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: flex-end;
+    }
+    .team-kicker {
+      margin: 0;
+      font-size: 0.72rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: rgba(255, 255, 255, 0.55);
+    }
+    .team-header h1 {
+      margin: 4px 0;
+      color: #f5f7fb;
+    }
+    .team-subtitle {
+      margin: 0;
+      color: rgba(226, 232, 240, 0.76);
+      font-size: 0.92rem;
+    }
+    .team-back {
+      text-decoration: none;
+      color: #d1d5db;
+      border: 1px solid rgba(148, 163, 184, 0.3);
+      border-radius: 10px;
+      padding: 9px 12px;
+      background: rgba(15, 23, 42, 0.38);
+    }
+    .team-card {
+      border: 1px solid rgba(148, 163, 184, 0.2);
+      border-radius: 16px;
+      background: linear-gradient(150deg, rgba(15, 23, 42, 0.72), rgba(2, 6, 23, 0.66));
+      padding: 16px;
+    }
+    .team-card-form h2,
+    .team-card h2 {
+      margin: 0 0 6px;
+      font-size: 1.04rem;
+      color: #e5e7eb;
+    }
+    .team-note {
+      margin: 0 0 12px;
+      color: rgba(203, 213, 225, 0.72);
+      font-size: 0.84rem;
+    }
+    .team-form {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 10px;
+    }
+    .team-form label {
+      display: grid;
+      gap: 6px;
+      font-size: 0.78rem;
+      color: rgba(226, 232, 240, 0.9);
+    }
+    .team-form input,
+    .team-form select {
+      border-radius: 10px;
+      border: 1px solid rgba(148, 163, 184, 0.28);
+      background: rgba(15, 23, 42, 0.6);
+      color: #f8fafc;
+      padding: 10px;
+    }
+    .team-actions {
+      grid-column: 1 / -1;
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+    .team-actions button {
+      border: 1px solid rgba(245, 158, 11, 0.35);
+      border-radius: 10px;
+      padding: 9px 13px;
+      background: rgba(245, 158, 11, 0.2);
+      color: #fef3c7;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    .team-actions button.ghost {
+      border-color: rgba(148, 163, 184, 0.35);
+      background: rgba(15, 23, 42, 0.4);
+      color: #cbd5e1;
+      font-weight: 600;
+    }
+    .team-status {
+      grid-column: 1 / -1;
+      margin: 0;
+      min-height: 20px;
+      font-size: 0.82rem;
+    }
+    .team-status[data-type="error"] { color: #fda4af; }
+    .team-status[data-type="success"] { color: #86efac; }
+    .team-list-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+    .team-company {
+      font-size: 0.8rem;
+      color: #fbbf24;
+      background: rgba(245, 158, 11, 0.12);
+      border: 1px solid rgba(245, 158, 11, 0.35);
+      border-radius: 999px;
+      padding: 4px 10px;
+    }
+    .team-table-wrap {
+      overflow: auto;
+    }
+    .team-table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 760px;
+    }
+    .team-table th,
+    .team-table td {
+      text-align: left;
+      padding: 10px;
+      border-bottom: 1px solid rgba(148, 163, 184, 0.14);
+      color: rgba(226, 232, 240, 0.9);
+      font-size: 0.84rem;
+    }
+    .team-table th {
+      color: rgba(203, 213, 225, 0.72);
+      font-weight: 700;
+      font-size: 0.74rem;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+    .role-chip {
+      border: 1px solid rgba(96, 165, 250, 0.32);
+      background: rgba(96, 165, 250, 0.13);
+      color: #93c5fd;
+      border-radius: 999px;
+      padding: 3px 8px;
+      font-size: 0.73rem;
+      font-weight: 700;
+    }
+    @media (max-width: 920px) {
+      .team-form {
+        grid-template-columns: 1fr;
+      }
+      .team-header {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+    }
+  </style>
+</BaseLayout>
+

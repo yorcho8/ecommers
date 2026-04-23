@@ -1,0 +1,224 @@
+<section class="nx-page">
+  <div class="nx-container fb-shell">
+    <header class="nx-hero">
+      <span class="nx-badge">Voice of Customer</span>
+      <h1 class="nx-title">Quejas y sugerencias con seguimiento real</h1>
+      <p class="nx-subtitle">
+        Comparte feedback, reporta incidencias y recibe folio inmediato.
+        El equipo de Nexus prioriza cada caso con trazabilidad completa.
+      </p>
+      <div class="nx-pill-row">
+        <span class="nx-pill">Folio automatico</span>
+        <span class="nx-pill">Respuesta por canal preferido</span>
+        <span class="nx-pill">Historial por cuenta</span>
+      </div>
+    </header>
+
+    <div class="nx-grid-2">
+      <article class="nx-card">
+        <h2>Nuevo mensaje</h2>
+        <p>Formulario enfocado en claridad y rapidez de envio.</p>
+
+        <form id="fb-form" class="fb-form">
+          <div class="fb-row">
+            <label class="fb-label">
+              Tipo
+              <select id="fb-tipo" class="fb-select" required>
+                <option value="sugerencia">Sugerencia</option>
+                <option value="queja">Queja</option>
+                <option value="fallo">Fallo tecnico</option>
+              </select>
+            </label>
+            <label class="fb-label">
+              Categoria
+              <select id="fb-categoria" class="fb-select" required>
+                <option value="general">General</option>
+                <option value="producto_pedido">Producto / pedido</option>
+                <option value="atencion">Atencion</option>
+                <option value="tecnico_fallo">Tecnico / sitio</option>
+              </select>
+            </label>
+          </div>
+
+          <div class="fb-row">
+            <label class="fb-label">
+              Canal de respuesta
+              <select id="fb-canal" class="fb-select" required>
+                <option value="ticket">Ticket web</option>
+                <option value="whatsapp">WhatsApp</option>
+                <option value="correo">Correo</option>
+              </select>
+            </label>
+            <label class="fb-label">
+              Asunto
+              <input id="fb-asunto" class="fb-input" type="text" minlength="6" maxlength="120" required />
+            </label>
+          </div>
+
+          <div class="fb-row">
+            <label class="fb-label">
+              Contacto
+              <input id="fb-contacto" class="fb-input fb-locked" type="text" readonly />
+            </label>
+            <label class="fb-label">
+              Correo
+              <input id="fb-correo" class="fb-input fb-locked" type="text" readonly />
+            </label>
+          </div>
+
+          <div class="fb-row">
+            <label class="fb-label">
+              Telefono
+              <input id="fb-telefono" class="fb-input fb-locked" type="text" readonly />
+            </label>
+            <label class="fb-label">
+              Numero
+              <input id="fb-numero" class="fb-input fb-locked" type="text" readonly />
+            </label>
+          </div>
+
+          <label class="fb-label">
+            Mensaje
+            <textarea id="fb-mensaje" class="fb-textarea" minlength="20" maxlength="3000" required></textarea>
+          </label>
+
+          <button id="fb-submit" class="nx-btn nx-btn-primary" type="submit">Enviar mensaje</button>
+          <p id="fb-status" class="fb-status">Tu folio aparecera aqui al enviar.</p>
+        </form>
+      </article>
+
+      <article class="nx-card">
+        <h2>Mis envios recientes</h2>
+        <p>Historial de feedback para monitorear avances.</p>
+        <section id="fb-list" class="fb-list"></section>
+      </article>
+    </div>
+  </div>
+</section>
+
+<script is:inline>
+  const feedbackNodes = {
+    form: document.getElementById("fb-form"),
+    tipo: document.getElementById("fb-tipo"),
+    categoria: document.getElementById("fb-categoria"),
+    canal: document.getElementById("fb-canal"),
+    asunto: document.getElementById("fb-asunto"),
+    mensaje: document.getElementById("fb-mensaje"),
+    contacto: document.getElementById("fb-contacto"),
+    correo: document.getElementById("fb-correo"),
+    telefono: document.getElementById("fb-telefono"),
+    numero: document.getElementById("fb-numero"),
+    submit: document.getElementById("fb-submit"),
+    status: document.getElementById("fb-status"),
+    list: document.getElementById("fb-list"),
+  };
+
+  function setStatus(message, type) {
+    if (!feedbackNodes.status) return;
+    feedbackNodes.status.className = `fb-status ${type || ""}`.trim();
+    feedbackNodes.status.textContent = message;
+  }
+
+  function renderItems(items) {
+    if (!feedbackNodes.list) return;
+    if (!Array.isArray(items) || items.length === 0) {
+      feedbackNodes.list.innerHTML = '<article class="fb-item"><h4>Sin registros</h4><p>Aun no has enviado mensajes.</p></article>';
+      return;
+    }
+
+    feedbackNodes.list.innerHTML = items
+      .map((item) => {
+        const fecha = item.fecha ? new Date(item.fecha).toLocaleString("es-MX") : "-";
+        return `
+          <article class="fb-item">
+            <h4>${String(item.folio || "Folio")}</h4>
+            <p>${String(item.asunto || "Sin asunto")}</p>
+            <p>${String(item.mensaje || "").slice(0, 180)}</p>
+            <p class="fb-meta">${String(item.tipo || "sugerencia")} | ${String(item.categoria || "general")} | ${String(item.estado || "nuevo")} | ${fecha}</p>
+          </article>
+        `;
+      })
+      .join("");
+  }
+
+  async function loadFeedback() {
+    try {
+      const res = await fetch("/api/feedback?limit=12", { credentials: "include" });
+      const data = await res.json();
+
+      if (!data?.success) {
+        setStatus(data?.error || "No se pudo cargar tu historial.", "error");
+        renderItems([]);
+        return;
+      }
+
+      const viewer = data.viewer || {};
+      if (feedbackNodes.contacto) feedbackNodes.contacto.value = String(viewer.contacto || "");
+      if (feedbackNodes.correo) feedbackNodes.correo.value = String(viewer.correo || "");
+      if (feedbackNodes.telefono) feedbackNodes.telefono.value = String(viewer.telefono || "");
+      if (feedbackNodes.numero) feedbackNodes.numero.value = String(viewer.numero || "");
+
+      renderItems(data.items || []);
+      setStatus("Listo para enviar un nuevo mensaje.");
+    } catch {
+      setStatus("Error de conexion al cargar feedback.", "error");
+      renderItems([]);
+    }
+  }
+
+  async function handleSubmit(event) {
+    event.preventDefault();
+
+    const payload = {
+      tipo: String(feedbackNodes.tipo?.value || "sugerencia"),
+      categoria: String(feedbackNodes.categoria?.value || "general"),
+      canalRespuesta: String(feedbackNodes.canal?.value || "ticket"),
+      asunto: String(feedbackNodes.asunto?.value || "").trim(),
+      mensaje: String(feedbackNodes.mensaje?.value || "").trim(),
+    };
+
+    if (!payload.asunto || payload.asunto.length < 6 || !payload.mensaje || payload.mensaje.length < 20) {
+      setStatus("Completa asunto y mensaje con la longitud minima requerida.", "error");
+      return;
+    }
+
+    if (feedbackNodes.submit) {
+      feedbackNodes.submit.disabled = true;
+      feedbackNodes.submit.textContent = "Enviando...";
+    }
+
+    try {
+      const res = await fetch("/api/feedback", {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const data = await res.json();
+
+      if (!data?.success) {
+        setStatus(data?.error || "No se pudo enviar el mensaje.", "error");
+      } else {
+        setStatus(`Enviado correctamente. Folio: ${String(data?.feedback?.folio || "N/A")}`, "ok");
+        if (feedbackNodes.asunto) feedbackNodes.asunto.value = "";
+        if (feedbackNodes.mensaje) feedbackNodes.mensaje.value = "";
+        await loadFeedback();
+      }
+    } catch {
+      setStatus("Error de conexion al enviar mensaje.", "error");
+    } finally {
+      if (feedbackNodes.submit) {
+        feedbackNodes.submit.disabled = false;
+        feedbackNodes.submit.textContent = "Enviar mensaje";
+      }
+    }
+  }
+
+  function initFeedback() {
+    if (feedbackNodes.form) feedbackNodes.form.addEventListener("submit", handleSubmit);
+    loadFeedback();
+  }
+
+  document.addEventListener("DOMContentLoaded", initFeedback);
+  document.addEventListener("astro:page-load", initFeedback);
+</script>

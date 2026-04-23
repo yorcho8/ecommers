@@ -1,0 +1,111 @@
+---
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import { getProductosParaCarrusel } from "../../lib/productos-service.js";
+import CategoryPageHero from "../../components/categorias/CategoryPageHero.astro";
+import CategoryShowcase from "../../components/categorias/CategoryShowcase.astro";
+import CategoryBenefitStrip from "../../components/categorias/CategoryBenefitStrip.astro";
+import CategoryCollectionGrid from "../../components/categorias/CategoryCollectionGrid.astro";
+import type { CategoryProduct } from "../../components/categorias/types";
+
+export function getStaticPaths() {
+  return [{ params: { lang: "es" } }];
+}
+
+const currentLang = "es";
+
+const normalizeImage = (src?: string | null) => {
+  if (!src) return "/images/logo/logo.png";
+  if (src.startsWith("http") || src.startsWith("/")) return src;
+  return `/images/${src}`;
+};
+
+const priceLabel = (value: unknown) => {
+  const amount = Number(value);
+  if (!Number.isFinite(amount) || amount <= 0) return "Cotizacion personalizada";
+  return `$${amount.toLocaleString("es-MX", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+};
+
+let categories: CategoryProduct[] = [];
+try {
+  const dbProducts = await getProductosParaCarrusel();
+  categories = dbProducts.slice(0, 12).map((product: any, index: number) => ({
+    id: Number(product.id || product.categoriaId || index + 1),
+    title: String(product.nombre || product.categoria || `Categoria ${index + 1}`),
+    division: String(product.categoria || "Linea premium"),
+    description: String(product.descripcion || "Solucion de alto desempeno para operaciones exigentes."),
+    image: normalizeImage(product.imagen),
+    href: `/${currentLang}/productos/categoria/${product.categoriaId || product.id || index + 1}`,
+    priceLabel: priceLabel(product.precio),
+  }));
+} catch (error) {
+  categories = [];
+}
+
+if (categories.length === 0) {
+  categories = [
+    {
+      id: 1,
+      title: "Rafia Industrial",
+      division: "Empaque",
+      description: "Linea de rafia de alta resistencia con configuraciones para almacenamiento, transporte y exportacion.",
+      image: "/images/rafias/1.png",
+      href: `/${currentLang}/productos/todos`,
+      priceLabel: "Desde $1,290.00",
+    },
+    {
+      id: 2,
+      title: "Sacos Laminados",
+      division: "Proteccion",
+      description: "Sacos premium con acabados laminados para mayor durabilidad en usos logisticos y de manufactura.",
+      image: "/images/sacos/1.png",
+      href: `/${currentLang}/productos/todos`,
+      priceLabel: "Desde $1,560.00",
+    },
+    {
+      id: 3,
+      title: "Stretch Film Pro",
+      division: "Embalaje",
+      description: "Peliculas stretch con tension uniforme para asegurar cargas de forma eficiente y reducir mermas.",
+      image: "/images/stretch/1.png",
+      href: `/${currentLang}/productos/todos`,
+      priceLabel: "Desde $980.00",
+    },
+    {
+      id: 4,
+      title: "Cuerdas Tecnicas",
+      division: "Amarre",
+      description: "Cuerdas para aplicaciones de sujecion industrial con alto rendimiento y multiples calibres.",
+      image: "/images/cuerdas/1.png",
+      href: `/${currentLang}/productos/todos`,
+      priceLabel: "Desde $720.00",
+    },
+  ];
+}
+---
+
+<BaseLayout title="Categorias Premium | GOECOMERS" currentLang={currentLang} useAdminOffset={false}>
+  <main class="catx-page">
+    <CategoryPageHero currentLang={currentLang} totalProducts={categories.length} />
+    <CategoryShowcase products={categories} />
+    <CategoryBenefitStrip />
+    <CategoryCollectionGrid products={categories} />
+  </main>
+
+  <style is:global>
+    .catx-page {
+      width: 100%;
+      padding-bottom: 40px;
+    }
+
+    .catx-page .premium-shell {
+      width: min(1320px, calc(100% - 28px));
+      margin: 0 auto;
+    }
+
+    @media (max-width: 760px) {
+      .catx-page .premium-shell {
+        width: calc(100% - 16px);
+      }
+    }
+  </style>
+</BaseLayout>

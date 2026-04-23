@@ -1,0 +1,51 @@
+{
+  "name": "2026",
+  "type": "module",
+  "version": "0.0.1",
+  "scripts": {
+    "dev": "astro dev",
+    "dev:https": "powershell -NoProfile -ExecutionPolicy Bypass -Command \"$p=Get-NetTCPConnection -LocalPort 4321 -State Listen -ErrorAction SilentlyContinue | Select-Object -ExpandProperty OwningProcess -Unique; if($p){$p | ForEach-Object { Stop-Process -Id $_ -Force -ErrorAction SilentlyContinue }}; astro dev --host localhost --port 4321\"",
+    "build": "astro build",
+    "migrate:schema": "node scripts/migrate-schema.mjs",
+    "preview": "astro preview",
+    "test:e2e": "node --test tests/e2e/**/*.mjs",
+    "astro": "astro",
+    "start": "node dist/server/entry.mjs"
+  },
+  "dependencies": {
+    "@astrojs/mdx": "^4.3.12",
+    "@astrojs/node": "^9.5.1",
+    "@astrojs/react": "^4.4.2",
+    "@astrojs/rss": "^4.0.14",
+    "@astrojs/sitemap": "^3.6.0",
+    "@google/generative-ai": "^0.24.1",
+    "@gsap/react": "^2.1.2",
+    "@libsql/client": "^0.17.0",
+    "@react-three/drei": "^10.7.7",
+    "@react-three/fiber": "^9.5.0",
+    "@types/react": "^19.2.14",
+    "@types/react-dom": "^19.2.3",
+    "aos": "^2.3.4",
+    "astro": "^5.16.4",
+    "cesium": "^1.136.0",
+    "dotenv": "^17.3.1",
+    "google-tts-api": "^2.0.2",
+    "gsap": "^3.14.2",
+    "lucide-react": "^0.563.0",
+    "motion": "^12.29.2",
+    "msedge-tts": "^2.0.3",
+    "nodemailer": "^6.10.1",
+    "openai": "^6.16.0",
+    "react": "^19.2.4",
+    "react-dom": "^19.2.4",
+    "react-markdown": "^10.1.0",
+    "sharp": "^0.34.3",
+    "three": "^0.182.0"
+  },
+  "devDependencies": {
+    "@types/cesium": "^1.67.14",
+    "@types/three": "^0.181.0",
+    "@vite-pwa/astro": "^1.2.0",
+    "@vitejs/plugin-basic-ssl": "^2.1.3"
+  }
+}

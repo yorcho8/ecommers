@@ -1,0 +1,76 @@
+﻿/* src/styles/catalog-buttons.css */
+
+@import "./brand-colors.css";
+
+.download-container {
+    margin-top: 25px;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.download-label {
+    font-family: var(--fuente-cuerpo);
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.15em;
+    color: var(--brand-accent);
+    text-transform: uppercase;
+    opacity: 0.8;
+}
+
+.lang-grid {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+/* Botones de Idioma estilo "Tag" o "Chip" minimalista */
+.lang-btn {
+    text-decoration: none;
+    font-family: var(--fuente-cuerpo);
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: var(--productos-text); /* Se adapta al tema claro/oscuro si tienes variables */
+    background: rgba(0, 0, 0, 0.05); /* Fondo muy sutil */
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    
+    width: 40px;
+    height: 40px;
+    border-radius: 50%; /* CÃ­rculos perfectos */
+    
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    
+    transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+}
+
+/* Efecto Hover */
+.lang-btn:hover {
+    background: var(--brand-accent);
+    color: #ffffff;
+    border-color: var(--brand-accent);
+    transform: translateY(-3px);
+    box-shadow: 0 5px 15px rgba(var(--brand-accent-rgb), 0.3);
+}
+
+/* Ajustes para MÃ³vil */
+@media screen and (max-width: 1024px) {
+    .download-container {
+        align-items: center; /* Centrado en mÃ³vil */
+        margin-top: 15px;
+    }
+    
+    .lang-grid {
+        justify-content: center;
+        gap: 10px;
+    }
+
+    .lang-btn {
+        width: 45px; /* Un poco mÃ¡s grandes para el dedo */
+        height: 45px;
+        background: rgba(0, 0, 0, 0.08); /* Un poco mÃ¡s oscuro para contraste */
+    }
+}

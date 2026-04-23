@@ -1,0 +1,189 @@
+---
+import BaseLayout from "../../../layouts/BaseLayout.astro";
+import { createClient } from "@libsql/client";
+import "dotenv/config";
+
+export async function getStaticPaths() {
+  const db = createClient({
+    url: String(process.env.ECOMERS_DATABASE_URL ?? ""),
+    authToken: String(process.env.ECOMERS_AUTH_TOKEN ?? ""),
+  });
+
+  const rows = await db.execute({
+    sql: `SELECT Id_Empresa FROM Empresa ORDER BY Id_Empresa ASC`,
+    args: [],
+  });
+
+  return rows.rows
+    .map((row) => Number(row.Id_Empresa))
+    .filter((id) => Number.isFinite(id) && id > 0)
+    .map((id) => ({ params: { lang: "es", id: String(id) } }));
+}
+
+const currentLang = "es";
+const empresaId = Number(Astro.params.id || 0);
+
+const db = createClient({
+  url: String(process.env.ECOMERS_DATABASE_URL ?? ""),
+  authToken: String(process.env.ECOMERS_AUTH_TOKEN ?? ""),
+});
+
+const empresaResult = await db.execute({
+  sql: `
+    SELECT
+      e.Id_Empresa,
+      e.Nombre_Empresa,
+      e.Nombre_Comercial,
+      e.Descripcion,
+      e.Logo_URL,
+      e.Banner_URL,
+      e.Perfil_Slogan,
+      e.Perfil_Publico_Activo,
+      e.Sitio_Web,
+      e.Giro,
+      e.Regimen_Fiscal,
+      COUNT(p.Id_Producto) AS TotalProductos
+    FROM Empresa e
+    LEFT JOIN Producto p ON p.Id_Empresa = e.Id_Empresa AND COALESCE(p.Activo, 1) = 1
+    WHERE e.Id_Empresa = ?
+    GROUP BY e.Id_Empresa
+    LIMIT 1
+  `,
+  args: [empresaId],
+});
+
+if (!empresaResult.rows.length) {
+  return Astro.redirect(`/${currentLang}/productos/todos`);
+}
+
+const empresa = empresaResult.rows[0] as any;
+
+const productsResult = await db.execute({
+  sql: `
+    SELECT
+      p.Id_Producto,
+      p.Nombre,
+      p.Descripcion,
+      p.Precio,
+      (
+        SELECT ip.Url
+        FROM Imagen_Producto ip
+        WHERE ip.Id_Producto = p.Id_Producto
+        ORDER BY ip.Id_Imagen ASC
+        LIMIT 1
+      ) AS ImagenUrl
+    FROM Producto p
+    WHERE p.Id_Empresa = ?
+      AND COALESCE(p.Activo, 1) = 1
+    ORDER BY p.Fecha_Creacion DESC, p.Id_Producto DESC
+  `,
+  args: [empresaId],
+});
+
+const productos = productsResult.rows.map((row: any) => ({
+  id: Number(row.Id_Producto),
+  nombre: String(row.Nombre || "Producto"),
+  descripcion: String(row.Descripcion || ""),
+  precio: Number(row.Precio || 0),
+  imagen: row.ImagenUrl ? String(row.ImagenUrl) : "/images/logo/logo.png",
+}));
+
+const fmtPrice = (value: number) =>
+  Number(value || 0).toLocaleString("es-MX", { style: "currency", currency: "MXN" });
+---
+
+<BaseLayout title={`${empresa.Nombre_Empresa} | Empresa`} currentLang={currentLang}>
+  <main class="emp-root">
+    <section class="emp-hero">
+      <div class="emp-banner">
+        <img src={empresa.Banner_URL || empresa.Logo_URL || "/images/logo/logo.png"} alt={`Banner ${empresa.Nombre_Empresa}`} />
+      </div>
+      <div class="emp-storebar">
+        <img src={empresa.Logo_URL || "/images/logo/logo.png"} alt={empresa.Nombre_Empresa} class="emp-logo" />
+        <div class="emp-copy">
+          <p class="emp-kicker">Vendido por</p>
+          <h1>{empresa.Nombre_Comercial || empresa.Nombre_Empresa}</h1>
+          {empresa.Perfil_Slogan && <p class="emp-slogan">{empresa.Perfil_Slogan}</p>}
+          <p>{empresa.Descripcion || "Empresa afiliada a la plataforma Nexus."}</p>
+          <div class="emp-chips">
+            {empresa.Giro && <span>{empresa.Giro}</span>}
+            {empresa.Regimen_Fiscal && <span>{empresa.Regimen_Fiscal}</span>}
+            <span>{Number(empresa.TotalProductos || 0)} productos</span>
+            {Number(empresa.Perfil_Publico_Activo || 0) === 1 && <span>Perfil destacado</span>}
+          </div>
+          {empresa.Sitio_Web && (
+            <a class="emp-site" href={String(empresa.Sitio_Web)} target="_blank" rel="noopener noreferrer">Sitio oficial</a>
+          )}
+        </div>
+      </div>
+    </section>
+
+    <section class="emp-products">
+      <div class="emp-products__head">
+        <h2>Productos de esta empresa</h2>
+        <a href={`/${currentLang}/productos/todos`}>Ver todo el catálogo</a>
+      </div>
+      <div class="emp-grid">
+        {productos.map((prod) => (
+          <article class="emp-card">
+            <a href={`/${currentLang}/productos/detalle/${prod.id}`} class="emp-card__media">
+              <img src={prod.imagen} alt={prod.nombre} loading="lazy" decoding="async" />
+            </a>
+            <div class="emp-card__body">
+              <h3><a href={`/${currentLang}/productos/detalle/${prod.id}`}>{prod.nombre}</a></h3>
+              <p>{prod.descripcion || "Sin descripción."}</p>
+              <strong>{fmtPrice(prod.precio)}</strong>
+            </div>
+          </article>
+        ))}
+      </div>
+    </section>
+  </main>
+
+  <style is:global>
+    .emp-root { max-width: 1180px; margin: 0 auto; padding: 120px 20px 60px; }
+    .emp-hero {
+      border: 1px solid rgba(255,255,255,.14);
+      background: linear-gradient(160deg, rgba(11,15,24,.95), rgba(16,22,34,.9));
+      border-radius: 20px;
+      padding: 0;
+      margin-bottom: 18px;
+      overflow: hidden;
+    }
+    .emp-banner { height: clamp(180px, 26vw, 320px); background: rgba(255,255,255,.04); }
+    .emp-banner img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .emp-storebar {
+      margin-top: -34px;
+      padding: 0 20px 20px;
+      display: grid;
+      grid-template-columns: 120px 1fr;
+      gap: 16px;
+      align-items: start;
+    }
+    .emp-logo { width: 120px; height: 120px; border-radius: 16px; object-fit: cover; border: 2px solid rgba(255,255,255,.18); background: rgba(8,12,18,.95); }
+    .emp-kicker { margin: 0 0 6px; color: #ffb27a; font-weight: 800; font-size: .72rem; text-transform: uppercase; letter-spacing: .08em; }
+    .emp-copy h1 { margin: 0; color: #fff7ef; font-size: clamp(1.4rem, 2.6vw, 2rem); }
+    .emp-copy p { margin: 7px 0 0; color: #c8d0db; max-width: 72ch; }
+    .emp-slogan { margin: 6px 0 0; color: #ffe1c8; font-weight: 700; font-size: .95rem; }
+    .emp-chips { margin-top: 10px; display: flex; flex-wrap: wrap; gap: 8px; }
+    .emp-chips span { font-size: .72rem; color: #ffd6b8; border: 1px solid rgba(255,178,122,.33); padding: 4px 10px; border-radius: 999px; background: rgba(255,178,122,.1); }
+    .emp-site { margin-top: 10px; display: inline-block; color: #ffdcbf; text-decoration: none; border-bottom: 1px dotted rgba(255,220,191,.55); }
+    .emp-products { border: 1px solid rgba(255,255,255,.12); border-radius: 18px; padding: 16px; background: rgba(10,14,22,.86); }
+    .emp-products__head { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-bottom: 12px; }
+    .emp-products__head h2 { margin: 0; color: #f8fafc; font-size: 1.1rem; }
+    .emp-products__head a { color: #ffbe8f; text-decoration: none; font-size: .82rem; font-weight: 700; }
+    .emp-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; }
+    .emp-card { border: 1px solid rgba(255,255,255,.1); border-radius: 14px; overflow: hidden; background: rgba(255,255,255,.02); }
+    .emp-card__media { display: block; background: rgba(255,255,255,.03); }
+    .emp-card__media img { width: 100%; height: 170px; object-fit: cover; display: block; }
+    .emp-card__body { padding: 10px; display: grid; gap: 6px; }
+    .emp-card__body h3 { margin: 0; font-size: .92rem; }
+    .emp-card__body h3 a { color: #fff4e8; text-decoration: none; }
+    .emp-card__body p { margin: 0; color: #9fa9b7; font-size: .8rem; line-height: 1.45; }
+    .emp-card__body strong { color: #ffd5b6; font-size: .92rem; }
+    @media (max-width: 760px) {
+      .emp-storebar { grid-template-columns: 1fr; margin-top: -22px; }
+      .emp-logo { width: 88px; height: 88px; }
+    }
+  </style>
+</BaseLayout>

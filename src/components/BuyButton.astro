@@ -1,0 +1,514 @@
+---
+/* src/components/BuyButton.astro */
+
+// 1. Recibimos los textos desde el componente padre
+const { 
+  text = "Cotizar por WhatsApp", 
+  redirecting = "Abriendo WhatsApp...",
+  whatsappNumber = "5214432072593" // Tu número de WhatsApp (incluye código de país sin +)
+} = Astro.props;
+---
+
+<button id="truck-cta-btn" class="cta-btn" data-whatsapp={whatsappNumber}>
+  
+  <span class="default">{text}</span>
+  
+  <span class="success">
+    {redirecting}
+    <svg viewBox="0 0 12 10">
+      <polyline points="1.5 6 4.5 9 10.5 1"></polyline>
+    </svg>
+  </span>
+
+  <div class="truck">
+    <div class="wheel"></div>
+    <div class="back">
+      <span class="truck-mark">NX</span>
+    </div>
+    <div class="front"></div>
+    <div class="box"></div>
+  </div>
+</button>
+
+<script>
+  // @ts-nocheck 
+  document.addEventListener("DOMContentLoaded", () => {
+    const button = document.getElementById("truck-cta-btn");
+    
+    if (!button) return;
+
+    const truck = button.querySelector(".truck");
+    const box = button.querySelector(".box");
+
+    if (!truck || !box) {
+        return;
+    }
+
+    const resetBtn = () => {
+      button.classList.remove("animation", "done");
+      gsap.set(truck, { x: 4 });
+      gsap.set(button, {
+        "--progress": 0,
+        "--hx": 0,
+        "--bx": 0,
+        "--box-s": 0.5,
+        "--box-o": 0,
+        "--truck-y": 0,
+        "--truck-y-n": -26,
+      });
+      gsap.set(box, { x: -24, y: -6 });
+    };
+
+    // Función para obtener datos del producto activo
+    const getActiveProductData = () => {
+      // 1. Buscar miniatura activa
+      const activeThumb = document.querySelector(".thumb-item.active");
+      if (!activeThumb) return null;
+
+      // 2. Obtener índice del producto activo
+      const productIndex = parseInt(activeThumb.dataset.index || "0");
+
+      // 3. Obtener el contenedor principal con los datos
+      const mainContainer = document.querySelector('.main-container');
+      if (!mainContainer) return null;
+
+      // 4. Parsear los datos de productos
+      const productsData = JSON.parse(mainContainer.dataset.products || '[]');
+      const product = productsData[productIndex];
+
+      if (!product) return null;
+
+      // 5. Retornar datos estructurados
+      return {
+        name: product.name || "Producto",
+        description: product.description || "",
+        specs: product.specs_values ? {
+          load: product.specs_values.load || "",
+          unit: product.specs_values.unit || "",
+          material: product.specs_values.mat || "",
+          weight: product.specs_values.weight || "",
+          resistance: product.specs_values.resist || "",
+          charge: product.specs_values.charge || ""
+        } : null
+      };
+    };
+
+    // Función para construir el mensaje de WhatsApp
+    const buildWhatsAppMessage = (productData) => {
+      if (!productData) {
+        return encodeURIComponent("¡Hola! Me interesa cotizar sus productos.");
+      }
+
+      const greeting = "¡Hola! Me interesa cotizar el siguiente producto:";
+      let message = `${greeting}\n\n`;
+      message += `📦 *${productData.name}*\n`;
+      
+      if (productData.description) {
+        message += `${productData.description}\n`;
+      }
+
+      // Agregar especificaciones si existen
+      if (productData.specs) {
+        message += `\n*Especificaciones:*\n`;
+        
+        if (productData.specs.load) message += `• Carga: ${productData.specs.load}\n`;
+        if (productData.specs.unit) message += `• Unidad: ${productData.specs.unit}\n`;
+        if (productData.specs.material) message += `• Material: ${productData.specs.material}\n`;
+        if (productData.specs.weight) message += `• Peso: ${productData.specs.weight}\n`;
+        if (productData.specs.resistance) message += `• Resistencia: ${productData.specs.resistance}\n`;
+        if (productData.specs.charge) message += `• Capacidad: ${productData.specs.charge}\n`;
+      }
+      
+      message += `\n¿Podrían proporcionarme más información y precio?`;
+      
+      return encodeURIComponent(message);
+    };
+
+    button.addEventListener("click", (e) => {
+      e.preventDefault();
+
+      const whatsappNumber = button.dataset.whatsapp || "5214431234567";
+      
+      // Obtener datos del producto activo
+      const productData = getActiveProductData();
+
+      if (!button.classList.contains("done")) {
+        if (!button.classList.contains("animation")) {
+          button.classList.add("animation");
+
+          gsap.to(button, { "--box-s": 1, "--box-o": 1, duration: 0.3, delay: 0.5 });
+          gsap.to(box, { x: 0, duration: 0.4, delay: 0.7 });
+          gsap.to(button, { "--hx": -5, "--bx": 50, duration: 0.18, delay: 0.92 });
+          gsap.to(box, { y: 0, duration: 0.1, delay: 1.15 });
+          gsap.set(button, { "--truck-y": 0, "--truck-y-n": -26 });
+
+          gsap.to(button, {
+            "--truck-y": 1,
+            "--truck-y-n": -25,
+            duration: 0.2,
+            delay: 1.25,
+            onComplete() {
+              gsap.timeline({
+                  onComplete() {
+                    button.classList.add("done");
+                    setTimeout(() => {
+                      // Construir mensaje personalizado
+                      const message = buildWhatsAppMessage(productData);
+                      const whatsappUrl = `https://wa.me/${whatsappNumber}?text=${message}`;
+                      
+                      // Abrir WhatsApp
+                      window.open(whatsappUrl, '_blank');
+                      
+                      // Resetear botón después de abrir WhatsApp
+                      setTimeout(() => {
+                        resetBtn();
+                      }, 1000);
+                    }, 500);
+                  },
+                })
+                .to(truck, { x: 0, duration: 0.4 })
+                .to(truck, { x: 40, duration: 1 })
+                .to(truck, { x: 20, duration: 0.6 })
+                .to(truck, { x: 96, duration: 0.4 });
+
+              gsap.to(button, {
+                "--progress": 1,
+                duration: 2.4,
+                ease: "power2.in",
+              });
+            },
+          });
+        }
+      }
+    });
+  });
+</script>
+
+<style>
+  .cta-btn {
+    /* --- PALETA CTA PREMIUM DE BRANDING --- */
+    --color: #fff;
+    --background: #c9783a;
+    --street: #9f5b2e;
+    --street-fill: #7b4525;
+    --tick: #16bf78;
+    --base: #0d0f18;
+    --wheel: #1b1b1b;
+    --wheel-inner: #646464;
+    --truck-body: #f4f6f8;
+    --truck-body-shadow: #d0d4d8;
+    --window: #2a2d35;
+    --bumper: #333;
+    --box: #dcb97a;
+    --box-shadow: #b89b66;
+
+    min-height: 54px;
+    padding: 0 20px;
+    width: min(100%, 460px);
+    cursor: pointer;
+    text-align: center;
+    position: relative;
+    border: none;
+    outline: none;
+    
+    color: #ffffff !important;
+    background: var(--background);
+    
+    /* FIX MÓVIL: Prefijo Webkit añadido */
+    -webkit-transform-style: flat;
+    transform-style: flat; 
+    
+    border-radius: var(--br, 16px);
+    appearance: none;
+    -webkit-appearance: none;
+    -webkit-tap-highlight-color: transparent;
+    
+    transition: transform 0.24s ease, border-radius 0.22s linear var(--br-d, 0s), box-shadow 0.22s ease, filter 0.22s ease;
+    transform: rotateX(var(--rx, 0deg)) translateZ(0);
+    
+    margin-top: 20px;
+    box-shadow:
+      0 0 0 1px rgba(224, 163, 91, 0.45),
+      0 12px 28px rgba(201, 120, 58, 0.34),
+      0 22px 44px rgba(0, 0, 0, 0.24);
+  }
+
+  .cta-btn.animation {
+    /* FIX MÓVIL: Prefijo Webkit añadido */
+    -webkit-transform-style: preserve-3d;
+    transform-style: preserve-3d;
+    --rx: -90deg; 
+    --br: 0;
+  }
+
+  .cta-btn.animation.done { 
+    --rx: 0deg; 
+    --br: 15px; 
+    --br-d: .2s; 
+    -webkit-transform-style: preserve-3d;
+    transform-style: preserve-3d;
+  }
+
+  .cta-btn:hover,
+  .cta-btn:focus,
+  .cta-btn:active {
+      color: #ffffff !important;
+      background: var(--background);
+  }
+
+  .cta-btn:hover {
+    transform: rotateX(var(--rx, 0deg)) translateZ(0) translateY(-1px);
+    filter: brightness(1.04);
+    box-shadow:
+      0 0 0 1px rgba(224, 163, 91, 0.66),
+      0 16px 34px rgba(201, 120, 58, 0.44),
+      0 24px 48px rgba(0, 0, 0, 0.28);
+  }
+
+  .cta-btn:active {
+    transform: rotateX(var(--rx, 0deg)) translateZ(0) translateY(0) scale(0.99);
+  }
+
+  .cta-btn:focus-visible {
+    outline: none;
+    box-shadow:
+      0 0 0 2px rgba(255, 223, 186, 0.92),
+      0 0 0 5px rgba(201, 120, 58, 0.25),
+      0 14px 32px rgba(0, 0, 0, 0.35);
+  }
+
+  .cta-btn:before,
+  .cta-btn:after {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 6px;
+    display: block;
+    background: var(--b, var(--street));
+    transform-origin: 0 100%;
+    transform: rotateX(90deg) scaleX(var(--sy, 1));
+    pointer-events: none;
+    z-index: -1;
+  }
+  .cta-btn:after {
+    --sy: var(--progress, 0);
+    --b: var(--street-fill);
+  }
+
+  .cta-btn .default,
+  .cta-btn .success {
+    display: block;
+    font-weight: 800;
+    font-size: 1rem;
+    line-height: 1;
+    opacity: var(--o, 1);
+    transition: opacity 0.3s;
+    color: #ffffff !important; 
+    position: relative;
+    z-index: 10;
+  }
+
+  .cta-btn .success {
+    --o: 0;
+    position: absolute;
+    top: 17px;
+    left: 0;
+    right: 0;
+  }
+  
+  .cta-btn.animation .default { --o: 0; }
+  .cta-btn.animation.done .success { --o: 1; --offset: 0; }
+
+  .cta-btn .success svg {
+    width: 12px;
+    height: 10px;
+    display: inline-block;
+    vertical-align: top;
+    fill: none;
+    margin: 7px 0 0 12px;
+    stroke: var(--tick);
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    stroke-dasharray: 16px;
+    stroke-dashoffset: var(--offset, 16px);
+    transition: stroke-dashoffset 0.4s ease 0.45s;
+  }
+
+  /* --- CAMIÓN --- */
+  .cta-btn .truck {
+    position: absolute;
+    width: 80px;
+    height: 28px;
+    transform: rotateX(90deg) translate3d(var(--truck-x, 4px), calc(var(--truck-y-n, -26) * 1px), 12px);
+    z-index: 5;
+    -webkit-backface-visibility: hidden;
+    backface-visibility: hidden;
+  }
+
+  .cta-btn .truck:before,
+  .cta-btn .truck:after {
+    content: "";
+    position: absolute;
+    bottom: -6px;
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    z-index: 2;
+    box-shadow: inset 0 0 0 2px var(--wheel), inset 0 0 0 3px var(--wheel-inner);
+    background: #333;
+    transform: translateY(calc(var(--truck-y) * -1px)) translateZ(0);
+  }
+
+  .cta-btn .truck:before { left: 6px; }
+  .cta-btn .truck:after { left: 52px; }
+
+  .cta-btn .truck .wheel {
+    position: absolute;
+    bottom: -6px;
+    left: 70px;
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    z-index: 2;
+    box-shadow: inset 0 0 0 2px var(--wheel), inset 0 0 0 3px var(--wheel-inner);
+    background: #333;
+    transform: translateY(calc(var(--truck-y) * -1px)) translateZ(0);
+  }
+
+  .cta-btn .truck .front,
+  .cta-btn .truck .back,
+  .cta-btn .truck .box {
+    position: absolute;
+    -webkit-backface-visibility: hidden;
+    backface-visibility: hidden;
+  }
+
+  .cta-btn .truck .back {
+    left: 0;
+    bottom: 0;
+    z-index: 3; 
+    width: 53px;
+    height: 28px;
+    border-radius: 2px;
+    background: var(--truck-body);
+    border: 1px solid #eee;
+    transform: translateZ(0);
+  }
+
+    .truck-mark {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 8px;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      color: #111;
+    }
+  .cta-btn .truck .back .truck-logo {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 45%;
+    height: auto;
+    object-fit: contain;
+    z-index: 10;
+    opacity: 0.9;
+    pointer-events: none;
+    -webkit-backface-visibility: hidden;
+    backface-visibility: hidden;
+  }
+
+  .cta-btn .truck .back:before {
+    content: "";
+    position: absolute;
+    right: -2px;
+    top: 2px;
+    width: 4px;
+    height: 14px;
+    background: var(--truck-body-shadow);
+    border-radius: 0 2px 2px 0;
+  }
+  .cta-btn .truck .back:after {
+    content: "";
+    position: absolute;
+    left: 14px;
+    right: 6px;
+    bottom: -2px;
+    height: 4px;
+    background: var(--bumper);
+    border-radius: 2px;
+  }
+
+  .cta-btn .truck .front {
+    left: 56px;
+    bottom: 0px;
+    height: 28px;
+    width: 24px;
+    background: var(--truck-body);
+    border-radius: 4px 10px 4px 4px;
+    z-index: 3;
+    transform: translateZ(0);
+  }
+
+  .cta-btn .truck .front:before {
+    content: "";
+    position: absolute;
+    width: 14px;
+    height: 10px;
+    background: var(--window);
+    right: 2px;
+    top: 3px;
+    border-radius: 2px 6px 2px 2px;
+    clip-path: polygon(0 0, 100% 0, 100% 100%, 20% 100%);
+  }
+  .cta-btn .truck .front:after {
+    content: "";
+    position: absolute;
+    width: 3px;
+    height: 10px;
+    right: 0;
+    bottom: 4px;
+    background: var(--truck-body-shadow);
+    border-radius: 1px 0 0 1px;
+  }
+
+  .cta-btn .truck .box {
+    width: 13px;
+    height: 13px;
+    right: 65px;
+    bottom: 0;
+    z-index: 0;
+    border-radius: 1px;
+    overflow: hidden;
+    transform: translate(calc(var(--box-x, -24) * 1px), calc(var(--box-y, -6) * 1px)) scale(var(--box-s, 0.5));
+    opacity: var(--box-o, 0);
+    background: linear-gradient(68deg, var(--box) 0%, var(--box) 50%, var(--box-shadow) 50.2%, var(--box-shadow) 100%);
+    background-size: 250% 100%;
+    background-position-x: calc(var(--bx, 0) * 1%);
+  }
+  .cta-btn .truck .box:before {
+    content: "";
+    position: absolute;
+    background: rgba(255, 255, 255, 0.2);
+    left: 0;
+    right: 0;
+    top: 6px;
+    height: 1px;
+  }
+  .cta-btn .truck .box:after {
+    content: "";
+    position: absolute;
+    width: 6px;
+    left: 100%;
+    top: 0;
+    bottom: 0;
+    background: #d0d0d0;
+    transform: translateX(calc(var(--hx, 0) * 1px));
+  }
+</style>

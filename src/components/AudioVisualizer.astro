@@ -1,0 +1,171 @@
+---
+/* src/components/AudioVisualizer.astro */
+---
+
+<div id="audio-control" class="audio-visualizer" title="Silenciar / Reproducir">
+  <svg viewBox="0 0 100 40" preserveAspectRatio="xMidYMid slice">
+    <line x1="-50" y1="20" x2="150" y2="20" 
+          stroke="#FF4500" 
+          stroke-width="2" 
+          opacity="0.5" />
+
+    <g class="wave-height-control">
+        <path class="wave-moving" 
+              fill="none" 
+              d="M0 20 C 20 0, 30 0, 50 20 C 70 40, 80 40, 100 20 C 120 0, 130 0, 150 20 C 170 40, 180 40, 200 20" />
+    </g>
+  </svg>
+</div>
+
+<script>
+  // CORRECCIÓN 1: Definir que 'playGlobalClick' existe en Window para evitar errores de TS
+  declare global {
+    interface Window {
+      playGlobalClick: () => void;
+    }
+  }
+
+  // 1. CARGAMOS LOS AUDIOS
+  const clickSound = new Audio("/FX/Scan.wav");
+  const bgMusic = new Audio("/FX/ambient.mp3");
+
+  clickSound.volume = 0.5;
+  bgMusic.volume = 0.3;
+  bgMusic.loop = true;
+
+  const allSounds = [clickSound, bgMusic];
+
+  // Variables de estado
+  const audioControl = document.getElementById('audio-control');
+  let isGlobalMuted = false;
+
+  // 2. FUNCIÓN PÚBLICA (Corregida para evitar errores de tipo)
+  window.playGlobalClick = () => {
+    // Verificamos que el sonido exista y no esté muteado
+    if (clickSound && !clickSound.muted) {
+      clickSound.currentTime = 0;
+      clickSound.play().catch(e => console.error("Error audio click:", e));
+    }
+  };
+
+  // 3. LÓGICA DE CONTROL
+  if (audioControl) {
+    audioControl.addEventListener('click', () => {
+      isGlobalMuted = !isGlobalMuted;
+
+      allSounds.forEach(sound => {
+        if (sound) sound.muted = isGlobalMuted;
+      });
+
+      if (isGlobalMuted) {
+        audioControl.classList.add('muted');
+        // bgMusic.pause(); // Opcional
+      } else {
+        audioControl.classList.remove('muted');
+        if (bgMusic.paused) {
+          bgMusic.play().catch(e => console.log("Esperando interacción..."));
+        }
+      }
+    });
+  }
+
+  // 4. AUTOPLAY HACK (Inicializador)
+  document.addEventListener('click', function initAudio() {
+    if (!isGlobalMuted && bgMusic.paused) {
+      bgMusic.play().catch(e => {});
+      
+      // CORRECCIÓN 2: Usamos '?' para evitar crash si audioControl es null
+      audioControl?.classList.remove('muted');
+    }
+    // Nos aseguramos de remover el evento para que no se acumule memoria
+    document.removeEventListener('click', initAudio);
+  }, { once: true });
+
+</script>
+
+
+<style>
+  /* === ESTILOS DEL VISUALIZADOR === */
+  .audio-visualizer {
+    position: fixed;
+    bottom: 30px;
+    right: 96px;
+    width: 80px;
+    height: 40px;
+    z-index: 999;
+    cursor: pointer;
+    overflow: hidden;
+    transition: opacity 0.3s ease;
+  }
+
+  .audio-visualizer:hover {
+    opacity: 0.8;
+  }
+
+  /* CONTROL DE ALTURA */
+  .wave-height-control {
+    transform-origin: center 20px; 
+    transform: scaleY(1); 
+    transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  /* MOVIMIENTO */
+  .wave-moving {
+    stroke: #fb670b;;
+    stroke-width: 3;
+    stroke-linecap: round;
+    animation: flowWave 1s linear infinite;
+  }
+
+  @keyframes flowWave {
+    0% { transform: translateX(0); }
+    100% { transform: translateX(-100px); }
+  }
+
+  /* === ESTADO: MUTEADO === */
+  :global(.audio-visualizer.muted) .wave-height-control {
+    transform: scaleY(0.1); 
+  }
+
+  :global(.audio-visualizer.muted) .wave-moving {
+    opacity: 0.3;
+    animation-play-state: paused; 
+  }
+
+  /* ======================================================= */
+  /* === VERSIÓN MÓVIL Y TABLET (Max 1024px) - ESTILO FLOTANTE === */
+  /* ======================================================= */
+  @media screen and (max-width: 1024px) {
+    .audio-visualizer {
+      position: fixed; /* Fijo en la pantalla */
+      right: 0;        /* Pegado a la derecha */
+      
+      /* UBICACIÓN VERTICAL */
+      /* Tu bot está al 20% desde arriba. Ponemos el audio un poco más arriba 
+         para que sean vecinos pero no se encimen. */
+      top: 25%;        
+      
+      /* ESTÉTICA DE PESTAÑA (Igual que el bot) */
+      background-color: #ffffff; /* Fondo blanco para que resalte la onda */
+      border-radius: 25px 0 0 25px; /* Redondo izquierda, plano derecha */
+      box-shadow: -4px 0 15px rgba(0, 0, 0, 0.15); /* Sombra hacia la izquierda */
+      
+      /* AJUSTE DE TAMAÑO */
+      width: 60px;     
+      height: 45px;
+     /* Un poco de aire a la izquierda */
+      
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: 1px solid rgba(0,0,0,0.05); /* Borde sutil opcional */
+    }
+
+    /* Ajuste para que el SVG se vea centrado en la "pestaña" */
+    .audio-visualizer svg {
+      width: 100%;
+      height: 100%;
+      transform: scale(0.9);
+    }
+  }
+</style>

@@ -1,0 +1,871 @@
+---
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import Nadbar from "../../components/Nadbar.astro";
+import Footer from "../../components/Footer.astro";
+
+export function getStaticPaths() {
+  return [{ params: { lang: "es" } }];
+}
+const currentLang = "es";
+const cspNonce = Astro.locals?.cspNonce || "";
+
+let userId: number | null = null;
+userId = Number(Astro.locals?.user?.userId || 0) || null;
+if (!userId) return Astro.redirect(`/${currentLang}/login?redirect=/es/favoritos`);
+---
+
+<BaseLayout title="Mis favoritos" currentLang={currentLang}>
+  <Nadbar currentLang={currentLang} />
+
+  <main class="fav-root" aria-labelledby="fav-heading">
+
+    <header class="fav-header">
+      <a href={`/${currentLang}/productos/todos`} class="fav-back" aria-label="Volver a productos">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+             stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M19 12H5M12 5l-7 7 7 7"/>
+        </svg>
+        Productos
+      </a>
+
+      <div class="fav-header__title-row">
+        <h1 id="fav-heading" class="fav-title">Mis favoritos</h1>
+        <span id="fav-count" class="fav-count" aria-live="polite" hidden></span>
+      </div>
+
+      <div id="fav-toolbar" class="fav-toolbar is-hidden">
+        <label for="fav-sort" class="fav-sort__label">Ordenar</label>
+        <select id="fav-sort" class="fav-sort__select">
+          <option value="recent">Más recientes</option>
+          <option value="price-asc">Precio: menor a mayor</option>
+          <option value="price-desc">Precio: mayor a menor</option>
+          <option value="alpha">A → Z</option>
+        </select>
+      </div>
+    </header>
+
+    <!-- Loading skeletons -->
+    <div id="fav-loading" class="fav-loading-grid" aria-label="Cargando favoritos" aria-busy="true">
+      {Array.from({ length: 6 }).map(() => (
+        <div class="fav-skeleton" aria-hidden="true">
+          <div class="fav-skeleton__img"></div>
+          <div class="fav-skeleton__body">
+            <div class="fav-skeleton__line"></div>
+            <div class="fav-skeleton__line fav-skeleton__line--short"></div>
+            <div class="fav-skeleton__line fav-skeleton__line--xs"></div>
+          </div>
+        </div>
+      ))}
+    </div>
+
+    <!-- Empty state -->
+    <div id="fav-empty" class="fav-state is-hidden">
+      <div class="fav-state__icon" aria-hidden="true">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+             stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+        </svg>
+      </div>
+      <p class="fav-state__title">Nada guardado aún</p>
+      <p class="fav-state__sub">Toca el corazón en cualquier producto para guardarlo aquí.</p>
+      <a href={`/${currentLang}/productos/todos`} class="fav-cta">Ver catálogo</a>
+    </div>
+
+    <!-- Error state -->
+    <div id="fav-error" class="fav-state is-hidden">
+      <div class="fav-state__icon fav-state__icon--danger" aria-hidden="true">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+             stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="10"/>
+          <line x1="12" y1="8" x2="12" y2="12"/>
+          <line x1="12" y1="16" x2="12.01" y2="16"/>
+        </svg>
+      </div>
+      <p class="fav-state__title">No se pudo conectar</p>
+      <p class="fav-state__sub">Revisa tu conexión e inténtalo de nuevo.</p>
+      <div class="fav-state__actions">
+        <button id="fav-retry" class="fav-cta fav-cta--danger">Reintentar</button>
+        <a href={`/${currentLang}/productos/todos`} class="fav-cta fav-cta--ghost">Ver catálogo</a>
+      </div>
+    </div>
+
+    <!-- Product grid — NOTE: single class attribute, starts hidden -->
+    <section
+      id="fav-grid"
+      class="fav-grid is-hidden"
+      aria-label="Productos guardados"
+      aria-live="polite"
+      aria-atomic="false"
+    ></section>
+
+  </main>
+
+  <Footer currentLang={currentLang} />
+
+  <div id="fav-toast" class="fav-toast" role="status" aria-live="polite" aria-atomic="true">
+    <span id="fav-toast-msg"></span>
+    <button id="fav-toast-undo" class="fav-toast__undo" hidden>Deshacer</button>
+  </div>
+
+  <script nonce={cspNonce} is:inline define:vars={{ currentLang }}>
+  (() => {
+    const grid      = document.getElementById('fav-grid');
+    const loading   = document.getElementById('fav-loading');
+    const empty     = document.getElementById('fav-empty');
+    const errorEl   = document.getElementById('fav-error');
+    const retryBtn  = document.getElementById('fav-retry');
+    const countEl   = document.getElementById('fav-count');
+    const toolbar   = document.getElementById('fav-toolbar');
+    const sortSel   = document.getElementById('fav-sort');
+    const toast     = document.getElementById('fav-toast');
+    const toastMsg  = document.getElementById('fav-toast-msg');
+    const toastUndo = document.getElementById('fav-toast-undo');
+
+    let favorites     = [];
+    let pendingDelete = null;
+    let toastTimer    = null;
+
+    function fmt(n) {
+      return '$' + Number(n).toLocaleString('es-MX', {
+        minimumFractionDigits: 2, maximumFractionDigits: 2,
+      });
+    }
+
+    function pluralize(n, s, p) { return n === 1 ? s : p; }
+
+    function setState(state) {
+      [loading, empty, errorEl, grid, toolbar].forEach(el => el.classList.add('is-hidden'));
+      const map = { loading, empty, error: errorEl, grid };
+      map[state].classList.remove('is-hidden');
+      if (state === 'grid') toolbar.classList.remove('is-hidden');
+      loading.setAttribute('aria-busy', state === 'loading' ? 'true' : 'false');
+    }
+
+    function updateCount() {
+      const n = favorites.length;
+      if (!n) { countEl.hidden = true; return; }
+      countEl.hidden = false;
+      countEl.textContent = `${n} ${pluralize(n, 'guardado', 'guardados')}`;
+    }
+
+    const UNDO_TTL = 5000;
+
+    function showToast(msg, { undoable = false } = {}) {
+      clearTimeout(toastTimer);
+      toastMsg.textContent = msg;
+      toastUndo.hidden = !undoable;
+      toast.classList.add('fav-toast--show');
+      toastTimer = setTimeout(() => {
+        toast.classList.remove('fav-toast--show');
+        if (pendingDelete) commitDelete();
+      }, undoable ? UNDO_TTL : 2400);
+    }
+
+    function hideToast() {
+      clearTimeout(toastTimer);
+      toast.classList.remove('fav-toast--show');
+    }
+
+    function startRemove(pid, cardEl) {
+      if (pendingDelete) commitDelete();
+      const item = favorites.find(f => f.productoId === pid);
+      if (!item) return;
+
+      favorites = favorites.filter(f => f.productoId !== pid);
+      updateCount();
+      cardEl.classList.add('fav-card--removing');
+      setTimeout(() => cardEl.remove(), 300);
+      if (!favorites.length) setTimeout(() => setState('empty'), 320);
+
+      pendingDelete = { item };
+      showToast('Eliminado de guardados', { undoable: true });
+    }
+
+    async function commitDelete() {
+      if (!pendingDelete) return;
+      const { item } = pendingDelete;
+      pendingDelete = null;
+      try {
+        const res = await fetch(`/api/me/favoritos?productoId=${item.productoId}`, { method: 'DELETE' });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      } catch {
+        favorites = [...favorites, item].sort(sortComparator(sortSel.value));
+        updateCount();
+        if (grid.classList.contains('is-hidden')) setState('grid');
+        renderGrid();
+        showToast('No se pudo eliminar. Intenta de nuevo.');
+      }
+    }
+
+    function undoRemove() {
+      if (!pendingDelete) return;
+      const { item } = pendingDelete;
+      pendingDelete = null;
+      clearTimeout(toastTimer);
+      hideToast();
+      favorites = [...favorites, item].sort(sortComparator(sortSel.value));
+      updateCount();
+      if (grid.classList.contains('is-hidden')) setState('grid');
+      renderGrid();
+    }
+
+    toastUndo.addEventListener('click', undoRemove);
+
+    function sortComparator(mode) {
+      switch (mode) {
+        case 'price-asc':  return (a, b) => a.precio - b.precio;
+        case 'price-desc': return (a, b) => b.precio - a.precio;
+        case 'alpha':      return (a, b) => a.nombre.localeCompare(b.nombre, 'es');
+        default:           return (a, b) => (b.savedAt ?? 0) - (a.savedAt ?? 0);
+      }
+    }
+
+    sortSel.addEventListener('change', () => {
+      favorites = [...favorites].sort(sortComparator(sortSel.value));
+      renderGrid();
+    });
+
+    /**
+     * FIX CRÍTICO: Usamos <p> en lugar de <h2> para el nombre.
+     * El <h2> hereda estilos globales del layout (font-size enorme, color púrpura,
+     * text-transform uppercase) que sobreescriben cualquier clase nuestra.
+     * Al usar <p> con clase .fav-card__name, los estilos globales de h2 no aplican.
+     */
+    function buildCard(item) {
+      const outOfStock = item.stockDisponible === 0;
+      const inactive   = item.activo === false;
+
+      const card = document.createElement('article');
+      card.className = 'fav-card';
+      card.dataset.id = String(item.productoId);
+
+      // Link wrapper
+      const link = document.createElement('a');
+      link.className = 'fav-card__link';
+      link.href = `/${currentLang}/productos/detalle/${item.productoId}`;
+      link.setAttribute('aria-label', item.nombre);
+
+      // Media
+      const media = document.createElement('div');
+      media.className = 'fav-card__media';
+
+      const img = document.createElement('img');
+      img.src      = item.imagen || '/images/logo/logo.png';
+      img.alt      = item.nombre;
+      img.loading  = 'lazy';
+      img.decoding = 'async';
+      img.width    = 400;
+      img.height   = 400;
+      media.appendChild(img);
+
+      if (outOfStock) {
+        const b = document.createElement('span');
+        b.className = 'fav-card__badge fav-card__badge--out';
+        b.textContent = 'Sin stock';
+        media.appendChild(b);
+      } else if (inactive) {
+        const b = document.createElement('span');
+        b.className = 'fav-card__badge fav-card__badge--na';
+        b.textContent = 'No disponible';
+        media.appendChild(b);
+      }
+
+      link.appendChild(media);
+
+      // Body
+      const body = document.createElement('div');
+      body.className = 'fav-card__body';
+
+      // ── CAMBIO CLAVE: <p> en lugar de <h2> ──────────────────────────
+      // h2 hereda font-size/color/text-transform del CSS global del layout.
+      // <p> con clase no tiene esos overrides globales.
+      const name = document.createElement('p');
+      name.className = 'fav-card__name';
+      name.id = `fav-name-${item.productoId}`;
+      name.textContent = item.nombre;
+
+      const price = document.createElement('strong');
+      price.className = 'fav-card__price';
+      price.textContent = fmt(item.precio);
+
+      body.appendChild(name);
+      body.appendChild(price);
+      link.appendChild(body);
+      card.appendChild(link);
+
+      // Remove button
+      const btn = document.createElement('button');
+      btn.className = 'fav-card__remove';
+      btn.type = 'button';
+      btn.setAttribute('aria-label', `Quitar "${item.nombre}" de favoritos`);
+      btn.setAttribute('aria-describedby', `fav-name-${item.productoId}`);
+
+      const ico = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none"
+        stroke="currentColor" stroke-width="2" stroke-linecap="round"
+        stroke-linejoin="round" aria-hidden="true">
+        <polyline points="3 6 5 6 21 6"/>
+        <path d="M19 6l-1 14H6L5 6"/>
+        <path d="M10 11v6M14 11v6"/>
+      </svg>`;
+      btn.innerHTML = ico + '<span>Quitar</span>';
+
+      btn.addEventListener('click', () => startRemove(item.productoId, card));
+      card.appendChild(btn);
+
+      return card;
+    }
+
+    function renderGrid() {
+      grid.innerHTML = '';
+      const frag = document.createDocumentFragment();
+      favorites.forEach(item => frag.appendChild(buildCard(item)));
+      grid.appendChild(frag);
+    }
+
+    async function loadFavoritos() {
+      setState('loading');
+      try {
+        const res = await fetch('/api/me/favoritos');
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data = await res.json();
+        const raw  = Array.isArray(data) ? data : (data.favoritos ?? data.data ?? data.items ?? []);
+
+        favorites = raw.map((item, i) => ({
+          ...item,
+          savedAt: item.savedAt ?? (Date.now() - i * 1000),
+        }));
+
+        if (!favorites.length) { setState('empty'); return; }
+
+        favorites.sort(sortComparator(sortSel.value));
+        renderGrid();
+        updateCount();
+        setState('grid');
+      } catch {
+        setState('error');
+      }
+    }
+
+    retryBtn?.addEventListener('click', loadFavoritos);
+
+    let abortCtrl = new AbortController();
+    function init() {
+      abortCtrl.abort();
+      abortCtrl = new AbortController();
+      loadFavoritos();
+      document.addEventListener('astro:page-load', () => { abortCtrl.abort(); init(); },
+        { signal: abortCtrl.signal, once: true });
+    }
+
+    document.readyState === 'loading'
+      ? document.addEventListener('DOMContentLoaded', init, { once: true })
+      : init();
+  })();
+  </script>
+
+  <!--
+    ┌─────────────────────────────────────────────────────────────────────┐
+    │  IMPORTANTE: Se usa <style is:global> en lugar de <style> normal.   │
+    │                                                                      │
+    │  Los estilos en <style> scoped de Astro aplican data-attributes      │
+    │  (e.g. data-astro-cid-xxx) a los elementos del template.            │
+    │  Pero los elementos creados por JavaScript (buildCard) no tienen     │
+    │  esos data-attributes, así que los selectores scoped no los alcanzan.│
+    │                                                                      │
+    │  Con is:global los selectores son globales pero prefijados con       │
+    │  .fav- para evitar colisiones con otros componentes.                 │
+    └─────────────────────────────────────────────────────────────────────┘
+  -->
+  <style is:global>
+    /* ── Utility ──────────────────────────────────────────────────────── */
+    .is-hidden { display: none !important; }
+
+    /* ── Tokens (en :root para que JS-created elements los hereden) ──── */
+    :root {
+      --fav-s0: #09090b;
+      --fav-s1: #111115;
+      --fav-s2: #18181d;
+      --fav-s3: #1e1e24;
+      --fav-s4: #27272e;
+      --fav-bd: rgba(255,255,255,.07);
+      --fav-bdh: rgba(255,255,255,.14);
+      --fav-ac: #e05c3a;
+      --fav-ac2: #c8435f;
+      --fav-t1: #f4f4f5;
+      --fav-t2: #a1a1aa;
+      --fav-t3: #52525b;
+      --fav-amber: #f59e0b;
+      --fav-red: #f87171;
+      --fav-ease: cubic-bezier(.22,1,.36,1);
+    }
+
+    /* ── Scoped reset — bloquea overrides globales del layout ──────────
+       Se aplica SOLO dentro de .fav-root y a .fav-card (JS-created).
+       Resetea los elementos que más frecuentemente traen estilos globales.
+    ─────────────────────────────────────────────────────────────────── */
+    .fav-root *, .fav-root *::before, .fav-root *::after,
+    .fav-card *, .fav-card *::before, .fav-card *::after {
+      box-sizing: border-box;
+    }
+
+    /* Bloquea text-transform / font-size / color de h1/h2/h3 globales
+       usando el selector de clase propio — máxima especificidad sin !important */
+    .fav-title {
+      all: unset;
+      display: block;
+      font-size: clamp(1.25rem, 3vw, 1.75rem);
+      font-weight: 700;
+      color: var(--fav-t1);
+      letter-spacing: -.02em;
+      line-height: 1.15;
+    }
+
+    /* Reset de elementos nativos dentro de tarjetas ------------------- */
+    .fav-card p,
+    .fav-card span,
+    .fav-card strong {
+      all: unset;
+      display: block;
+    }
+    .fav-card a {
+      all: unset;
+      display: flex;
+      flex-direction: column;
+      cursor: pointer;
+      flex: 1;
+    }
+    .fav-card button {
+      all: unset;
+      box-sizing: border-box;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      cursor: pointer;
+    }
+    .fav-card img {
+      all: unset;
+      display: block;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      transition: transform .4s var(--fav-ease);
+    }
+    .fav-card svg { display: block; flex-shrink: 0; }
+
+    /* ── Layout ──────────────────────────────────────────────────────── */
+    .fav-root {
+      min-height: 80vh;
+      width: min(1120px, calc(100% - 40px));
+      margin: 96px auto 80px;
+    }
+
+    /* ── Header ──────────────────────────────────────────────────────── */
+    .fav-header {
+      margin-bottom: 36px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .fav-back {
+      all: unset;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: .72rem;
+      font-weight: 500;
+      letter-spacing: .06em;
+      text-transform: uppercase;
+      color: var(--fav-t3);
+      cursor: pointer;
+      padding: 4px 0;
+      transition: color .2s var(--fav-ease);
+    }
+    .fav-back:hover { color: var(--fav-t2); }
+    .fav-back:focus-visible { outline: 2px solid var(--fav-ac); outline-offset: 4px; border-radius: 4px; }
+
+    .fav-header__title-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .fav-count {
+      display: inline-flex;
+      align-items: center;
+      font-size: .65rem;
+      font-weight: 600;
+      letter-spacing: .07em;
+      text-transform: uppercase;
+      color: var(--fav-t3);
+      background: var(--fav-s3);
+      border: 1px solid var(--fav-bd);
+      border-radius: 999px;
+      padding: 3px 10px;
+      transition: opacity .3s;
+    }
+
+    .fav-toolbar {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .fav-sort__label {
+      font-size: .7rem;
+      font-weight: 500;
+      letter-spacing: .05em;
+      text-transform: uppercase;
+      color: var(--fav-t3);
+    }
+    .fav-sort__select {
+      all: unset;
+      box-sizing: border-box;
+      font-size: .78rem;
+      font-weight: 500;
+      color: var(--fav-t2);
+      background: var(--fav-s3);
+      border: 1px solid var(--fav-bd);
+      border-radius: 10px;
+      padding: 6px 32px 6px 12px;
+      cursor: pointer;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='11' height='11' viewBox='0 0 24 24' fill='none' stroke='%2352525b' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 10px center;
+      transition: border-color .2s, color .2s;
+    }
+    .fav-sort__select:hover { border-color: var(--fav-bdh); color: var(--fav-t1); }
+
+    /* ── Skeleton ────────────────────────────────────────────────────── */
+    .fav-loading-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 14px;
+    }
+    .fav-skeleton {
+      border-radius: 16px;
+      overflow: hidden;
+      background: var(--fav-s1);
+      border: 1px solid var(--fav-bd);
+    }
+    .fav-skeleton__img {
+      aspect-ratio: 1;
+      background: var(--fav-s2);
+      animation: fav-pulse 1.8s ease-in-out infinite;
+    }
+    .fav-skeleton__body {
+      padding: 14px 16px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .fav-skeleton__line {
+      height: 10px;
+      border-radius: 5px;
+      background: var(--fav-s3);
+      animation: fav-pulse 1.8s ease-in-out infinite;
+    }
+    .fav-skeleton__line--short { width: 55%; }
+    .fav-skeleton__line--xs    { width: 30%; animation-delay: .15s; }
+
+    @keyframes fav-pulse {
+      0%, 100% { opacity: .35; }
+      50%       { opacity: .8; }
+    }
+
+    /* ── Estados (empty / error) ─────────────────────────────────────── */
+    .fav-state {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 400px;
+      gap: 10px;
+      text-align: center;
+      padding: 48px 24px;
+    }
+    .fav-state__icon {
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      background: var(--fav-s2);
+      border: 1px solid var(--fav-bd);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 6px;
+      color: var(--fav-t3);
+    }
+    .fav-state__icon--danger {
+      background: rgba(248,113,113,.07);
+      border-color: rgba(248,113,113,.18);
+      color: var(--fav-red);
+    }
+    .fav-state__title {
+      all: unset;
+      display: block;
+      font-size: 1rem;
+      font-weight: 600;
+      color: var(--fav-t1);
+      letter-spacing: -.015em;
+    }
+    .fav-state__sub {
+      all: unset;
+      display: block;
+      font-size: .8rem;
+      color: var(--fav-t2);
+      max-width: 260px;
+      line-height: 1.65;
+    }
+    .fav-state__actions {
+      display: flex;
+      gap: 8px;
+      margin-top: 6px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    /* ── CTAs ────────────────────────────────────────────────────────── */
+    .fav-cta {
+      all: unset;
+      box-sizing: border-box;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 9px 20px;
+      border-radius: 999px;
+      font-size: .78rem;
+      font-weight: 600;
+      cursor: pointer;
+      border: 1px solid transparent;
+      background: linear-gradient(135deg, var(--fav-ac), var(--fav-ac2));
+      color: #fff;
+      transition: opacity .2s, transform .15s var(--fav-ease);
+    }
+    .fav-cta:hover { opacity: .86; transform: translateY(-1px); }
+    .fav-cta:active { transform: translateY(0); }
+    .fav-cta--danger {
+      background: rgba(248,113,113,.09);
+      color: var(--fav-red);
+      border-color: rgba(248,113,113,.22);
+    }
+    .fav-cta--danger:hover { background: rgba(248,113,113,.16); opacity: 1; }
+    .fav-cta--ghost {
+      background: var(--fav-s3);
+      color: var(--fav-t2);
+      border-color: var(--fav-bd);
+    }
+    .fav-cta--ghost:hover { background: var(--fav-s4); color: var(--fav-t1); opacity: 1; }
+
+    /* ── Grid ────────────────────────────────────────────────────────── */
+    .fav-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 14px;
+    }
+
+    /* ── Tarjeta ─────────────────────────────────────────────────────── */
+    .fav-card {
+      /* all resets para neutralizar cualquier 'article' global */
+      all: unset;
+      box-sizing: border-box;
+
+      /* Layout */
+      display: flex;
+      flex-direction: column;
+
+      /* Visuales */
+      background: var(--fav-s1);
+      border: 1px solid var(--fav-bd);
+      border-radius: 16px;
+      overflow: hidden;
+
+      /* Comportamiento */
+      transition:
+        border-color .25s var(--fav-ease),
+        transform .25s var(--fav-ease),
+        box-shadow .25s var(--fav-ease),
+        opacity .3s;
+      will-change: transform;
+      cursor: default;
+    }
+    .fav-card:hover {
+      border-color: rgba(224,92,58,.28);
+      transform: translateY(-3px);
+      box-shadow: 0 16px 40px rgba(0,0,0,.4);
+    }
+    .fav-card--removing {
+      opacity: 0;
+      transform: scale(.92) translateY(6px);
+      pointer-events: none;
+    }
+
+    /* Link dentro de tarjeta */
+    .fav-card__link {
+      all: unset;
+      display: flex;
+      flex-direction: column;
+      flex: 1;
+      cursor: pointer;
+    }
+
+    /* Media */
+    .fav-card__media {
+      position: relative;
+      aspect-ratio: 1 / 1;
+      overflow: hidden;
+      background: var(--fav-s2);
+      flex-shrink: 0;
+    }
+    .fav-card__media img {
+      all: unset;
+      display: block;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      transition: transform .5s var(--fav-ease);
+    }
+    .fav-card:hover .fav-card__media img { transform: scale(1.06); }
+
+    /* Badges */
+    .fav-card__badge {
+      position: absolute;
+      top: 9px;
+      left: 9px;
+      font-size: .56rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .08em;
+      padding: 3px 7px;
+      border-radius: 5px;
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+    }
+    .fav-card__badge--out { background: rgba(239,68,68,.88); color: #fff; }
+    .fav-card__badge--na  { background: rgba(30,30,36,.82); color: var(--fav-t2); border: 1px solid var(--fav-bd); }
+
+    /* Body */
+    .fav-card__body {
+      padding: 14px 15px 12px;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+
+    /* ── NOMBRE: <p> con all:unset — no hereda h2 globales ─────────────
+       Este es el fix principal. Al usar <p> en vez de <h2> en buildCard(),
+       y resetear con all:unset, ningún estilo global de h2 puede interferir. */
+    .fav-card__name {
+      all: unset;
+      display: -webkit-box;
+      font-size: .83rem;
+      font-weight: 600;
+      color: var(--fav-t1);
+      line-height: 1.42;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+      letter-spacing: -.01em;
+      /* Garantías extra contra overrides globales */
+      text-transform: none;
+      text-decoration: none;
+    }
+
+    .fav-card__price {
+      all: unset;
+      display: block;
+      font-size: .9rem;
+      font-weight: 700;
+      color: var(--fav-amber);
+      letter-spacing: -.01em;
+      margin-top: 2px;
+    }
+
+    /* Botón quitar */
+    .fav-card__remove {
+      all: unset;
+      box-sizing: border-box;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 5px;
+      width: 100%;
+      padding: 10px 14px;
+      background: transparent;
+      border-top: 1px solid var(--fav-bd);
+      color: var(--fav-t3);
+      font-size: .68rem;
+      font-weight: 600;
+      letter-spacing: .04em;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: background .18s, color .18s, border-color .18s;
+    }
+    .fav-card__remove:hover {
+      background: rgba(248,113,113,.07);
+      color: var(--fav-red);
+      border-top-color: rgba(248,113,113,.15);
+    }
+    .fav-card__remove:focus-visible {
+      outline: 2px solid var(--fav-red);
+      outline-offset: -2px;
+    }
+
+    /* ── Toast ───────────────────────────────────────────────────────── */
+    .fav-toast {
+      position: fixed;
+      bottom: 28px;
+      left: 50%;
+      transform: translateX(-50%) translateY(20px);
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      background: var(--fav-s3);
+      color: var(--fav-t1);
+      border: 1px solid var(--fav-bdh);
+      border-radius: 14px;
+      padding: 11px 14px 11px 18px;
+      font-size: .78rem;
+      font-weight: 500;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity .26s var(--fav-ease), transform .26s var(--fav-ease);
+      z-index: 9999;
+      white-space: nowrap;
+      box-shadow: 0 12px 40px rgba(0,0,0,.55);
+    }
+    .fav-toast--show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+      pointer-events: auto;
+    }
+    .fav-toast__undo {
+      all: unset;
+      font-size: .74rem;
+      font-weight: 700;
+      color: var(--fav-ac);
+      cursor: pointer;
+      padding: 4px 10px;
+      border-radius: 6px;
+      transition: background .15s;
+    }
+    .fav-toast__undo:hover { background: rgba(224,92,58,.12); }
+
+    /* ── Responsive ──────────────────────────────────────────────────── */
+    @media (max-width: 768px) {
+      .fav-root { margin-top: 76px; width: calc(100% - 28px); }
+    }
+    @media (max-width: 480px) {
+      .fav-root { width: calc(100% - 20px); }
+      .fav-grid,
+      .fav-loading-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: .01ms !important;
+        transition-duration: .01ms !important;
+      }
+    }
+  </style>
+</BaseLayout>

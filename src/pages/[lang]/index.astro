@@ -1,0 +1,1129 @@
+---
+import "../../styles/home.css";
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import Footer from "../../components/Footer.astro";
+import { GET as getCategorias } from '../api/categorias/index.js';
+import { getTodosLosProductos } from "../../lib/productos-service.js";
+import { getSessionUserId } from "../../lib/product-visibility.js";
+import { getSponsoredProducts } from "../../lib/publicidad.js";
+import { expireEmpresaProfilePayments } from "../../lib/empresa-profile.js";
+import { createClient } from "@libsql/client";
+import "dotenv/config";
+
+export function getStaticPaths() {
+  return [{ params: { lang: "es" } }];
+}
+const currentLang = "es";
+const userId = getSessionUserId(Astro.cookies) ?? 0;
+
+function getDb() {
+  return createClient({
+    url: String(process.env.ECOMERS_DATABASE_URL ?? ""),
+    authToken: String(process.env.ECOMERS_AUTH_TOKEN ?? ""),
+  });
+}
+
+async function getPopularProductIds(db: any, limit = 8, excludeIds: number[] = []) {
+  const safeLimit = Math.max(1, Math.min(12, Number(limit) || 8));
+  const cleanExclude = excludeIds
+    .map((id) => Number(id))
+    .filter((id) => Number.isFinite(id) && id > 0);
+
+  const excludeSql = cleanExclude.length
+    ? ` AND p.Id_Producto NOT IN (${cleanExclude.map(() => "?").join(",")})`
+    : "";
+
+  const result = await db.execute({
+    sql: `
+      SELECT
+        p.Id_Producto,
+        COALESCE(SUM(dp.Cantidad), 0) AS vendidos
+      FROM Producto p
+      LEFT JOIN DetallePedido dp ON dp.Id_Producto = p.Id_Producto
+      WHERE COALESCE(p.Activo, 1) = 1
+        ${excludeSql}
+      GROUP BY p.Id_Producto
+      ORDER BY vendidos DESC, p.Fecha_Creacion DESC, p.Id_Producto DESC
+      LIMIT ?
+    `,
+    args: [...cleanExclude, safeLimit],
+  });
+
+  return result.rows
+    .map((row: any) => Number(row.Id_Producto))
+    .filter((id: number) => Number.isFinite(id) && id > 0);
+}
+
+async function getRecommendedProductIds(userIdParam: number, limit = 8) {
+  const safeUserId = Number(userIdParam || 0);
+  const db = getDb();
+  const safeLimit = Math.max(1, Math.min(12, Number(limit) || 8));
+
+  if (!safeUserId || safeUserId <= 0) {
+    const ids = await getPopularProductIds(db, safeLimit);
+    return { basedOnHistory: false, ids };
+  }
+
+  try {
+    const purchasedResult = await db.execute({
+      sql: `
+        SELECT dp.Id_Producto, SUM(dp.Cantidad) AS totalCantidad
+        FROM Pedido p
+        JOIN DetallePedido dp ON dp.Id_Pedido = p.Id_Pedido
+        WHERE p.Id_Usuario = ?
+        GROUP BY dp.Id_Producto
+        ORDER BY totalCantidad DESC
+      `,
+      args: [safeUserId],
+    });
+
+    const purchasedIds = purchasedResult.rows
+      .map((row: any) => Number(row.Id_Producto))
+      .filter((id: number) => Number.isFinite(id) && id > 0);
+
+    if (!purchasedIds.length) {
+      const ids = await getPopularProductIds(db, safeLimit);
+      return { basedOnHistory: false, ids };
+    }
+
+    const topCategoriesResult = await db.execute({
+      sql: `
+        SELECT pc.Id_Categoria, SUM(dp.Cantidad) AS totalCantidad
+        FROM Pedido p
+        JOIN DetallePedido dp ON dp.Id_Pedido = p.Id_Pedido
+        JOIN ProductoCategoria pc ON pc.Id_Producto = dp.Id_Producto
+        WHERE p.Id_Usuario = ?
+        GROUP BY pc.Id_Categoria
+        ORDER BY totalCantidad DESC
+        LIMIT 4
+      `,
+      args: [safeUserId],
+    });
+
+    const topCategoryIds = topCategoriesResult.rows
+      .map((row: any) => Number(row.Id_Categoria))
+      .filter((id: number) => Number.isFinite(id) && id > 0);
+
+    let recommendedIds: number[] = [];
+    if (topCategoryIds.length) {
+      const catPlaceholders = topCategoryIds.map(() => "?").join(",");
+      const purchasedPlaceholders = purchasedIds.map(() => "?").join(",");
+
+      const relatedResult = await db.execute({
+        sql: `
+          SELECT
+            p.Id_Producto,
+            COALESCE(SUM(dp2.Cantidad), 0) AS vendidos
+          FROM Producto p
+          JOIN ProductoCategoria pc ON pc.Id_Producto = p.Id_Producto
+          LEFT JOIN DetallePedido dp2 ON dp2.Id_Producto = p.Id_Producto
+          WHERE COALESCE(p.Activo, 1) = 1
+            AND pc.Id_Categoria IN (${catPlaceholders})
+            AND p.Id_Producto NOT IN (${purchasedPlaceholders})
+          GROUP BY p.Id_Producto
+          ORDER BY vendidos DESC, p.Fecha_Creacion DESC, p.Id_Producto DESC
+          LIMIT ?
+        `,
+        args: [...topCategoryIds, ...purchasedIds, safeLimit],
+      });
+
+      recommendedIds = relatedResult.rows
+        .map((row: any) => Number(row.Id_Producto))
+        .filter((id: number) => Number.isFinite(id) && id > 0);
+    }
+
+    if (recommendedIds.length < safeLimit) {
+      const fillIds = await getPopularProductIds(db, safeLimit - recommendedIds.length, [
+        ...recommendedIds,
+        ...purchasedIds,
+      ]);
+      recommendedIds = [...recommendedIds, ...fillIds];
+    }
+
+    return { basedOnHistory: true, ids: recommendedIds.slice(0, safeLimit) };
+  } catch (error) {
+    console.error("Error building home recommendations:", error);
+    const ids = await getPopularProductIds(db, safeLimit);
+    return { basedOnHistory: false, ids };
+  }
+}
+
+async function getFeaturedCompanies(db: any, limit = 6) {
+  const safeLimit = Math.max(1, Math.min(12, Number(limit) || 6));
+  const nowIso = new Date().toISOString();
+
+  await expireEmpresaProfilePayments(db);
+
+  const result = await db.execute({
+    sql: `
+      SELECT
+        e.Id_Empresa,
+        e.Nombre_Empresa,
+        e.Nombre_Comercial,
+        e.Logo_URL,
+        e.Descripcion,
+        COUNT(DISTINCT p.Id_Producto) AS TotalProductos,
+        MAX(ep.Monto) AS MontoDestacado,
+        (
+          SELECT ip.Url
+          FROM Producto p2
+          LEFT JOIN Imagen_Producto ip ON ip.Id_Producto = p2.Id_Producto
+          WHERE p2.Id_Empresa = e.Id_Empresa
+            AND COALESCE(p2.Activo, 1) = 1
+          ORDER BY ip.Id_Imagen ASC
+          LIMIT 1
+        ) AS ImagenProducto
+      FROM EmpresaPerfilPago ep
+      JOIN Empresa e ON e.Id_Empresa = ep.Id_Empresa
+      LEFT JOIN Producto p ON p.Id_Empresa = e.Id_Empresa
+      WHERE ep.Estado = 'activa'
+        AND (ep.Fecha_Inicio IS NULL OR ep.Fecha_Inicio <= ?)
+        AND (ep.Fecha_Fin IS NULL OR ep.Fecha_Fin > ?)
+        AND COALESCE(e.Perfil_Publico_Activo, 0) = 1
+      GROUP BY e.Id_Empresa
+      ORDER BY MontoDestacado DESC, TotalProductos DESC, e.Id_Empresa DESC
+      LIMIT ?
+    `,
+    args: [nowIso, nowIso, safeLimit],
+  });
+
+  return result.rows.map((row: any) => ({
+    id: Number(row.Id_Empresa),
+    nombre: String(row.Nombre_Comercial || row.Nombre_Empresa || 'Empresa'),
+    logo: row.Logo_URL ? String(row.Logo_URL) : (row.ImagenProducto ? String(row.ImagenProducto) : '/images/logo/logo.png'),
+    descripcion: String(row.Descripcion || 'Proveedor destacado en Nexus.'),
+    totalProductos: Number(row.TotalProductos || 0),
+    montoDestacado: Number(row.MontoDestacado || 0),
+  }));
+}
+
+function formatPrice(value: number | null) {
+  if (value == null || Number.isNaN(Number(value))) return "Precio bajo cotizacion";
+  return new Intl.NumberFormat("es-MX", {
+    style: "currency",
+    currency: "MXN",
+    maximumFractionDigits: 2,
+  }).format(Number(value));
+}
+
+function resolveDisplayPrice(item: any) {
+  const hasDiscount = item?.descuento?.vigente && Number.isFinite(Number(item?.descuento?.precioFinal));
+  return hasDiscount ? Number(item.descuento.precioFinal) : (item?.precio ?? null);
+}
+
+function getDiscountBadge(item: any) {
+  if (!item?.descuento?.vigente) return null;
+  if (String(item.descuento.tipo || "") === "porcentaje") {
+    const pct = Number(item.descuento.valor || 0);
+    return pct > 0 ? `-${pct}%` : null;
+  }
+  return null;
+}
+
+function getSavingsAmount(item: any) {
+  if (!item?.descuento?.vigente) return null;
+  const base = Number(item?.precio);
+  const finalPrice = Number(resolveDisplayPrice(item));
+  if (!Number.isFinite(base) || !Number.isFinite(finalPrice)) return null;
+  const savings = Math.max(0, Number((base - finalPrice).toFixed(2)));
+  return savings > 0 ? savings : null;
+}
+
+function getSavingsText(item: any) {
+  const amount = getSavingsAmount(item);
+  return amount ? `Ahorro de ${formatPrice(amount)}` : null;
+}
+
+const MAX_CATEGORIAS = 8;
+let allCategorias: any[] = [];
+
+try {
+  const res  = await getCategorias();
+  const data = await res.json();
+  allCategorias = data.categorias ?? [];
+} catch (e) {
+  console.error('Error cargando categorías en home:', e);
+}
+
+const categoriasVisible = allCategorias.slice(0, MAX_CATEGORIAS);
+const allProducts = await getTodosLosProductos({ userId });
+const productById = new Map<number, any>();
+for (const prod of allProducts) {
+  const id = Number((prod as any)?.id);
+  if (Number.isFinite(id) && id > 0) {
+    productById.set(id, prod);
+  }
+}
+const sponsoredSlots = await getSponsoredProducts({ gridLimit: 9 }).catch(() => ({
+  hero: null,
+  top1: null,
+  grid: [],
+  allCampaignIds: [],
+  all: [],
+}));
+const featuredCompanies = await getFeaturedCompanies(getDb(), 6).catch(() => []);
+
+const sponsoredAllItems = Array.isArray(sponsoredSlots.all) && sponsoredSlots.all.length
+  ? sponsoredSlots.all
+  : [sponsoredSlots.hero, sponsoredSlots.top1, ...(sponsoredSlots.grid || [])].filter(Boolean);
+
+const sponsoredPriorityItems = [...sponsoredAllItems].sort((a: any, b: any) => {
+  const amountA = Number(a?.montoPagado || 0);
+  const amountB = Number(b?.montoPagado || 0);
+  if (amountB !== amountA) return amountB - amountA;
+
+  const prioA = Number(a?.prioridad || 0);
+  const prioB = Number(b?.prioridad || 0);
+  if (prioB !== prioA) return prioB - prioA;
+
+  const createdA = Date.parse(String(a?.fechaCreacion || ""));
+  const createdB = Date.parse(String(b?.fechaCreacion || ""));
+  const tsA = Number.isFinite(createdA) ? createdA : 0;
+  const tsB = Number.isFinite(createdB) ? createdB : 0;
+  return tsB - tsA;
+});
+
+const paidDiscountOffers = (() => {
+  const seen = new Set<number>();
+  const list: any[] = [];
+
+  for (const item of sponsoredPriorityItems) {
+    const id = Number(item?.id);
+    if (!Number.isFinite(id) || id <= 0 || seen.has(id)) continue;
+
+    const precio = Number(item?.precio);
+    const precioFinal = Number(resolveDisplayPrice(item));
+    if (!Number.isFinite(precio) || !Number.isFinite(precioFinal) || precioFinal >= precio) continue;
+
+    const ahorro = Number((precio - precioFinal).toFixed(2));
+    if (!(ahorro > 0)) continue;
+
+    const porcentaje = String(item?.descuento?.tipo || "") === "porcentaje"
+      ? Math.round(Number(item?.descuento?.valor || 0))
+      : Math.max(1, Math.round((ahorro / precio) * 100));
+
+    seen.add(id);
+    list.push({
+      id,
+      nombre: String(item?.nombre || "Producto"),
+      imagen: String(item?.imagen || "/images/logo/logo.png"),
+      precio,
+      precioFinal,
+      ahorro,
+      porcentaje,
+      campaignId: Number(item?.campaignId || 0),
+      position: String(item?.posicion || "grid"),
+    });
+  }
+
+  return list.slice(0, 8);
+})();
+
+const sponsoredProductIds = new Set<number>(
+  [sponsoredSlots.hero?.id, sponsoredSlots.top1?.id, ...(sponsoredSlots.grid || []).map((p: any) => p?.id)]
+    .map((id) => Number(id))
+    .filter((id) => Number.isFinite(id) && id > 0)
+);
+
+const sponsoredByProductId = new Map<number, any>();
+for (const item of sponsoredPriorityItems) {
+  const id = Number(item?.id);
+  if (Number.isFinite(id) && id > 0) {
+    sponsoredByProductId.set(id, item);
+  }
+}
+
+const sponsoredProductsSorted = sponsoredPriorityItems
+  .map((item: any) => productById.get(Number(item?.id)))
+  .filter(Boolean);
+
+const sponsoredPriorityProducts = sponsoredPriorityItems
+  .map((item: any) => {
+    const id = Number(item?.id);
+    const product = productById.get(id);
+    if (!product) return null;
+    return { product, meta: item };
+  })
+  .filter(Boolean);
+
+const recResult = await getRecommendedProductIds(userId, 8);
+let recommendedProducts = recResult.ids
+  .map((id: number) => productById.get(Number(id)))
+  .filter(Boolean);
+
+if (!recommendedProducts.length && allProducts.length) {
+  recommendedProducts = allProducts.filter((prod: any) => !sponsoredProductIds.has(Number(prod.id))).slice(0, 8);
+}
+
+// Ensure paid campaigns appear first in the main "Lo mas popular" selection.
+if (sponsoredProductsSorted.length > 0) {
+  const merged = [...sponsoredProductsSorted, ...recommendedProducts, ...allProducts];
+  const seen = new Set<number>();
+  recommendedProducts = merged.filter((prod: any) => {
+    const id = Number(prod?.id);
+    if (!Number.isFinite(id) || id <= 0 || seen.has(id)) return false;
+    seen.add(id);
+    return true;
+  }).slice(0, 12);
+}
+
+// Boost products from featured companies to the top of recommendations
+const featuredCompanyIdSet = new Set<number>(featuredCompanies.map((c: any) => Number(c.id)));
+if (featuredCompanyIdSet.size > 0) {
+  const fromFeatured = allProducts.filter((p: any) =>
+    featuredCompanyIdSet.has(Number((p as any).empresaId)) &&
+    !sponsoredProductIds.has(Number(p.id)) &&
+    !recommendedProducts.find((r: any) => r.id === p.id)
+  );
+  if (fromFeatured.length > 0) {
+    // Merge: featured company products first, then regular recommendations, deduplicated
+    const merged = [...fromFeatured, ...recommendedProducts];
+    const seen = new Set<number>();
+    recommendedProducts = merged.filter((p: any) => {
+      const id = Number(p.id);
+      if (seen.has(id)) return false;
+      seen.add(id);
+      return true;
+    }).slice(0, 9);
+  }
+}
+
+const recommendationTitle = recResult.basedOnHistory
+  ? "Basado en tus compras anteriores"
+  : "Lo mas popular en Nexus";
+
+const sponsoredRecommendedCount = recommendedProducts.filter((prod: any) =>
+  sponsoredByProductId.has(Number(prod?.id))
+).length;
+
+const featuredCategories = categoriasVisible.slice(0, 6);
+const hasFeaturedCategories = featuredCategories.length > 0;
+const quickStats = [
+  { label: "SKUs activos", value: allProducts.length || 0 },
+  { label: "Categorias", value: allCategorias.length || 0 },
+  { label: "Recomendaciones", value: recommendedProducts.length || 0 },
+];
+const paidSpotlight = sponsoredSlots.hero || sponsoredSlots.top1 || sponsoredSlots.grid[0] || null;
+const heroSpotlightProduct = paidSpotlight
+  ? {
+      id: Number(paidSpotlight.id),
+      nombre: String(paidSpotlight.nombre || "Producto patrocinado"),
+      imagen: String(paidSpotlight.imagen || "/images/logo/logo.png"),
+      precio: resolveDisplayPrice(paidSpotlight),
+      descuento: paidSpotlight.descuento || null,
+    }
+  : (recommendedProducts[0] || null);
+const featuredProduct = recommendedProducts[0] || null;
+const secondaryRecommendations = recommendedProducts.slice(1, 9);
+const promiseTape = [
+  "Busqueda instantanea",
+  "Recompra inteligente",
+  "Inventario confiable",
+  "UI enfocada en conversion",
+  "Checkout sin friccion",
+  "Soporte operativo",
+];
+
+const b2bServices = [
+  {
+    title: "Logistica de fleteras",
+    text: "Red de fleteras aliadas para rutas nacionales, consolidacion y entregas empresariales.",
+  },
+  {
+    title: "Fulfillment B2B",
+    text: "Cross-dock, surtido por lote y despacho programado para pedidos de alto volumen.",
+  },
+  {
+    title: "Abasto recurrente",
+    text: "Acuerdos de suministro continuo con forecast y reposicion automatizada.",
+  },
+];
+type SpotlightItem = {
+  id: number;
+  name: string;
+  image: string;
+  price: string;
+  href: string;
+  badge: string;
+};
+
+const spotlightItems: SpotlightItem[] = (() => {
+  const items: SpotlightItem[] = [];
+  const seen = new Set<number>();
+
+  if (paidSpotlight) {
+    const paidId = Number(paidSpotlight.id);
+    if (Number.isFinite(paidId) && paidId > 0) {
+      seen.add(paidId);
+      items.push({
+        id: paidId,
+        name: String(paidSpotlight.nombre || "Producto patrocinado"),
+        image: String(paidSpotlight.imagen || "/images/logo/logo.png"),
+        price: formatPrice(resolveDisplayPrice(paidSpotlight)),
+        href: `/${currentLang}/productos/detalle/${paidId}`,
+        badge: getDiscountBadge(paidSpotlight) || "Patrocinado",
+      });
+    }
+  }
+
+  for (const prod of recommendedProducts) {
+    if (items.length >= 5) break;
+    const id = Number(prod.id);
+    if (!Number.isFinite(id) || id <= 0 || seen.has(id)) continue;
+    seen.add(id);
+    items.push({
+      id,
+      name: String(prod.nombre || "Producto"),
+      image: String(prod.imagen || "/images/logo/logo.png"),
+      price: formatPrice(prod.precio ?? null),
+      href: `/${currentLang}/productos/detalle/${id}`,
+      badge: prod.descuento?.porcentaje ? `-${prod.descuento.porcentaje}%` : "Top Pick",
+    });
+  }
+
+  return items;
+})();
+---
+
+<BaseLayout title="Nexus | Ecommerce" currentLang={currentLang}>
+  <div class="nx-redesign">
+  <section class="nx-hero nx-reveal" data-reveal>
+    <div class="nx-hero__bg" aria-hidden="true"></div>
+    <div class="nx-hero__grain" aria-hidden="true"></div>
+    <div class="nx-container nx-hero__inner nx-hero-grid">
+      <div class="nx-hero-copy">
+        <p class="nx-kicker">Nexus eCommerce</p>
+        <h1>Compra industrial en minutos, no en pestañas.</h1>
+        <p class="nx-lead">
+          Productos clave, precio visible y accion directa desde el primer scroll para equipos que compran por volumen.
+        </p>
+        <div class="nx-hero__actions">
+          <a href={`/${currentLang}/productos/todos`} class="nx-btn nx-btn--primary">Ver productos</a>
+          <a href={`/${currentLang}/descuentos`} class="nx-btn nx-btn--ghost">Ver descuentos activos</a>
+        </div>
+        <div class="nx-hero__chips" aria-label="Tendencias de busqueda">
+          <a href={`/${currentLang}/productos/todos?busqueda=rafia`}>Rafia</a>
+          <a href={`/${currentLang}/productos/todos?busqueda=stretch`}>Film stretch</a>
+          <a href={`/${currentLang}/productos/todos?busqueda=saco`}>Sacos</a>
+          <a href={`/${currentLang}/productos/todos?busqueda=cuerda`}>Cuerdas</a>
+        </div>
+      </div>
+
+      <aside class="nx-hero-panel" data-parallax-card>
+        <p class="nx-hero-panel__kicker">Nexus Command View</p>
+        <div class="nx-hero-panel__stats">
+          {quickStats.map((item, idx) => (
+            <article style={`--panel-delay:${idx * 90}ms`}>
+              <strong>{item.value}</strong>
+              <span>{item.label}</span>
+            </article>
+          ))}
+        </div>
+
+        {heroSpotlightProduct && (
+          <div class="nx-hero-panel__showcase" data-showcase-root>
+            <a id="nxSpotlightLink" class="nx-hero-panel__spotlight" href={`/${currentLang}/productos/detalle/${heroSpotlightProduct.id}`}>
+              <img id="nxSpotlightImage" src={heroSpotlightProduct.imagen || "/images/logo/logo.png"} alt={heroSpotlightProduct.nombre} loading="lazy" decoding="async" />
+              <div>
+                <p>Recomendado hoy</p>
+                <h2 id="nxSpotlightName">{heroSpotlightProduct.nombre}</h2>
+                <span id="nxSpotlightPrice">{formatPrice(heroSpotlightProduct.precio ?? null)}</span>
+              </div>
+              <i id="nxSpotlightBadge" class="nx-showcase-badge">{heroSpotlightProduct.descuento?.porcentaje ? `-${heroSpotlightProduct.descuento.porcentaje}%` : "Top Pick"}</i>
+            </a>
+
+            {spotlightItems.length > 1 && (
+              <div class="nx-hero-panel__controls" aria-label="Control de recomendados">
+                <button type="button" id="nxSpotlightPrev" class="nx-showcase-nav" aria-label="Anterior">&larr;</button>
+                <div id="nxSpotlightDots" class="nx-showcase-dots">
+                  {spotlightItems.map((_, idx) => (
+                    <button
+                      type="button"
+                      class={`nx-showcase-dot ${idx === 0 ? "is-active" : ""}`}
+                      data-dot-index={idx}
+                      aria-label={`Ver destacado ${idx + 1}`}
+                    ></button>
+                  ))}
+                </div>
+                <button type="button" id="nxSpotlightNext" class="nx-showcase-nav" aria-label="Siguiente">&rarr;</button>
+              </div>
+            )}
+
+            <span id="nxSpotlightProgress" class="nx-showcase-progress"></span>
+          </div>
+        )}
+      </aside>
+    </div>
+  </section>
+
+  {paidDiscountOffers.length > 0 && (
+    <section class="nx-offers-priority nx-reveal" data-reveal>
+      <div class="nx-container">
+        <div class="nx-offers-priority__head">
+          <h2>
+            <span>⚡</span>
+            OFERTAS DISPONIBLES
+          </h2>
+          <span class="nx-offers-priority__count">{paidDiscountOffers.length} productos</span>
+        </div>
+
+        <div class="nx-offers-priority__grid" aria-label="Publicidad con descuento activo">
+          {paidDiscountOffers.map((item: any, index: number) => (
+            <a
+              class="nx-offer-card"
+              href={`/${currentLang}/productos/detalle/${item.id}`}
+              data-sponsored-link
+              data-campaign-id={item.campaignId}
+              data-position={item.position}
+              style={`--delay:${index * 80}ms`}
+            >
+              <div class="nx-offer-card__badges">
+                <span class="nx-offer-badge nx-offer-badge--discount">-{item.porcentaje}%</span>
+                {index === 0 ? <span class="nx-offer-badge nx-offer-badge--top">Top Pick</span> : null}
+              </div>
+
+              <div class="nx-offer-card__media">
+                <img src={item.imagen} alt={item.nombre} loading="lazy" decoding="async" />
+              </div>
+
+              <div class="nx-offer-card__body">
+                <p class="nx-offer-card__label">producto:</p>
+                <h3>{item.nombre}</h3>
+
+                <div class="nx-offer-card__prices">
+                  <span class="nx-offer-card__old">{formatPrice(item.precio)}</span>
+                  <strong class="nx-offer-card__now">{formatPrice(item.precioFinal)}</strong>
+                </div>
+
+                <div class="nx-offer-card__saving">
+                  <span>✓</span>
+                  Ahorras <strong>{formatPrice(item.ahorro)} MXN</strong>
+                </div>
+
+                <div class="nx-offer-card__cta">Ver producto <span>→</span></div>
+              </div>
+
+              <span class="nx-offer-card__rank">#{index + 1}</span>
+            </a>
+          ))}
+        </div>
+      </div>
+    </section>
+  )}
+
+  <section class="nx-tape nx-reveal" data-reveal aria-label="Ventajas Nexus">
+    <div class="nx-tape__track">
+      {[...promiseTape, ...promiseTape].map((item, idx) => (
+        <span>{item}{idx < promiseTape.length * 2 - 1 ? " •" : ""}</span>
+      ))}
+    </div>
+  </section>
+
+  {(sponsoredSlots.hero || sponsoredSlots.top1 || sponsoredSlots.grid.length > 0) && (
+    <section class="nx-sponsored nx-reveal" data-reveal>
+      <div class="nx-container">
+        <div class="nx-sponsored__head">
+          <div>
+            <p class="nx-sponsored__kicker">Espacios Premium</p>
+            <h2>Productos patrocinados por marca</h2>
+          </div>
+          <div class="nx-sponsored__actions">
+            <span class="nx-sponsored__badge">Publicidad activa</span>
+            <a class="nx-sponsored__cta" href={`/${currentLang}/publicidad`}>Promocionar mi producto</a>
+          </div>
+        </div>
+
+        <div class="nx-sponsored__slots">
+          {sponsoredSlots.hero && (
+            <article class="nx-sponsored-card nx-sponsored-card--hero" data-reveal-card>
+              <a
+                class="nx-sponsored-card__media"
+                href={`/${currentLang}/productos/detalle/${sponsoredSlots.hero.id}`}
+                data-sponsored-link
+                data-campaign-id={sponsoredSlots.hero.campaignId}
+                data-position="hero"
+              >
+                <img src={sponsoredSlots.hero.imagen || "/images/logo/logo.png"} alt={sponsoredSlots.hero.nombre} loading="lazy" decoding="async" />
+                <span>{`Patrocinado · Hero${getDiscountBadge(sponsoredSlots.hero) ? ` · ${getDiscountBadge(sponsoredSlots.hero)}` : ""}`}</span>
+              </a>
+              <div class="nx-sponsored-card__body">
+                <p>{sponsoredSlots.hero.empresaNombre || "Marca premium"}</p>
+                <h3>{sponsoredSlots.hero.nombre}</h3>
+                <strong>{formatPrice(resolveDisplayPrice(sponsoredSlots.hero))}</strong>
+                {getSavingsText(sponsoredSlots.hero) ? <p class="nx-sponsored-card__saving">{getSavingsText(sponsoredSlots.hero)}</p> : null}
+                <a
+                  href={`/${currentLang}/productos/detalle/${sponsoredSlots.hero.id}`}
+                  data-sponsored-link
+                  data-campaign-id={sponsoredSlots.hero.campaignId}
+                  data-position="hero"
+                >Ver producto</a>
+              </div>
+            </article>
+          )}
+
+          {sponsoredSlots.top1 && (
+            <article class="nx-sponsored-card nx-sponsored-card--top1" data-reveal-card>
+              <a
+                class="nx-sponsored-card__media"
+                href={`/${currentLang}/productos/detalle/${sponsoredSlots.top1.id}`}
+                data-sponsored-link
+                data-campaign-id={sponsoredSlots.top1.campaignId}
+                data-position="top1"
+              >
+                <img src={sponsoredSlots.top1.imagen || "/images/logo/logo.png"} alt={sponsoredSlots.top1.nombre} loading="lazy" decoding="async" />
+                <span>{`Patrocinado · Top 1${getDiscountBadge(sponsoredSlots.top1) ? ` · ${getDiscountBadge(sponsoredSlots.top1)}` : ""}`}</span>
+              </a>
+              <div class="nx-sponsored-card__body">
+                <p>{sponsoredSlots.top1.empresaNombre || "Marca premium"}</p>
+                <h3>{sponsoredSlots.top1.nombre}</h3>
+                <strong>{formatPrice(resolveDisplayPrice(sponsoredSlots.top1))}</strong>
+                {getSavingsText(sponsoredSlots.top1) ? <p class="nx-sponsored-card__saving">{getSavingsText(sponsoredSlots.top1)}</p> : null}
+                <a
+                  href={`/${currentLang}/productos/detalle/${sponsoredSlots.top1.id}`}
+                  data-sponsored-link
+                  data-campaign-id={sponsoredSlots.top1.campaignId}
+                  data-position="top1"
+                >Ver producto</a>
+              </div>
+            </article>
+          )}
+
+          <div class="nx-sponsored__grid">
+          {sponsoredSlots.grid.map((prod: any, idx: number) => (
+            <article class="nx-sponsored-card" style={`--delay:${idx * 80}ms`} data-reveal-card>
+              <a
+                class="nx-sponsored-card__media"
+                href={`/${currentLang}/productos/detalle/${prod.id}`}
+                data-sponsored-link
+                data-campaign-id={prod.campaignId}
+                data-position="grid"
+              >
+                <img src={prod.imagen || "/images/logo/logo.png"} alt={prod.nombre} loading="lazy" decoding="async" />
+                <span>{`Patrocinado · Grid${getDiscountBadge(prod) ? ` · ${getDiscountBadge(prod)}` : ""}`}</span>
+              </a>
+              <div class="nx-sponsored-card__body">
+                <p>{prod.empresaNombre || "Marca invitada"}</p>
+                <h3>{prod.nombre}</h3>
+                <strong>{formatPrice(resolveDisplayPrice(prod))}</strong>
+                {getSavingsText(prod) ? <p class="nx-sponsored-card__saving">{getSavingsText(prod)}</p> : null}
+                <a
+                  href={`/${currentLang}/productos/detalle/${prod.id}`}
+                  data-sponsored-link
+                  data-campaign-id={prod.campaignId}
+                  data-position="grid"
+                >Ver producto</a>
+              </div>
+            </article>
+          ))}
+          </div>
+        </div>
+      </div>
+    </section>
+  )}
+
+  <section class="nx-signal nx-reveal" data-reveal>
+    <div class="nx-container nx-signal__inner">
+      <div class="nx-signal__copy">
+        <p class="nx-signal__kicker">Nexus Operating Layer</p>
+        <h2>Diseñamos la interfaz para velocidad mental: menos clics, mas control.</h2>
+        <p>
+          La experiencia combina recomendaciones personalizadas, jerarquia visual y acciones directas para reducir friccion operativa.
+        </p>
+      </div>
+      <div class="nx-signal__stats" aria-label="Metricas de la plataforma">
+        {quickStats.map((item) => (
+          <article>
+            <strong>{item.value}</strong>
+            <span>{item.label}</span>
+          </article>
+        ))}
+      </div>
+    </div>
+  </section>
+
+  <section class="nx-difference nx-reveal" data-reveal>
+    <div class="nx-container nx-difference__inner">
+      <div class="nx-difference__head">
+        <p class="nx-difference__kicker">Por que Nexus se siente diferente</p>
+        <h2>No parecemos otro eCommerce porque cada bloque fue pensado para rendimiento de compra real.</h2>
+      </div>
+      <div class="nx-difference__grid" aria-label="Diferenciales de experiencia Nexus">
+        <article>
+          <h3>Lectura inmediata</h3>
+          <p>Bloques claros, jerarquia fuerte y menos ruido para encontrar rapido lo importante.</p>
+        </article>
+        <article>
+          <h3>Compra guiada</h3>
+          <p>Tu historial y categorias favoritas aparecen primero para reducir friccion en cada pedido.</p>
+        </article>
+        <article>
+          <h3>Contexto comercial</h3>
+          <p>Precio, disponibilidad y accion visible en un mismo plano para decidir en segundos.</p>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  {sponsoredPriorityProducts.length > 0 && (
+    <section class="nx-section nx-section--sponsored-priority nx-reveal" data-reveal>
+      <div class="nx-container">
+        <div class="nx-section__head">
+          <h2>Productos que no te puedes perder</h2>
+          <div class="nx-sponsored-priority__tools">
+            <span class="nx-sponsored-priority__hint">Ordenados por mayor pago</span>
+            {sponsoredPriorityProducts.length > 6 && (
+              <a href={`/${currentLang}/publicidad`}>Ver mas patrocinados</a>
+            )}
+          </div>
+        </div>
+        <div class="nx-product-grid nx-product-grid--sponsored-priority">
+          {sponsoredPriorityProducts.slice(0, 6).map((entry: any, idx: number) => (
+            <article class="nx-product-card" style={`--delay:${idx * 70}ms`} data-reveal-card>
+              <a
+                class="nx-product-card__image"
+                href={`/${currentLang}/productos/detalle/${entry.product.id}`}
+                data-sponsored-link
+                data-campaign-id={entry.meta?.campaignId}
+                data-position={entry.meta?.posicion || "grid"}
+              >
+                <img
+                  src={entry.product.imagen || "/images/logo/logo.png"}
+                  alt={entry.product.nombre}
+                  loading="lazy"
+                  decoding="async"
+                />
+                <span class="nx-badge">Patrocinado #{idx + 1}</span>
+              </a>
+              <div class="nx-product-card__body">
+                <p class="nx-product-card__cat">{entry.product.categoria || "Categoria"}</p>
+                <h3>{entry.product.nombre}</h3>
+                <p class="nx-product-card__price">{formatPrice(entry.product.precio ?? null)}</p>
+                <a class="nx-link" href={`/${currentLang}/productos/detalle/${entry.product.id}`}>Ver detalle</a>
+              </div>
+            </article>
+          ))}
+        </div>
+      </div>
+    </section>
+  )}
+
+  {recommendedProducts.length > 0 && (
+    <section class="nx-section nx-section--products nx-reveal" data-reveal>
+      <div class="nx-container">
+        <div class="nx-section__head">
+          <h2>{recommendationTitle}</h2>
+          <div style="display:flex;gap:.65rem;align-items:center;flex-wrap:wrap">
+            {sponsoredAllItems.length > sponsoredRecommendedCount && (
+              <a href={`/${currentLang}/publicidad`} class="nx-link">Ver mas patrocinados</a>
+            )}
+            <a href={`/${currentLang}/productos/todos`}>Ver todo</a>
+          </div>
+        </div>
+        <div class="nx-product-grid nx-product-grid--immersive">
+          {featuredProduct && (
+            <article class="nx-product-card nx-product-card--featured" style="--delay:0ms" data-reveal-card>
+              <a class="nx-product-card__image" href={`/${currentLang}/productos/detalle/${featuredProduct.id}`}>
+                <img
+                  src={featuredProduct.imagen || "/images/logo/logo.png"}
+                  alt={featuredProduct.nombre}
+                  loading="lazy"
+                  decoding="async"
+                />
+                {sponsoredByProductId.has(Number(featuredProduct.id))
+                  ? <span class="nx-badge">Patrocinado</span>
+                  : (featuredProduct.descuento?.porcentaje ? <span class="nx-badge">-{featuredProduct.descuento.porcentaje}%</span> : <span class="nx-badge">Top Pick</span>)}
+              </a>
+              <div class="nx-product-card__body">
+                <p class="nx-product-card__cat">{featuredProduct.categoria || "Categoria"}</p>
+                <h3>{featuredProduct.nombre}</h3>
+                <p class="nx-product-card__price">{formatPrice(featuredProduct.precio ?? null)}</p>
+                <a class="nx-link" href={`/${currentLang}/productos/detalle/${featuredProduct.id}`}>Ver detalle</a>
+              </div>
+            </article>
+          )}
+
+          {secondaryRecommendations.map((prod: any, idx: number) => (
+            <article class="nx-product-card" style={`--delay:${(idx + 1) * 80}ms`} data-reveal-card>
+              <a class="nx-product-card__image" href={`/${currentLang}/productos/detalle/${prod.id}`}>
+                <img
+                  src={prod.imagen || "/images/logo/logo.png"}
+                  alt={prod.nombre}
+                  loading="lazy"
+                  decoding="async"
+                />
+                {sponsoredByProductId.has(Number(prod.id))
+                  ? <span class="nx-badge">Patrocinado</span>
+                  : (prod.descuento?.porcentaje ? <span class="nx-badge">-{prod.descuento.porcentaje}%</span> : null)}
+              </a>
+              <div class="nx-product-card__body">
+                <p class="nx-product-card__cat">{prod.categoria || "Categoria"}</p>
+                <h3>{prod.nombre}</h3>
+                <p class="nx-product-card__price">{formatPrice(prod.precio ?? null)}</p>
+                <a class="nx-link" href={`/${currentLang}/productos/detalle/${prod.id}`}>Ver detalle</a>
+              </div>
+            </article>
+          ))}
+        </div>
+      </div>
+    </section>
+  )}
+
+  {hasFeaturedCategories && (
+    <section class="nx-section nx-reveal" data-reveal>
+      <div class="nx-container">
+        <div class="nx-section__head">
+          <h2>Categorias destacadas</h2>
+          <a href={`/${currentLang}/categorias`}>Todas las categorias</a>
+        </div>
+        <div class="nx-category-grid">
+          {featuredCategories.map((cat: any, idx: number) => (
+            <a class={`nx-category-card ${idx % 3 === 0 ? "nx-category-card--wide" : ""}`} href={`/${currentLang}/productos/categoria/${cat.Id_Categoria}`}>
+              <img src={cat.Imagen_URL || "/images/logo/logo.png"} alt={cat.Nombre} loading="lazy" decoding="async" />
+              <div class="nx-category-card__overlay">
+                <h3>{cat.Nombre}</h3>
+                <p>{cat.Descripcion || "Stock disponible y multiples presentaciones."}</p>
+              </div>
+            </a>
+          ))}
+        </div>
+      </div>
+    </section>
+  )}
+
+  <section class="nx-strip nx-reveal" data-reveal>
+    <div class="nx-container nx-strip__inner">
+      <div>
+        <h3>Nexus Prime Supply</h3>
+        <p>Entrega prioritaria, precios preferenciales y reposicion inteligente con alertas anticipadas para clientes recurrentes.</p>
+      </div>
+      <a href={`/${currentLang}/promociones`} class="nx-btn nx-btn--primary">Ver beneficios</a>
+    </div>
+  </section>
+
+  <section class="nx-section nx-reveal" data-reveal>
+    <div class="nx-container">
+      <div class="nx-section__head">
+        <h2>Servicios B2B</h2>
+        <a href={`/${currentLang}/servicios`}>Ver servicios</a>
+      </div>
+      <div class="nx-trust-grid">
+        {b2bServices.map((service) => (
+          <article>
+            <h3>{service.title}</h3>
+            <p>{service.text}</p>
+          </article>
+        ))}
+      </div>
+    </div>
+  </section>
+
+  <section class="nx-section nx-section--trust nx-reveal" data-reveal>
+    <div class="nx-container nx-trust-grid">
+      <article>
+        <h3>Inventario en vivo</h3>
+        <p>Productos actualizados en tiempo real para tomar decisiones de compra mas rapidas.</p>
+      </article>
+      <article>
+        <h3>Checkout sin friccion</h3>
+        <p>Proceso directo para cerrar pedidos en minutos desde desktop o mobile.</p>
+      </article>
+      <article>
+        <h3>Soporte continuo</h3>
+        <p>Atencion comercial para ajustar volumenes, variantes y tiempos de entrega.</p>
+      </article>
+    </div>
+  </section>
+
+  {featuredCompanies.length > 0 && (
+    <section class="nx-section nx-reveal" data-reveal>
+      <div class="nx-container">
+        <div class="nx-section__head">
+          <h2>Empresas destacadas</h2>
+          <a href={`/${currentLang}/publicidad`}>Destacar mi empresa</a>
+        </div>
+        <div class="nx-company-grid">
+          {featuredCompanies.map((empresa: any) => (
+            <a class="nx-company-card" href={`/${currentLang}/empresas/${empresa.id}`}>
+              <img src={empresa.logo} alt={empresa.nombre} loading="lazy" decoding="async" />
+              <div class="nx-company-card__body">
+                <h3>{empresa.nombre}</h3>
+                <p>{empresa.descripcion}</p>
+                <span>{empresa.totalProductos} productos activos</span>
+              </div>
+            </a>
+          ))}
+        </div>
+      </div>
+    </section>
+  )}
+
+  </div>
+
+<Footer currentLang={currentLang} />
+
+  <script is:inline define:vars={{ spotlightItems, currentLang }}>
+    const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const revealTargets = Array.from(document.querySelectorAll("[data-reveal]"));
+    const parallaxCard = document.querySelector("[data-parallax-card]");
+
+    // Keep first paint immediate: no delayed reveal observer.
+    revealTargets.forEach((el) => el.classList.add("is-visible"));
+
+    if (!prefersReducedMotion && parallaxCard instanceof HTMLElement) {
+      const onMove = (event) => {
+        const bounds = parallaxCard.getBoundingClientRect();
+        const x = ((event.clientX - bounds.left) / bounds.width - 0.5) * 2;
+        const y = ((event.clientY - bounds.top) / bounds.height - 0.5) * 2;
+        parallaxCard.style.setProperty("--rx", `${(-y * 3).toFixed(2)}deg`);
+        parallaxCard.style.setProperty("--ry", `${(x * 4).toFixed(2)}deg`);
+      };
+
+      const onLeave = () => {
+        parallaxCard.style.setProperty("--rx", "0deg");
+        parallaxCard.style.setProperty("--ry", "0deg");
+      };
+
+      parallaxCard.addEventListener("mousemove", onMove);
+      parallaxCard.addEventListener("mouseleave", onLeave);
+    }
+
+    const showcaseRoot = document.querySelector("[data-showcase-root]");
+    const spotlightLink = document.getElementById("nxSpotlightLink");
+    const spotlightImage = document.getElementById("nxSpotlightImage");
+    const spotlightName = document.getElementById("nxSpotlightName");
+    const spotlightPrice = document.getElementById("nxSpotlightPrice");
+    const spotlightBadge = document.getElementById("nxSpotlightBadge");
+    const spotlightDots = Array.from(document.querySelectorAll(".nx-showcase-dot"));
+    const spotlightPrev = document.getElementById("nxSpotlightPrev");
+    const spotlightNext = document.getElementById("nxSpotlightNext");
+    const spotlightProgress = document.getElementById("nxSpotlightProgress");
+
+    if (
+      Array.isArray(spotlightItems) &&
+      spotlightItems.length > 1 &&
+      showcaseRoot instanceof HTMLElement &&
+      spotlightLink instanceof HTMLAnchorElement &&
+      spotlightImage instanceof HTMLImageElement &&
+      spotlightName instanceof HTMLElement &&
+      spotlightPrice instanceof HTMLElement &&
+      spotlightBadge instanceof HTMLElement
+    ) {
+      let spotlightIndex = 0;
+      let timer = null;
+      const SHOWCASE_DELAY = 4800;
+
+      const renderSpotlight = (index, animated = true) => {
+        const item = spotlightItems[index];
+        if (!item) return;
+
+        if (animated) {
+          showcaseRoot.classList.remove("is-switching");
+          requestAnimationFrame(() => showcaseRoot.classList.add("is-switching"));
+        }
+
+        spotlightLink.href = item.href;
+        spotlightImage.src = item.image;
+        spotlightImage.alt = item.name;
+        spotlightName.textContent = item.name;
+        spotlightPrice.textContent = item.price;
+        spotlightBadge.textContent = item.badge;
+
+        spotlightDots.forEach((dot, dotIndex) => {
+          dot.classList.toggle("is-active", dotIndex === index);
+        });
+
+        if (spotlightProgress instanceof HTMLElement) {
+          spotlightProgress.style.animation = "none";
+          spotlightProgress.offsetHeight;
+          spotlightProgress.style.animation = `nx-showcase-progress ${SHOWCASE_DELAY}ms linear forwards`;
+        }
+      };
+
+      const nextSpotlight = () => {
+        spotlightIndex = (spotlightIndex + 1) % spotlightItems.length;
+        renderSpotlight(spotlightIndex, true);
+      };
+
+      const startAuto = () => {
+        if (prefersReducedMotion) return;
+        if (timer) window.clearInterval(timer);
+        timer = window.setInterval(nextSpotlight, SHOWCASE_DELAY);
+      };
+
+      const stopAuto = () => {
+        if (timer) {
+          window.clearInterval(timer);
+          timer = null;
+        }
+      };
+
+      spotlightPrev?.addEventListener("click", () => {
+        spotlightIndex = (spotlightIndex - 1 + spotlightItems.length) % spotlightItems.length;
+        renderSpotlight(spotlightIndex, true);
+        startAuto();
+      });
+
+      spotlightNext?.addEventListener("click", () => {
+        nextSpotlight();
+        startAuto();
+      });
+
+      spotlightDots.forEach((dot) => {
+        dot.addEventListener("click", () => {
+          const dotIndex = Number(dot.getAttribute("data-dot-index"));
+          if (!Number.isFinite(dotIndex)) return;
+          spotlightIndex = dotIndex;
+          renderSpotlight(spotlightIndex, true);
+          startAuto();
+        });
+      });
+
+      showcaseRoot.addEventListener("mouseenter", stopAuto);
+      showcaseRoot.addEventListener("mouseleave", startAuto);
+      document.addEventListener("visibilitychange", () => {
+        if (document.hidden) stopAuto();
+        else startAuto();
+      });
+
+      renderSpotlight(spotlightIndex, false);
+      startAuto();
+    }
+
+    const sponsoredLinks = Array.from(document.querySelectorAll("[data-sponsored-link]"));
+    const sentImpressions = new Set();
+
+    const sendTrack = (payload) => {
+      try {
+        fetch("/api/publicidad/track", {
+          method: "POST",
+          credentials: "include",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+          keepalive: true,
+        }).catch(() => {});
+      } catch {
+        // no-op: metrics should never break the page
+      }
+    };
+
+    sponsoredLinks.forEach((link) => {
+      if (!(link instanceof HTMLAnchorElement)) return;
+      const campaignId = Number(link.dataset.campaignId || 0);
+      const posicion = String(link.dataset.position || "grid");
+      if (!Number.isFinite(campaignId) || campaignId <= 0) return;
+
+      if (!sentImpressions.has(campaignId)) {
+        sendTrack({ campaignId, tipo: "impresion", posicion, page: "home", lang: currentLang });
+        sentImpressions.add(campaignId);
+      }
+
+      link.addEventListener(
+        "click",
+        () => {
+          sendTrack({ campaignId, tipo: "click", posicion, page: "home", lang: currentLang });
+        },
+        { once: true }
+      );
+    });
+  </script>
+</BaseLayout>

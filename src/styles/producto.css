@@ -1,0 +1,77 @@
+:root {
+  --reveal-circle-color: #ffffff;
+  /* Curva personalizada para un movimiento más fluido y orgánico */
+  --ease-elegant: cubic-bezier(0.65, 0, 0.35, 1);
+}
+
+html.dark {
+  --reveal-circle-color: #262626;
+}
+
+.reveal-container {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 9999;
+  pointer-events: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  /* Glassmorphism sutil opcional para suavizar bordes */
+  backdrop-filter: blur(0px); 
+  transition: backdrop-filter 0.5s ease;
+}
+
+.reveal-bg {
+  position: absolute;
+  inset: 0;
+  background-color: var(--reveal-circle-color);
+  /* Empezamos con un círculo pequeño */
+  clip-path: circle(0% at 50% 50%);
+  /* Transición más larga para el fondo para dar elegancia */
+  transition: clip-path 1.6s var(--ease-elegant);
+}
+
+.reveal-content {
+  position: relative;
+  z-index: 2; 
+  width: 300px;
+  height: 300px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.reveal-content img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  /* Reducimos la diferencia de escala para que sea casi imperceptible */
+  transform: scale(0.95); 
+  opacity: 0;
+  /* Filtro de desenfoque inicial para toque moderno */
+  filter: blur(10px);
+  transition: 
+    opacity 1s ease-out, 
+    transform 1.2s var(--ease-elegant),
+    filter 0.8s ease-out;
+}
+
+/* === ESTADO ACTIVO === */
+.reveal-container.active {
+  pointer-events: all;
+}
+
+.reveal-container.active .reveal-bg {
+  clip-path: circle(150% at 50% 50%);
+}
+
+.reveal-container.active .reveal-content img {
+  transform: scale(1); /* El cambio es mínimo (0.95 a 1) */
+  opacity: 1;
+  filter: blur(0px);
+  /* Retraso calculado para que aparezca cuando el círculo ya cubrió parte del centro */
+  transition-delay: 0.4s; 
+}

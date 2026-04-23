@@ -1,0 +1,292 @@
+<section class="nx-page">
+  <div class="nx-container ad-layout">
+    <header class="nx-hero">
+      <span class="nx-badge">Nexus Ads</span>
+      <h1 class="nx-title">Convierte tu portada en una maquina de ventas</h1>
+      <p class="nx-subtitle">
+        Lanza campanas premium para tus productos con posiciones Hero, Top y Grid.
+        Visualiza impacto en impresiones, clicks y CTR sin salir de tu panel.
+      </p>
+      <div class="nx-pill-row">
+        <span class="nx-pill">Prioridad por posicion</span>
+        <span class="nx-pill">Descuentos por duracion</span>
+        <span class="nx-pill">Activacion inmediata</span>
+      </div>
+    </header>
+
+    <section id="ad-plans" class="ad-plans"></section>
+
+    <div class="nx-grid-2">
+      <article class="nx-card">
+        <h2>Activar campana</h2>
+        <p>Selecciona producto, posicion y tarjeta para iniciar en segundos.</p>
+
+        <form class="ad-form" id="ad-form">
+          <label class="ad-label">
+            Producto
+            <select id="ad-product" class="ad-select" required></select>
+          </label>
+
+          <div class="ad-row">
+            <label class="ad-label">
+              Posicion
+              <select id="ad-position" class="ad-select">
+                <option value="grid">Grid</option>
+                <option value="top1">Top 1</option>
+                <option value="hero">Hero</option>
+              </select>
+            </label>
+
+            <label class="ad-label">
+              Dias
+              <input id="ad-days" class="ad-input" type="number" min="1" max="30" value="1" required />
+            </label>
+          </div>
+
+          <label class="ad-label">
+            Tarjeta
+            <select id="ad-card" class="ad-select" required></select>
+          </label>
+
+          <section class="ad-quote">
+            <div class="ad-quote-head">
+              <span id="ad-price-label">Precio estimado</span>
+              <strong id="ad-price-total" class="ad-total">$0.00 MXN</strong>
+            </div>
+            <p id="ad-price-breakdown" class="ad-breakdown">Sin cotizacion aun.</p>
+          </section>
+
+          <button id="ad-pay-btn" class="nx-btn nx-btn-primary" type="submit">Pagar y activar</button>
+          <p id="ad-feedback" class="ad-feedback" hidden></p>
+        </form>
+      </article>
+
+      <article class="nx-card">
+        <h2>Mis campanas activas</h2>
+        <p>Monitorea rendimiento en tiempo real.</p>
+        <section id="ad-campaigns" class="ad-list"></section>
+      </article>
+    </div>
+  </div>
+</section>
+
+<script is:inline>
+  const plansByKey = {};
+
+  const nodes = {
+    plans: document.getElementById("ad-plans"),
+    campaigns: document.getElementById("ad-campaigns"),
+    form: document.getElementById("ad-form"),
+    product: document.getElementById("ad-product"),
+    position: document.getElementById("ad-position"),
+    days: document.getElementById("ad-days"),
+    card: document.getElementById("ad-card"),
+    payBtn: document.getElementById("ad-pay-btn"),
+    feedback: document.getElementById("ad-feedback"),
+    priceLabel: document.getElementById("ad-price-label"),
+    priceTotal: document.getElementById("ad-price-total"),
+    priceBreakdown: document.getElementById("ad-price-breakdown"),
+  };
+
+  function showFeedback(message, type) {
+    if (!nodes.feedback) return;
+    nodes.feedback.hidden = false;
+    nodes.feedback.className = `ad-feedback ${type || "ok"}`;
+    nodes.feedback.textContent = message;
+  }
+
+  function fillSelect(selectNode, list, getLabel, getValue) {
+    if (!selectNode) return;
+    selectNode.innerHTML = "";
+    if (!Array.isArray(list) || list.length === 0) {
+      const opt = document.createElement("option");
+      opt.value = "";
+      opt.textContent = "Sin opciones";
+      selectNode.appendChild(opt);
+      return;
+    }
+    list.forEach((item) => {
+      const opt = document.createElement("option");
+      opt.value = String(getValue(item));
+      opt.textContent = String(getLabel(item));
+      selectNode.appendChild(opt);
+    });
+  }
+
+  function renderPlans(plans) {
+    if (!nodes.plans) return;
+    if (!plans.length) {
+      nodes.plans.innerHTML = "";
+      return;
+    }
+    nodes.plans.innerHTML = plans
+      .map((plan) => `
+        <article class="ad-plan">
+          <h3>${String(plan.label || "Plan")}</h3>
+          <p>${String(plan.description || "Posicion premium en portada")}</p>
+          <strong>$${Number(plan.pricePerDay || 0).toFixed(2)} MXN / dia</strong>
+        </article>
+      `)
+      .join("");
+  }
+
+  function renderCampaigns(campaigns) {
+    if (!nodes.campaigns) return;
+    if (!campaigns.length) {
+      nodes.campaigns.innerHTML = '<article class="ad-item"><h4>Sin campanas</h4><p>Activa tu primera campana para comenzar.</p></article>';
+      return;
+    }
+    nodes.campaigns.innerHTML = campaigns
+      .map((c) => {
+        const start = c.fechaInicio ? new Date(c.fechaInicio).toLocaleString("es-MX") : "-";
+        const end = c.fechaFin ? new Date(c.fechaFin).toLocaleString("es-MX") : "-";
+        return `
+          <article class="ad-item">
+            <h4>${String(c.productoNombre || "Producto")}</h4>
+            <p>Estado: ${String(c.estado || "activa")} | Posicion: ${String(c.posicion || "grid").toUpperCase()}</p>
+            <p>Monto: $${Number(c.monto || 0).toFixed(2)} ${String(c.moneda || "MXN")}</p>
+            <p>${Number(c.impresiones || 0)} imp. | ${Number(c.clicks || 0)} clicks | CTR ${Number(c.ctr || 0).toFixed(2)}%</p>
+            <p>${start} - ${end}</p>
+          </article>
+        `;
+      })
+      .join("");
+  }
+
+  function quote(position, days) {
+    const key = String(position || "grid").toLowerCase();
+    const safeDays = Math.max(1, Math.min(30, Number(days) || 1));
+    const plan = plansByKey[key] || plansByKey.grid || { pricePerDay: 20, label: "Grid" };
+    const subtotal = Number(plan.pricePerDay || 20) * safeDays;
+    let discount = 0;
+    let discountLabel = "Sin descuento";
+
+    if (safeDays === 3) {
+      discount = subtotal - Number(plan.pricePerDay || 20) * 2.5;
+      discountLabel = "Bundle 3 dias";
+    } else if (safeDays >= 7) {
+      discount = subtotal * 0.25;
+      discountLabel = "Descuento 25%";
+    } else if (safeDays >= 5) {
+      discount = subtotal * 0.15;
+      discountLabel = "Descuento 15%";
+    } else if (safeDays >= 4) {
+      discount = subtotal * 0.1;
+      discountLabel = "Descuento 10%";
+    }
+
+    return {
+      plan,
+      safeDays,
+      subtotal,
+      discount,
+      total: Math.max(0, subtotal - discount),
+      discountLabel,
+    };
+  }
+
+  function renderQuote() {
+    const q = quote(nodes.position?.value || "grid", Number(nodes.days?.value || 1));
+    if (nodes.priceLabel) nodes.priceLabel.textContent = `Precio estimado ${q.plan.label || "Plan"}`;
+    if (nodes.priceTotal) nodes.priceTotal.textContent = `$${q.total.toFixed(2)} MXN`;
+    if (nodes.priceBreakdown) {
+      nodes.priceBreakdown.textContent = `${q.safeDays} dia(s) | Subtotal $${q.subtotal.toFixed(2)} | Descuento $${q.discount.toFixed(2)} (${q.discountLabel})`;
+    }
+  }
+
+  async function loadAll() {
+    try {
+      const [productsRes, cardsRes, campaignsRes, plansRes] = await Promise.all([
+        fetch("/api/publicidad/productos", { credentials: "include" }),
+        fetch("/api/tarjetas", { credentials: "include" }),
+        fetch("/api/publicidad/mis-campanas", { credentials: "include" }),
+        fetch("/api/publicidad/planes", { credentials: "include" }),
+      ]);
+
+      const productsData = await productsRes.json();
+      const cardsData = await cardsRes.json();
+      const campaignsData = await campaignsRes.json();
+      const plansData = await plansRes.json();
+
+      const plans = Array.isArray(plansData?.plans) ? plansData.plans : [];
+      plans.forEach((plan) => {
+        const key = String(plan.key || "grid").toLowerCase();
+        plansByKey[key] = {
+          key,
+          label: String(plan.label || "Grid"),
+          pricePerDay: Number(plan.pricePerDay || 20),
+        };
+      });
+
+      renderPlans(plans);
+      fillSelect(nodes.product, productsData?.products || [], (p) => `${p.nombre} | ${p.precio != null ? `$${Number(p.precio).toFixed(2)}` : "Sin precio"}`, (p) => p.id);
+      fillSelect(nodes.card, cardsData?.tarjetas || [], (c) => `${c.marca || "Tarjeta"} ${c.numero || ""}${c.default ? " (predeterminada)" : ""}`, (c) => c.id);
+      renderCampaigns(campaignsData?.campaigns || []);
+
+      const blockPay = !Number(nodes.product?.options?.length || 0) || !Number(nodes.card?.options?.length || 0);
+      if (nodes.payBtn) nodes.payBtn.disabled = blockPay;
+      if (blockPay) showFeedback("Necesitas al menos un producto y una tarjeta para activar campanas.", "error");
+
+      renderQuote();
+    } catch {
+      showFeedback("Error cargando datos. Inicia sesion e intenta nuevamente.", "error");
+    }
+  }
+
+  async function handlePay(event) {
+    event.preventDefault();
+
+    const payload = {
+      productoId: Number(nodes.product?.value || 0),
+      cardId: Number(nodes.card?.value || 0),
+      posicion: String(nodes.position?.value || "grid"),
+      duracionDias: Math.max(1, Math.min(30, Number(nodes.days?.value || 1))),
+    };
+
+    if (!payload.productoId || !payload.cardId) {
+      showFeedback("Selecciona producto y tarjeta validos.", "error");
+      return;
+    }
+
+    if (nodes.payBtn) {
+      nodes.payBtn.disabled = true;
+      nodes.payBtn.textContent = "Procesando pago...";
+    }
+
+    try {
+      const res = await fetch("/api/publicidad/pagar", {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const data = await res.json();
+
+      if (!data?.success) {
+        const detail = [data?.error, data?.stripeDeclineCode, data?.stripeCode].filter(Boolean).join(" | ");
+        showFeedback(detail || "No se pudo activar la campana.", "error");
+      } else {
+        const until = data?.campaign?.fechaFin ? new Date(data.campaign.fechaFin).toLocaleString("es-MX") : "fecha pendiente";
+        showFeedback(`Campana activa hasta ${until}${data?.simulado ? " (modo local simulado)" : ""}`, "ok");
+        await loadAll();
+      }
+    } catch {
+      showFeedback("Error de conexion al activar la campana.", "error");
+    } finally {
+      if (nodes.payBtn) {
+        nodes.payBtn.disabled = false;
+        nodes.payBtn.textContent = "Pagar y activar";
+      }
+    }
+  }
+
+  function initAds() {
+    if (nodes.form) nodes.form.addEventListener("submit", handlePay);
+    if (nodes.position) nodes.position.addEventListener("change", renderQuote);
+    if (nodes.days) nodes.days.addEventListener("input", renderQuote);
+    loadAll();
+  }
+
+  document.addEventListener("DOMContentLoaded", initAds);
+  document.addEventListener("astro:page-load", initAds);
+</script>

@@ -1,0 +1,178 @@
+---
+// --- DATOS DE PRODUCTOS (Simulados) ---
+// NOTA IMPORTANTE:
+// 1. Reemplaza las rutas de imagen ('/images/...') con tus fotos reales de los productos.
+// 2. Reemplaza las rutas de PDF ('/downloads/...') con tus archivos PDF reales.
+// Asegúrate de que esas carpetas existan en tu directorio 'public'.
+
+const generalCatalogs = {
+  es: "/downloads/catalogo-general-esp.pdf",
+  en: "/downloads/catalogo-general-eng.pdf"
+};
+
+const products = [
+  {
+    id: 1,
+    title: "CUERDAS INDUSTRIALES",
+    description: "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor.",
+    // Usa imágenes con fondo transparente (PNG) para mejor resultado sobre el círculo
+    image: "https://via.placeholder.com/300x300/FFFFFF/000000?text=Cuerdas+PNG", 
+    pdfEs: "/downloads/cuerdas-es.pdf",
+    pdfEn: "/downloads/cuerdas-en.pdf",
+    accentColor: "blue" // Alternaremos colores para el círculo de fondo
+  },
+  {
+    id: 2,
+    title: "RAFIA",
+    description: "Bobinas de alto rendimiento. Ut enim ad minim veniam, quis nostrud exercitation.",
+    image: "https://via.placeholder.com/300x300/FFFFFF/000000?text=Rafia+PNG",
+    pdfEs: "/downloads/rafia-es.pdf",
+    pdfEn: "/downloads/rafia-en.pdf",
+    accentColor: "red"
+  },
+  {
+    id: 3,
+    title: "PELÍCULA STRETCH",
+    description: "Máxima elasticidad y protección. Duis aute irure dolor in reprehenderit.",
+    image: "https://via.placeholder.com/300x300/FFFFFF/000000?text=Stretch+PNG",
+    pdfEs: "/downloads/stretch-es.pdf",
+    pdfEn: "/downloads/stretch-en.pdf",
+    accentColor: "blue"
+  },
+  {
+    id: 4,
+    title: "ESQUINEROS",
+    description: "Protección de bordes y carga. Excepteur sint occaecat cupidatat non proident.",
+    image: "https://via.placeholder.com/300x300/FFFFFF/000000?text=Esquineros+PNG",
+    pdfEs: "/downloads/esquineros-es.pdf",
+    pdfEn: "/downloads/esquineros-en.pdf",
+    accentColor: "red"
+  },
+  {
+    id: 5,
+    title: "SACOS INDUSTRIALES",
+    description: "Resistencia para envasado. Sed ut perspiciatis unde omnis iste natus.",
+    image: "https://via.placeholder.com/300x300/FFFFFF/000000?text=Sacos+PNG",
+    pdfEs: "/downloads/sacos-es.pdf",
+    pdfEn: "/downloads/sacos-en.pdf",
+    accentColor: "blue"
+  },
+  {
+    id: 6,
+    title: "ARPILLA",
+    description: "Tejido transpirable agrícola. Nemo enim ipsam voluptatem quia voluptas.",
+    image: "https://via.placeholder.com/300x300/FFFFFF/000000?text=Arpilla+PNG",
+    pdfEs: "/downloads/arpilla-es.pdf",
+    pdfEn: "/downloads/arpilla-en.pdf",
+    accentColor: "red"
+  },
+  {
+    id: 7,
+    title: "INSUMOS VARIOS",
+    description: "Complementos de embalaje. At vero eos et accusamus et iusto odio dignissimos.",
+    image: "https://via.placeholder.com/300x300/FFFFFF/000000?text=Varios+PNG",
+    pdfEs: "/downloads/varios-es.pdf",
+    pdfEn: "/downloads/varios-en.pdf",
+    accentColor: "blue"
+  }
+];
+---
+
+<section class="bg-white py-16 overflow-hidden">
+  <div class="container mx-auto px-4 max-w-6xl">
+    
+    <div class="flex flex-col lg:flex-row items-center justify-between mb-24 gap-12 relative">
+      
+      <div class="lg:w-1/2 z-10">
+        <h1 class="text-5xl md:text-7xl font-black text-[#D32F2F] leading-tight mb-4 tracking-tighter">
+          CATÁLOGOS<br>GENERALES
+        </h1>
+        <h2 class="text-2xl md:text-3xl font-extrabold text-slate-800 mb-6">
+          DESCARGA COMPLETA
+        </h2>
+        <p class="text-slate-500 text-lg max-w-md mb-8">
+          Obtén la documentación técnica completa de todas nuestras soluciones de embalaje en un solo archivo.
+        </p>
+
+        <div class="flex flex-col sm:flex-row gap-4 font-bold">
+          <a href={generalCatalogs.es} download class="group relative inline-flex items-center justify-center overflow-hidden rounded-full bg-[#D32F2F] px-8 py-4 text-white transition-transform hover:scale-105 focus:outline-none focus:ring-4 focus:ring-red-300 shadow-lg shadow-red-500/30">
+             <span class="mr-3 flex h-8 w-8 items-center justify-center rounded-full bg-white/20">
+              <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+            </span>
+            <span class="text-lg tracking-wide">VERSIÓN ESPAÑOL</span>
+          </a>
+          
+          <a href={generalCatalogs.en} download class="group relative inline-flex items-center justify-center overflow-hidden rounded-full bg-[#1976D2] px-8 py-4 text-white transition-transform hover:scale-105 focus:outline-none focus:ring-4 focus:ring-blue-300 shadow-lg shadow-blue-500/30">
+            <span class="mr-3 flex h-8 w-8 items-center justify-center rounded-full bg-white/20">
+              <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+            </span>
+            <span class="text-lg tracking-wide">ENGLISH VERSION</span>
+          </a>
+        </div>
+      </div>
+
+      <div class="lg:w-1/2 relative flex justify-center z-0">
+          <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-[#D32F2F] rounded-full opacity-10 lg:opacity-100 lg:-right-24 lg:left-auto mix-blend-multiply"></div>
+          <div class="absolute top-0 right-0 w-32 h-32 bg-[#1976D2] rounded-full opacity-20 lg:opacity-80 -mt-12 -mr-12"></div>
+
+          <div class="absolute top-10 left-10 text-6xl font-black text-slate-800 opacity-20 lg:opacity-100">X</div>
+          <div class="absolute bottom-10 right-20 text-6xl font-black text-slate-800 opacity-20 lg:opacity-100">X</div>
+
+          <img src="https://via.placeholder.com/600x400/transparent/333333?text=CODE+ASTRO+PACKAGING" alt="Code Astro Products" class="relative z-10 drop-shadow-2xl transform rotate-[-15deg] hover:rotate-0 transition-all duration-500" />
+      </div>
+    </div>
+
+    <div class="flex items-center mb-16 opacity-50">
+      <span class="text-2xl font-black text-slate-300 mx-4">X X X X</span>
+      <div class="h-1 flex-grow bg-slate-200 rounded-full"></div>
+    </div>
+
+
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-8 gap-y-16">
+      
+      {products.map((product) => (
+        <div class="group relative bg-white rounded-3xl p-6 transition-all duration-300 hover:-translate-y-2 hover:shadow-2xl hover:shadow-slate-200/50 border border-slate-100">
+          
+          <div class="relative h-64 mb-6 flex items-center justify-center">
+            <div class:list={[
+              "absolute w-56 h-56 rounded-full bg-opacity-10 transition-all duration-500 group-hover:scale-110",
+              product.accentColor === 'red' ? 'bg-[#D32F2F]' : 'bg-[#1976D2]'
+            ]}></div>
+            
+            <img 
+              src={product.image} 
+              alt={product.title} 
+              class="relative z-10 w-full h-full object-contain drop-shadow-lg transform transition-transform duration-500 group-hover:scale-105 group-hover:-rotate-6"
+            />
+          </div>
+
+          <div class="text-center mb-8">
+            <h3 class="text-2xl font-black text-slate-800 mb-3 uppercase tracking-tight">
+              {product.title}
+            </h3>
+            <p class="text-slate-500 text-sm leading-relaxed line-clamp-2 font-medium">
+              {product.description}
+            </p>
+          </div>
+
+          <div class="flex justify-center gap-3 pt-4 border-t border-slate-100">
+            <a href={product.pdfEs} download class="flex-1 inline-flex items-center justify-center gap-2 bg-slate-800 text-white text-sm font-bold py-3 px-4 rounded-xl hover:bg-[#D32F2F] transition-colors shadow-md">
+              <svg class="w-4 h-4 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+              ESPAÑOL
+            </a>
+            <a href={product.pdfEn} download class="flex-1 inline-flex items-center justify-center gap-2 bg-white text-slate-800 border-2 border-slate-800 text-sm font-bold py-3 px-4 rounded-xl hover:bg-[#1976D2] hover:text-white hover:border-[#1976D2] transition-all shadow-md">
+              <svg class="w-4 h-4 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+              ENGLISH
+            </a>
+          </div>
+
+        </div>
+      ))}
+    </div>
+    
+    <div class="mt-24 text-center opacity-20">
+       <span class="text-4xl font-black text-slate-800 mx-4">X X X</span>
+    </div>
+
+  </div>
+</section>

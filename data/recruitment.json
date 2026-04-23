@@ -1,0 +1,102 @@
+[
+  {
+    "id": "cand_1772487674391_8ae55",
+    "nombre": "Juan Pablo Corona",
+    "email": "coronapablo99@gmail.com",
+    "telefono": "4434845466",
+    "puesto": "ventas",
+    "mensaje": "4434845466",
+    "sessionId": "",
+    "estado": "contactado",
+    "ts": "2026-03-02T21:41:14.391Z",
+    "tsFormatted": "02 de marzo de 2026, 03:41 p.m.",
+    "tsUpdated": "2026-03-02T22:56:48.435Z"
+  },
+  {
+    "id": "cand_1772496015512_82fh7",
+    "nombre": "Pepe Elñ Toro",
+    "email": "coronapablo99@gmail.com",
+    "telefono": "4434845466",
+    "puesto": "Camionero",
+    "mensaje": "4434845466",
+    "sessionId": "",
+    "estado": "contactado",
+    "ts": "2026-03-03T00:00:15.512Z",
+    "tsFormatted": "02 de marzo de 2026, 06:00 p.m.",
+    "tsUpdated": "2026-03-03T15:05:20.342Z"
+  },
+  {
+    "id": "cand_1772559891104_vsvqg",
+    "nombre": "Juan Pablo Corona",
+    "email": "",
+    "telefono": "4434845466",
+    "puesto": "",
+    "mensaje": "4434845466",
+    "sessionId": "",
+    "estado": "nuevo",
+    "ts": "2026-03-03T17:44:51.105Z",
+    "tsFormatted": "03 de marzo de 2026, 11:44 a.m."
+  },
+  {
+    "id": "cand_1772568096756_op2py",
+    "nombre": "Juan Panblvorona",
+    "email": "",
+    "telefono": "4434845466",
+    "puesto": "Camionero",
+    "mensaje": "4434845466",
+    "sessionId": "",
+    "estado": "nuevo",
+    "ts": "2026-03-03T20:01:36.756Z",
+    "tsFormatted": "03 de marzo de 2026, 02:01 p.m."
+  },
+  {
+    "id": "cand_1772568305156_s9sab",
+    "nombre": "Juanpa",
+    "email": "",
+    "telefono": "4434845466",
+    "puesto": "Producción",
+    "mensaje": "4434845466",
+    "sessionId": "",
+    "estado": "descartado",
+    "ts": "2026-03-03T20:05:05.156Z",
+    "tsFormatted": "03 de marzo de 2026, 02:05 p.m.",
+    "tsUpdated": "2026-03-04T21:24:32.469Z"
+  },
+  {
+    "id": "cand_1772571789600_8cd06",
+    "nombre": "Juan Pablo corona",
+    "email": "",
+    "telefono": "4434845466",
+    "puesto": "Administración",
+    "mensaje": "4434845466",
+    "sessionId": "",
+    "estado": "nuevo",
+    "ts": "2026-03-03T21:03:09.600Z",
+    "tsFormatted": "03 de marzo de 2026, 03:03 p.m."
+  },
+  {
+    "id": "cand_1772573249447_lzbfh",
+    "nombre": "Pepe",
+    "email": "N/A",
+    "telefono": "4434845466",
+    "puesto": "Camionero",
+    "mensaje": "NO",
+    "sessionId": "",
+    "estado": "nuevo",
+    "ts": "2026-03-03T21:27:29.447Z",
+    "tsFormatted": "03 de marzo de 2026, 03:27 p.m."
+  },
+  {
+    "id": "cand_1772658321025_9rril",
+    "nombre": "Pepe el Toro",
+    "email": "coronapablo99@gmail.com",
+    "telefono": "44373738282",
+    "puesto": "Camionero",
+    "mensaje": "44373738282",
+    "sessionId": "",
+    "estado": "contactado",
+    "ts": "2026-03-04T21:05:21.025Z",
+    "tsFormatted": "04 de marzo de 2026, 03:05 p.m.",
+    "tsUpdated": "2026-03-04T21:24:22.494Z"
+  }
+]

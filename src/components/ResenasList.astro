@@ -1,0 +1,849 @@
+---
+// src/components/ResenasList.astro
+// Props que recibe desde la página del producto
+interface Props {
+  productoId: number;
+  currentLang: string;
+}
+const { productoId, currentLang } = Astro.props;
+
+// Obtener reseñas SSR en la primera carga
+let stats = { total: 0, promedio: 0, distribucion: { 5:0,4:0,3:0,2:0,1:0 } };
+let resenas: any[] = [];
+let puedeResenar = false;
+let miResena: number | null = null;
+
+try {
+  const base = new URL(Astro.request.url);
+  const apiUrl = `${base.origin}/api/resenas/${productoId}?limit=5&page=1`;
+  const res = await fetch(apiUrl, {
+    headers: { cookie: Astro.request.headers.get("cookie") || "" },
+  });
+  if (res.ok) {
+    const data = await res.json();
+    stats       = data.stats       ?? stats;
+    resenas     = data.resenas     ?? [];
+    puedeResenar= data.puedeResenar ?? false;
+    miResena    = data.miResena    ?? null;
+  }
+} catch (_) {}
+
+function estrellasSVG(n: number, size = 16) {
+  return Array.from({ length: 5 }, (_, i) => {
+    const filled = i < Math.round(n);
+    return `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="${filled ? "#fb923c" : "none"}" stroke="#fb923c" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>`;
+  }).join("");
+}
+
+function barWidth(count: number) {
+  return stats.total > 0 ? Math.round((count / stats.total) * 100) : 0;
+}
+
+function fmtFecha(iso: string) {
+  try {
+    return new Date(iso).toLocaleDateString("es-MX", { year:"numeric", month:"short", day:"numeric" });
+  } catch { return iso; }
+}
+
+function iniciales(nombre: string) {
+  return nombre.split(" ").slice(0,2).map(w => w[0]).join("").toUpperCase();
+}
+
+function titularResena(calificacion: number) {
+  if (calificacion >= 5) return "Excelente producto";
+  if (calificacion >= 4) return "Muy recomendable";
+  if (calificacion >= 3) return "Cumple con lo esperado";
+  if (calificacion >= 2) return "Tiene puntos a mejorar";
+  return "No cumplio expectativas";
+}
+---
+
+<section class="resenas-section" id="resenas-section" data-producto-id={String(productoId)}>
+
+  <!-- Encabezado -->
+  <div class="resenas-header">
+    <div class="resenas-title-wrap">
+      <h2 class="resenas-title">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#e8521a" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+        </svg>
+        Reseñas de clientes
+      </h2>
+      <p class="resenas-subtitle">Califica con estrellas y comparte tu experiencia en menos de 1 minuto.</p>
+    </div>
+    <button class="btn-escribir-resena" id="btn-abrir-form" disabled={Boolean(miResena)}>
+      {miResena ? "Ya reseñaste" : "Escribir reseña"}
+    </button>
+  </div>
+
+  {miResena && (
+    <p class="resenas-hint">
+      Ya publicaste tu reseña para este producto.
+    </p>
+  )}
+
+  <div id="resenas-dynamic">
+  {stats.total > 0 ? (
+    <>
+      <!-- Resumen estilo Amazon -->
+      <div class="resenas-summary">
+        <div class="summary-score">
+          <span class="score-number">{stats.promedio.toFixed(1)}</span>
+          <div class="score-stars" set:html={estrellasSVG(stats.promedio, 20)} />
+          <span class="score-total">{stats.total} reseña{stats.total !== 1 ? "s" : ""}</span>
+        </div>
+        <div class="summary-bars">
+          {[5,4,3,2,1].map(n => (
+            <div class="bar-row">
+              <span class="bar-label">{n} ★</span>
+              <div class="bar-track">
+                <div class="bar-fill" style={`width:${barWidth((stats.distribucion as any)[n])}%`}></div>
+              </div>
+              <span class="bar-count">{(stats.distribucion as any)[n]}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <!-- Lista de reseñas -->
+      <div class="resenas-list" id="resenas-list">
+        {resenas.map(r => (
+          <article class={`resena-card ${Number(r.calificacion) >= 5 ? "resena-card--featured" : ""}`} data-id={String(r.id)}>
+            <div class="resena-top">
+              <div class="resena-avatar">{iniciales(r.usuario)}</div>
+              <div class="resena-meta">
+                <div class="resena-estrellas" set:html={estrellasSVG(r.calificacion, 14)} />
+                <span class="resena-headline">{titularResena(r.calificacion)}</span>
+                <span class="resena-autor">por {r.usuario}</span>
+              </div>
+              <div class="resena-side">
+                <span class={`resena-badge ${r.esVerificada ? "verified" : "open"}`}>
+                  {r.esVerificada ? "Compra verificada" : "Opinión de cliente"}
+                </span>
+                <span class="resena-fecha">{fmtFecha(r.fecha)}</span>
+              </div>
+            </div>
+            {r.comentario && <p class="resena-comentario">{r.comentario}</p>}
+            {r.imagenes?.length > 0 && (
+              <div class="resena-fotos">
+                {r.imagenes.map((url: string) => (
+                  <img src={url} alt="Foto de reseña" class="resena-foto" loading="lazy" decoding="async" />
+                ))}
+              </div>
+            )}
+            {r.esPropia && (
+              <button
+                class="btn-eliminar-resena"
+                data-id={String(r.id)}
+                aria-label="Eliminar mi reseña">
+                Eliminar mi reseña
+              </button>
+            )}
+          </article>
+        ))}
+      </div>
+
+      <!-- Paginación -->
+      {stats.total > 5 && (
+        <div class="resenas-pagination">
+          <button class="btn-cargar-mas" id="btn-cargar-mas" data-page="2">
+            Ver más reseñas
+          </button>
+        </div>
+      )}
+    </>
+  ) : (
+    <div class="resenas-empty">
+      <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.2)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+        <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+      </svg>
+      <p>Aún no hay reseñas para este producto.</p>
+      <p class="empty-cta">¡Sé el primero en opinar!</p>
+    </div>
+  )}
+  </div>
+
+  <!-- Slot para el formulario (se inyecta desde la página) -->
+  <div id="resena-form-slot"></div>
+</section>
+
+<style is:global>
+  :root {
+    --rv-bg: rgba(255,255,255,.03);
+    --rv-bg-soft: rgba(255,255,255,.025);
+    --rv-border: rgba(255,255,255,.1);
+    --rv-title: #f9fafb;
+    --rv-text: rgba(255,255,255,.74);
+    --rv-muted: rgba(255,255,255,.5);
+    --rv-btn-bg: rgba(232,82,26,.12);
+    --rv-btn-border: rgba(232,82,26,.55);
+    --rv-btn-text: #fb923c;
+    --rv-font: var(--font-body, "Segoe UI", "Helvetica Neue", Arial, sans-serif);
+  }
+
+  html:not(.dark) {
+    --rv-bg: #ffffff;
+    --rv-bg-soft: #f8fafc;
+    --rv-border: rgba(15,23,42,.12);
+    --rv-title: #0f172a;
+    --rv-text: #334155;
+    --rv-muted: #64748b;
+    --rv-btn-bg: rgba(232,82,26,.08);
+    --rv-btn-border: rgba(232,82,26,.45);
+    --rv-btn-text: #d35400;
+  }
+
+  .resenas-section {
+    width: min(980px, calc(100% - 1.4rem));
+    margin: 56px auto 0;
+    padding: 18px 16px 48px;
+    box-sizing: border-box;
+    position: relative;
+    z-index: 30;
+    border: 1px solid var(--rv-border);
+    border-radius: 18px;
+    background: var(--rv-bg);
+    box-shadow: 0 16px 36px rgba(0,0,0,.16);
+    font-family: var(--rv-font);
+    line-height: 1.45;
+  }
+
+  .resenas-section h2,
+  .resenas-section h3,
+  .resenas-section p,
+  .resenas-section span,
+  .resenas-section button {
+    font-family: var(--rv-font);
+    letter-spacing: normal;
+    text-transform: none;
+  }
+
+  .resenas-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 14px;
+    flex-wrap: wrap;
+  }
+
+  .resenas-title-wrap {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .resenas-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 1.05rem;
+    font-weight: 800;
+    color: var(--rv-title);
+    margin: 0;
+    letter-spacing: .02em;
+    text-transform: none;
+  }
+
+  .resenas-subtitle {
+    margin: 0;
+    font-size: .78rem;
+    line-height: 1.4;
+    color: var(--rv-muted);
+    font-weight: 600;
+  }
+
+  .btn-escribir-resena {
+    padding: 10px 18px;
+    border-radius: 10px;
+    border: 1px solid var(--rv-btn-border);
+    background: linear-gradient(135deg, #e85d04, #fb923c);
+    color: #fff;
+    font-size: .84rem;
+    font-weight: 800;
+    cursor: pointer;
+    box-shadow: 0 10px 20px rgba(232,82,26,.24);
+    transition: transform .12s, filter .15s, box-shadow .15s;
+    font-family: inherit;
+  }
+
+  .btn-escribir-resena:hover {
+    transform: translateY(-1px);
+    filter: brightness(1.06);
+    box-shadow: 0 13px 24px rgba(232,82,26,.3);
+  }
+
+  .btn-escribir-resena:disabled {
+    cursor: not-allowed;
+    opacity: .7;
+    border-color: var(--rv-border);
+    background: var(--rv-bg-soft);
+    color: var(--rv-muted);
+    box-shadow: none;
+  }
+
+  .resenas-hint {
+    margin: -4px 0 14px;
+    font-size: .78rem;
+    line-height: 1.45;
+    color: var(--rv-muted);
+  }
+
+  .resenas-summary {
+    display: flex;
+    gap: 28px;
+    align-items: center;
+    background: var(--rv-bg-soft);
+    border: 1px solid var(--rv-border);
+    border-radius: 16px;
+    padding: 20px 22px;
+    margin-bottom: 28px;
+    flex-wrap: wrap;
+  }
+
+  .summary-score {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    min-width: 80px;
+  }
+
+  .score-number {
+    font-size: 2.8rem;
+    font-weight: 900;
+    color: var(--rv-title);
+    line-height: 1;
+  }
+
+  .score-stars { display: flex; gap: 2px; }
+
+  .score-total {
+    font-size: .72rem;
+    color: var(--rv-muted);
+    font-weight: 600;
+    white-space: nowrap;
+  }
+
+  .summary-bars {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    min-width: 180px;
+  }
+
+  .bar-row {
+    display: grid;
+    grid-template-columns: 30px 1fr 28px;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .bar-label {
+    font-size: .72rem;
+    font-weight: 700;
+    color: var(--rv-muted);
+    text-align: right;
+  }
+
+  .bar-track {
+    height: 7px;
+    background: color-mix(in srgb, var(--rv-muted) 26%, transparent);
+    border-radius: 999px;
+    overflow: hidden;
+  }
+
+  .bar-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #e85d04, #fb923c);
+    border-radius: 999px;
+    transition: width .4s ease;
+  }
+
+  .bar-count {
+    font-size: .7rem;
+    color: var(--rv-muted);
+    font-weight: 600;
+  }
+
+  .resenas-list {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  .resena-card {
+    background: var(--rv-bg-soft);
+    border: 1px solid var(--rv-border);
+    border-radius: 14px;
+    padding: 16px 18px;
+    transition: border-color .18s;
+  }
+
+  .resena-card:hover { border-color: rgba(232,82,26,.28); }
+
+  .resena-card--featured {
+    border-color: rgba(245,158,11,.35);
+    background:
+      radial-gradient(140% 120% at 0% 0%, rgba(251,191,36,.12), transparent 52%),
+      var(--rv-bg-soft);
+    box-shadow: 0 10px 24px rgba(0,0,0,.16), inset 0 0 0 1px rgba(251,191,36,.2);
+  }
+
+  .resena-top {
+    display: flex;
+    align-items: center;
+    gap: 11px;
+    margin-bottom: 10px;
+  }
+
+  .resena-avatar {
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    background: linear-gradient(135deg,#e85d04,#fb923c);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: .78rem;
+    font-weight: 800;
+    color: #fff;
+    flex-shrink: 0;
+  }
+
+  .resena-meta {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    flex: 1;
+  }
+
+  .resena-headline {
+    font-size: .86rem;
+    font-weight: 800;
+    color: var(--rv-title);
+    line-height: 1.3;
+  }
+
+  .resena-autor {
+    font-size: .76rem;
+    font-weight: 600;
+    color: var(--rv-muted);
+  }
+
+  .resena-estrellas { display: flex; gap: 1px; }
+
+  .resena-side {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 6px;
+  }
+
+  .resena-badge {
+    font-size: .62rem;
+    font-weight: 800;
+    letter-spacing: .05em;
+    text-transform: uppercase;
+    color: #1d4ed8;
+    background: rgba(59,130,246,.14);
+    border: 1px solid rgba(59,130,246,.35);
+    border-radius: 999px;
+    padding: 2px 8px;
+    white-space: nowrap;
+  }
+
+  .resena-badge.open {
+    color: #9a3412;
+    background: rgba(249,115,22,.12);
+    border-color: rgba(249,115,22,.35);
+  }
+
+  .resena-badge.verified {
+    color: #1d4ed8;
+    background: rgba(59,130,246,.14);
+    border-color: rgba(59,130,246,.35);
+  }
+
+  .resena-fecha {
+    font-size: .7rem;
+    color: var(--rv-muted);
+    white-space: nowrap;
+    align-self: flex-start;
+  }
+
+  .resena-comentario {
+    font-size: .88rem;
+    color: var(--rv-text);
+    line-height: 1.65;
+    margin: 0 0 10px;
+  }
+
+  .resena-fotos {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 10px;
+  }
+
+  .resena-foto {
+    width: 74px;
+    height: 74px;
+    object-fit: cover;
+    border-radius: 9px;
+    border: 1px solid var(--rv-border);
+    cursor: pointer;
+    transition: transform .15s, border-color .15s;
+  }
+
+  .resena-foto:hover { transform: scale(1.04); border-color: rgba(232,82,26,.4); }
+
+  .btn-eliminar-resena {
+    font-size: .72rem;
+    color: rgba(239,68,68,.8);
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0;
+    font-family: inherit;
+    font-weight: 600;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+
+  .btn-eliminar-resena:hover { color: #f87171; }
+
+  .resenas-pagination { display: flex; justify-content: center; margin-top: 20px; }
+
+  .btn-cargar-mas {
+    padding: 9px 26px;
+    border-radius: 10px;
+    border: 1px solid var(--rv-border);
+    background: var(--rv-bg-soft);
+    color: var(--rv-text);
+    font-size: .83rem;
+    font-weight: 700;
+    cursor: pointer;
+    font-family: inherit;
+    transition: border-color .15s, color .15s;
+  }
+
+  .btn-cargar-mas:hover { border-color: rgba(232,82,26,.4); color: #fb923c; }
+  .btn-cargar-mas:disabled { opacity: .4; cursor: not-allowed; }
+
+  .resenas-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    padding: 40px 20px;
+    text-align: center;
+  }
+
+  .resenas-empty p {
+    font-size: .88rem;
+    color: var(--rv-muted);
+    margin: 0;
+  }
+
+  .empty-cta { color: #fb923c !important; font-weight: 700; }
+
+  @media (max-width: 480px) {
+    .resenas-section {
+      width: calc(100% - .9rem);
+      padding-inline: 12px;
+    }
+    .resenas-summary { flex-direction: column; align-items: flex-start; }
+    .summary-score { flex-direction: row; align-items: baseline; gap: 10px; }
+    .score-number { font-size: 2rem; }
+    .resena-top { align-items: flex-start; }
+    .resena-side { align-items: flex-start; }
+  }
+
+  @media (max-width: 1024px) {
+    .resenas-section {
+      width: calc(100% - .8rem);
+      margin-top: 18px;
+      margin-bottom: 110px;
+      padding: 14px 12px 20px;
+      border-radius: 16px;
+      background: #0b0f1a;
+      border-color: rgba(255,255,255,.12);
+      box-shadow: 0 18px 36px rgba(0,0,0,.32);
+      z-index: 90;
+      isolation: isolate;
+    }
+
+    html:not(.dark) .resenas-section {
+      background: #ffffff;
+      border-color: rgba(15,23,42,.14);
+      box-shadow: 0 14px 30px rgba(2,6,23,.14);
+    }
+
+    .resenas-header {
+      gap: 10px;
+      align-items: stretch;
+    }
+
+    .resenas-title-wrap {
+      width: 100%;
+    }
+
+    .btn-escribir-resena {
+      width: 100%;
+      justify-content: center;
+      display: inline-flex;
+    }
+
+    .resena-card {
+      padding: 12px;
+    }
+
+    .resena-top {
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .resena-side {
+      width: 100%;
+      align-items: flex-start;
+      flex-direction: row;
+      gap: 8px;
+      justify-content: space-between;
+    }
+
+    .resena-fecha {
+      align-self: center;
+    }
+  }
+</style>
+
+<script>
+  function initResenas() {
+    const section = document.getElementById("resenas-section");
+    if (!section || (section as any)._resenasReady) return;
+    (section as any)._resenasReady = true;
+
+    const productoId = section.dataset.productoId;
+    const dynamicRoot = document.getElementById("resenas-dynamic");
+
+    const starsSvg = (n: number, size = 16) =>
+      Array.from({ length: 5 }, (_, i) =>
+        `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="${i < Math.round(Number(n || 0)) ? "#fb923c" : "none"}" stroke="#fb923c" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>`
+      ).join("");
+
+    const badgeHtml = (r: any) =>
+      r.esVerificada
+        ? `<span class="resena-badge verified">Compra verificada</span>`
+        : `<span class="resena-badge open">Opinión de cliente</span>`;
+
+    function renderDynamic(data: any) {
+      if (!dynamicRoot) return;
+
+      const total = Number(data?.stats?.total || 0);
+      const promedio = Number(data?.stats?.promedio || 0);
+      const distribucion = data?.stats?.distribucion || { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 };
+      const resenas = Array.isArray(data?.resenas) ? data.resenas : [];
+
+      if (total <= 0) {
+        dynamicRoot.innerHTML = `
+          <div class="resenas-empty">
+            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.2)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+            </svg>
+            <p>Aún no hay reseñas para este producto.</p>
+            <p class="empty-cta">¡Sé el primero en opinar!</p>
+          </div>
+        `;
+      } else {
+        const bars = [5, 4, 3, 2, 1].map((n) => {
+          const count = Number(distribucion[n] || 0);
+          const width = total > 0 ? Math.round((count / total) * 100) : 0;
+          return `
+            <div class="bar-row">
+              <span class="bar-label">${n} ★</span>
+              <div class="bar-track"><div class="bar-fill" style="width:${width}%"></div></div>
+              <span class="bar-count">${count}</span>
+            </div>
+          `;
+        }).join("");
+
+        dynamicRoot.innerHTML = `
+          <div class="resenas-summary">
+            <div class="summary-score">
+              <span class="score-number">${promedio.toFixed(1)}</span>
+              <div class="score-stars">${starsSvg(promedio, 20)}</div>
+              <span class="score-total">${total} reseña${total !== 1 ? "s" : ""}</span>
+            </div>
+            <div class="summary-bars">${bars}</div>
+          </div>
+          <div class="resenas-list" id="resenas-list">
+            ${resenas.map((r: any) => buildCard(r)).join("")}
+          </div>
+          ${total > 5 ? `<div class="resenas-pagination"><button class="btn-cargar-mas" id="btn-cargar-mas" data-page="2">Ver más reseñas</button></div>` : ""}
+        `;
+      }
+
+      const openBtn = document.getElementById("btn-abrir-form") as HTMLButtonElement | null;
+      if (openBtn) {
+        const myReview = data?.miResena ? Number(data.miResena) : null;
+        openBtn.disabled = Boolean(myReview);
+        openBtn.textContent = myReview ? "Ya reseñaste" : "Escribir reseña";
+      }
+    }
+
+    // ── Abrir formulario ──
+    document.getElementById("btn-abrir-form")?.addEventListener("click", () => {
+      const slot = document.getElementById("resena-form-slot");
+      const form = document.getElementById("resena-form-wrapper");
+      if (!slot || !form) return;
+      slot.appendChild(form);
+      form.hidden = false;
+      if (window.innerWidth > 768) {
+        form.scrollIntoView({ behavior: "smooth", block: "start" });
+      }
+    });
+
+    // ── Refrescar contenido (si SSR quedó desactualizado) ──
+    (async () => {
+      try {
+        const res = await fetch(`/api/resenas/${productoId}?page=1&limit=5`, { credentials: "include" });
+        const data = await res.json();
+        if (data?.success) renderDynamic(data);
+      } catch {}
+    })();
+
+    // ── Cargar más reseñas (delegación para contenido re-renderizado) ──
+    section.addEventListener("click", async (event) => {
+      const btn = (event.target as HTMLElement).closest("#btn-cargar-mas") as HTMLButtonElement | null;
+      if (!btn) return;
+      const page = Number(btn.dataset.page || 2);
+      btn.disabled = true;
+      btn.textContent = "Cargando...";
+      try {
+        const res  = await fetch(`/api/resenas/${productoId}?page=${page}&limit=5`);
+        const data = await res.json();
+        if (!data.success) throw new Error();
+        const list = document.getElementById("resenas-list");
+        if (!list) return;
+        data.resenas.forEach((r: any) => {
+          if (document.querySelector(`.resena-card[data-id="${r.id}"]`)) return;
+          list.insertAdjacentHTML("beforeend", buildCard(r));
+        });
+        const totalCargadas = list.querySelectorAll(".resena-card").length;
+        if (totalCargadas >= data.paginacion.total) {
+          btn.closest(".resenas-pagination")?.remove();
+        } else {
+          btn.dataset.page = String(page + 1);
+          btn.disabled = false;
+          btn.textContent = "Ver más reseñas";
+        }
+      } catch {
+        btn.disabled = false;
+        btn.textContent = "Ver más reseñas";
+      }
+    });
+
+    // ── Eliminar reseña (delegación) ──
+    section.addEventListener("click", async (e) => {
+      const btn = (e.target as HTMLElement).closest(".btn-eliminar-resena") as HTMLElement | null;
+      if (!btn) return;
+      if (!confirm("¿Seguro que deseas eliminar tu reseña?")) return;
+      const id = btn.dataset.id;
+      try {
+        const res = await fetch(`/api/resenas/eliminar/${id}`, { method: "DELETE", credentials: "include" });
+        const data = await res.json();
+        if (data.success) {
+          btn.closest(".resena-card")?.remove();
+          // Mostrar botón "Escribir reseña" si ya no existe
+          const header = document.querySelector(".resenas-header");
+          if (header && !header.querySelector(".btn-escribir-resena")) {
+            const nb = document.createElement("button");
+            nb.className = "btn-escribir-resena";
+            nb.id = "btn-abrir-form";
+            nb.textContent = "Escribir reseña";
+            header.appendChild(nb);
+            nb.addEventListener("click", () => {
+              const form = document.getElementById("resena-form-wrapper");
+              const slot = document.getElementById("resena-form-slot");
+              if (!form || !slot) return;
+              slot.appendChild(form);
+              form.hidden = false;
+              if (window.innerWidth > 768) {
+                form.scrollIntoView({ behavior: "smooth", block: "start" });
+              }
+            });
+          }
+        }
+      } catch {}
+    });
+
+    // ── Lightbox para fotos de reseñas ──
+    section.addEventListener("click", (e) => {
+      const img = (e.target as HTMLElement).closest(".resena-foto") as HTMLImageElement | null;
+      if (!img) return;
+      const lb = document.createElement("div");
+      lb.style.cssText = "position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,.88);display:grid;place-items:center;cursor:zoom-out;backdrop-filter:blur(8px);";
+      const i = document.createElement("img");
+      i.src = img.src;
+      i.style.cssText = "max-width:90vw;max-height:88vh;border-radius:12px;box-shadow:0 24px 60px rgba(0,0,0,.6);";
+      lb.appendChild(i);
+      lb.addEventListener("click", () => lb.remove());
+      document.body.appendChild(lb);
+    });
+  }
+
+  function buildCard(r: any) {
+    const titulo = r.calificacion >= 5
+      ? "Excelente producto"
+      : r.calificacion >= 4
+      ? "Muy recomendable"
+      : r.calificacion >= 3
+      ? "Cumple con lo esperado"
+      : r.calificacion >= 2
+      ? "Tiene puntos a mejorar"
+      : "No cumplio expectativas";
+
+    const stars = Array.from({ length: 5 }, (_, i) =>
+      `<svg width="14" height="14" viewBox="0 0 24 24" fill="${i < r.calificacion ? "#fb923c" : "none"}" stroke="#fb923c" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>`
+    ).join("");
+    const initials = String(r.usuario || "U")
+      .split(" ")
+      .slice(0,2)
+      .map((w: string) => w[0] || "")
+      .join("")
+      .toUpperCase();
+    const fecha = new Date(r.fecha).toLocaleDateString("es-MX", { year:"numeric", month:"short", day:"numeric" });
+    const fotos = r.imagenes?.length
+      ? `<div class="resena-fotos">${r.imagenes.map((u: string) => `<img src="${u}" class="resena-foto" loading="lazy" />`).join("")}</div>`
+      : "";
+    const del = r.esPropia ? `<button class="btn-eliminar-resena" data-id="${r.id}">Eliminar mi reseña</button>` : "";
+    const badge = r.esVerificada
+      ? `<span class="resena-badge verified">Compra verificada</span>`
+      : `<span class="resena-badge open">Opinión de cliente</span>`;
+    const autor = String(r.usuario || "Cliente").replaceAll("<", "&lt;").replaceAll(">", "&gt;");
+    const comentario = r.comentario ? String(r.comentario).replaceAll("<", "&lt;").replaceAll(">", "&gt;") : "";
+    const featuredClass = Number(r.calificacion || 0) >= 5 ? ' resena-card--featured' : '';
+    return `
+      <article class="resena-card${featuredClass}" data-id="${r.id}">
+        <div class="resena-top">
+          <div class="resena-avatar">${initials}</div>
+          <div class="resena-meta">
+            <div class="resena-estrellas">${stars}</div>
+            <span class="resena-headline">${titulo}</span>
+            <span class="resena-autor">por ${autor}</span>
+          </div>
+          <div class="resena-side">
+            ${badge}
+            <span class="resena-fecha">${fecha}</span>
+          </div>
+        </div>
+        ${comentario ? `<p class="resena-comentario">${comentario}</p>` : ""}
+        ${fotos}${del}
+      </article>`;
+  }
+
+  document.addEventListener("DOMContentLoaded", initResenas);
+  document.addEventListener("astro:page-load", initResenas);
+</script>

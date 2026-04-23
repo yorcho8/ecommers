@@ -1,0 +1,726 @@
+﻿---
+import BaseLayout from "../../../layouts/BaseLayout.astro";
+
+export function getStaticPaths() {
+  return [{ params: { lang: "es" } }];
+}
+
+const currentLang = "es";
+const cspNonce = Astro.locals?.cspNonce || "";
+const role = String(Astro.locals?.user?.rol || "").trim().toLowerCase().replace(/[\s_-]/g, "")
+  .replace(/^superadmin$|^superuser$|^superusuario$/, "superusuario");
+
+if (!role) return Astro.redirect(`/${currentLang}/login`);
+if (role !== "superusuario") {
+  return Astro.redirect(`/${currentLang}/admin/productos`);
+}
+---
+
+<BaseLayout title="Aprobacion de productos" currentLang={currentLang}>
+  <main class="ap-page">
+
+    <section class="ap-hero">
+      <div class="ap-hero__glow"></div>
+      <div class="ap-hero__left">
+        <div class="ap-kicker">
+          <span class="ap-kicker__dot"></span>
+          Superusuario
+        </div>
+        <h1 class="ap-hero__title">Productos por aprobar</h1>
+        <p class="ap-hero__sub">Controla que solo se publiquen productos permitidos en la plataforma.</p>
+      </div>
+      <button id="btnRefresh" class="ap-refresh" type="button">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M23 4v6h-6"/><path d="M1 20v-6h6"/>
+          <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
+        </svg>
+        Actualizar
+      </button>
+    </section>
+
+    <div id="apStatus" class="ap-status" hidden></div>
+
+    <div id="apStats" class="ap-stats" hidden>
+      <div class="ap-stat">
+        <span class="ap-stat__label">Pendientes</span>
+        <span class="ap-stat__val" id="stCount">0</span>
+      </div>
+      <div class="ap-stat">
+        <span class="ap-stat__label">Empresas</span>
+        <span class="ap-stat__val" id="stEmpresas">0</span>
+      </div>
+      <div class="ap-stat">
+        <span class="ap-stat__label">CategorÃ­as</span>
+        <span class="ap-stat__val" id="stCats">0</span>
+      </div>
+      <div class="ap-stat">
+        <span class="ap-stat__label">Valor total</span>
+        <span class="ap-stat__val ap-stat__val--sm" id="stValor">$0</span>
+      </div>
+    </div>
+
+    <div id="apGrid" class="ap-grid"></div>
+
+  </main>
+
+  <script nonce={cspNonce} is:inline>
+    (function () {
+      const statusEl   = document.getElementById("apStatus");
+      const gridEl     = document.getElementById("apGrid");
+      const statsEl    = document.getElementById("apStats");
+      const refreshBtn = document.getElementById("btnRefresh");
+      const stCount    = document.getElementById("stCount");
+      const stEmp      = document.getElementById("stEmpresas");
+      const stCat      = document.getElementById("stCats");
+      const stVal      = document.getElementById("stValor");
+
+      function status(text, type) {
+        if (!statusEl) return;
+        statusEl.hidden = !text;
+        statusEl.textContent = text || "";
+        statusEl.className = "ap-status" + (type ? " ap-status--" + type : "");
+      }
+
+      function money(v) {
+        return Number(v || 0).toLocaleString("es-MX", { style: "currency", currency: "MXN" });
+      }
+
+      function esc(v) {
+        return String(v || "")
+          .replaceAll("&","&amp;").replaceAll("<","&lt;")
+          .replaceAll(">","&gt;").replaceAll('"',"&quot;").replaceAll("'","&#39;");
+      }
+
+      const CAT_COLOR = {
+        "Electrónica":"purple","Electronics":"purple",
+        "Ropa":"pink","Clothing":"pink",
+        "Hogar":"teal","Home":"teal",
+        "Deportes":"green","Sports":"green",
+        "Alimentos":"amber","Food":"amber",
+        "Salud":"blue","Health":"blue",
+      };
+
+      function catChip(cat) {
+        const c = CAT_COLOR[cat] || "slate";
+        return `<span class="ap-chip ap-chip--${c}">${esc(cat)}</span>`;
+      }
+
+      async function load() {
+        status("Cargando pendientes...", "info");
+        if (gridEl) gridEl.innerHTML = "";
+        if (statsEl) statsEl.hidden = true;
+
+        try {
+          const res  = await fetch("/api/admin/productos/aprobaciones", { credentials: "include" });
+          const data = await res.json().catch(() => ({}));
+
+          if (!res.ok || !data?.success)
+            throw new Error(data?.error || "No se pudieron cargar los pendientes.");
+
+          const items = Array.isArray(data.productos) ? data.productos : [];
+
+          if (!items.length) {
+            status("", "");
+            gridEl.innerHTML = `
+              <div class="ap-empty">
+                <div class="ap-empty__icon">
+                  <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+                    <polyline points="22 4 12 14.01 9 11.01"/>
+                  </svg>
+                </div>
+                <p class="ap-empty__title">Todo al día</p>
+                <p class="ap-empty__sub">No hay productos pendientes de revisión.</p>
+              </div>`;
+            return;
+          }
+
+          const totalVal = items.reduce((s,i) => s + Number(i.precio||0), 0);
+          stCount.textContent = items.length;
+          stEmp.textContent   = new Set(items.map(i => i.empresaNombre)).size;
+          stCat.textContent   = new Set(items.map(i => i.categoria)).size;
+          stVal.textContent   = money(totalVal);
+          statsEl.hidden = false;
+          status("", "");
+
+          gridEl.innerHTML = items.map((item, idx) => {
+            const id   = Number(item.id || 0);
+            const name = esc(item.nombre);
+            const desc = esc(item.descripcion || "Sin descripción disponible.");
+            const emp  = esc(item.empresaNombre || "Empresa sin nombre");
+            const req  = esc(item.solicitanteNombre || "Administrador");
+            const cat  = esc(item.categoria || "Sin categoría");
+            const sku  = esc(item.sku || "");
+            const ref  = esc(item.codigoReferencia || "");
+            const img  = esc(item.imagen || "");
+            const px   = money(item.precio);
+            const stk  = Number(item.stock || 0);
+            const isNew = idx < 3;
+
+            return `
+<article class="ap-card" data-id="${id}" style="animation-delay:${idx * 80}ms">
+  <div class="ap-card__img">
+    ${img
+      ? `<img src="${img}" alt="${name}" loading="lazy" class="ap-card__photo" />`
+      : `<div class="ap-card__noimg">
+           <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round">
+             <rect x="3" y="3" width="18" height="18" rx="2"/>
+             <circle cx="8.5" cy="8.5" r="1.5"/>
+             <polyline points="21 15 16 10 5 21"/>
+           </svg>
+         </div>`}
+    <div class="ap-card__imggrad"></div>
+    <div class="ap-card__badges">
+      ${isNew ? `<span class="ap-badge ap-badge--new">Nuevo</span>` : ""}
+      ${stk <= 5 && stk > 0 ? `<span class="ap-badge ap-badge--low">Poco stock</span>` : ""}
+      ${stk === 0 ? `<span class="ap-badge ap-badge--out">Sin stock</span>` : ""}
+    </div>
+    <div class="ap-card__imgprice">${px}</div>
+  </div>
+  <div class="ap-card__body">
+    <div class="ap-card__chips">
+      ${catChip(cat)}
+      <span class="ap-chip ap-chip--slate">Stock &nbsp;<strong>${stk}</strong></span>
+      ${sku ? `<span class="ap-chip ap-chip--indigo">SKU: <strong>${sku}</strong></span>` : ""}
+      ${ref ? `<span class="ap-chip ap-chip--slate">Ref: <strong>${ref}</strong></span>` : ""}
+    </div>
+    <p class="ap-card__name">${name}</p>
+    <p class="ap-card__desc">${desc}</p>
+    <div class="ap-card__meta">
+      <div class="ap-meta-row">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round">
+          <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+          <polyline points="9 22 9 12 15 12 15 22"/>
+        </svg>
+        <span>${emp}</span>
+      </div>
+      <div class="ap-meta-row">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round">
+          <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+          <circle cx="12" cy="7" r="4"/>
+        </svg>
+        <span>${req}</span>
+      </div>
+    </div>
+    <div class="ap-card__actions">
+      <button class="ap-btn ap-btn--ok" type="button" data-action="approve">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+        Aprobar
+      </button>
+      <button class="ap-btn ap-btn--danger" type="button" data-action="reject">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+        </svg>
+        Rechazar
+      </button>
+    </div>
+  </div>
+</article>`;
+          }).join("");
+
+        } catch (err) {
+          status(err?.message || "Error al cargar pendientes.", "error");
+        }
+      }
+
+      async function resolve(productId, action) {
+        if (!productId) return;
+        let motivo = "";
+        if (action === "reject") {
+          motivo = window.prompt("Motivo de rechazo (obligatorio):", "Contenido no permitido") || "";
+          if (!motivo.trim()) { status("Debes indicar un motivo para rechazar.", "warn"); return; }
+        }
+        try {
+          status(action === "approve" ? "Aprobando..." : "Rechazando...", "info");
+          const res = await fetch("/api/admin/productos/aprobaciones", {
+            method: "POST", credentials: "include",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ productId, action, motivo: motivo.trim() }),
+          });
+          const data = await res.json().catch(() => ({}));
+          if (!res.ok || !data?.success) throw new Error(data?.error || "No se pudo procesar.");
+
+          const card = gridEl?.querySelector(`[data-id="${productId}"]`);
+          if (card) {
+            card.classList.add(action === "approve" ? "ap-card--exit-ok" : "ap-card--exit-ko");
+            await new Promise(r => setTimeout(r, 380));
+          }
+
+          if (window.Modal?.success)
+            window.Modal.success("Revisión completada", data.message || "Operación realizada.", { autoClose: 2200 });
+          await load();
+        } catch (err) {
+          if (window.Modal?.error) window.Modal.error("Error", err?.message || "No se pudo completar.");
+          status(err?.message || "Error al procesar.", "error");
+        }
+      }
+
+      gridEl?.addEventListener("click", async (e) => {
+        const btn = e.target?.closest("button[data-action]");
+        if (!btn) return;
+        const card = btn.closest("article[data-id]");
+        await resolve(Number(card?.dataset?.id || 0), String(btn.dataset.action || ""));
+      });
+
+      refreshBtn?.addEventListener("click", () => void load());
+      void load();
+    })();
+  </script>
+
+  <!-- â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+       IMPORTANTE: is:global es NECESARIO porque las cards
+       se crean con innerHTML desde JS en runtime â€”
+       los estilos scoped de Astro no alcanzan esos nodos
+  â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• -->
+  <style is:global>
+
+    /* â”€â”€ tÃ­tulo: fuerza tamaÃ±o normal contra h1 global â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+    .ap-page h1.ap-hero__title {
+      font-size: clamp(1.55rem, 2.8vw, 2.1rem) !important;
+      font-weight: 800 !important;
+      letter-spacing: -.025em !important;
+      line-height: 1.15 !important;
+      color: #f0ecff !important;
+      margin: 0 0 8px !important;
+      background: none !important;
+      -webkit-text-fill-color: #f0ecff !important;
+    }
+
+    /* â”€â”€ pÃ¡gina â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+    .ap-page {
+      padding: 96px 20px 72px;
+      max-width: 1160px;
+      margin: 0 auto;
+      box-sizing: border-box;
+    }
+
+    /* â”€â”€ hero â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+    .ap-hero {
+      position: relative;
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 16px;
+      padding: 30px 34px;
+      margin-bottom: 22px;
+      background: rgba(14,9,44,.82);
+      border: 1px solid rgba(175,169,236,.14);
+      border-radius: 22px;
+      box-shadow: 0 4px 28px rgba(0,0,0,.55), 0 1px 4px rgba(0,0,0,.3);
+      overflow: hidden;
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+    }
+    .ap-hero__glow {
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(ellipse 65% 85% at -5% -25%,
+        rgba(127,119,221,.22) 0%, transparent 65%);
+      pointer-events: none;
+    }
+    .ap-hero__left { position: relative; z-index: 1; }
+
+    .ap-kicker {
+      display: inline-flex !important;
+      align-items: center !important;
+      gap: 8px;
+      font-size: .72rem !important;
+      font-weight: 700 !important;
+      letter-spacing: .1em !important;
+      text-transform: uppercase !important;
+      color: #AFA9EC !important;
+      background: rgba(127,119,221,.13) !important;
+      border: 1px solid rgba(127,119,221,.3) !important;
+      border-radius: 999px !important;
+      padding: 4px 13px !important;
+      margin: 0 0 14px !important;
+    }
+    .ap-kicker__dot {
+      display: inline-block;
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      background: #7F77DD;
+      box-shadow: 0 0 8px #7F77DD;
+      animation: apBlink 2.2s ease-in-out infinite;
+      flex-shrink: 0;
+    }
+    @keyframes apBlink {
+      0%,100%{ opacity:1; transform:scale(1);   }
+      50%    { opacity:.4; transform:scale(.72); }
+    }
+    .ap-hero__sub {
+      font-size: .93rem !important;
+      color: #a89fd4 !important;
+      line-height: 1.55 !important;
+      margin: 0 !important;
+    }
+
+    .ap-refresh {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 11px 20px;
+      border-radius: 13px;
+      border: 1px solid rgba(175,169,236,.26);
+      background: rgba(127,119,221,.12);
+      color: #AFA9EC;
+      font-size: .85rem;
+      font-weight: 700;
+      cursor: pointer;
+      white-space: nowrap;
+      flex-shrink: 0;
+      transition: background .2s, transform .15s, box-shadow .2s;
+      position: relative;
+      z-index: 1;
+    }
+    .ap-refresh:hover {
+      background: rgba(127,119,221,.22);
+      box-shadow: 0 2px 14px rgba(83,74,183,.4);
+      transform: translateY(-2px);
+    }
+    .ap-refresh:active { transform: scale(.96); }
+
+    /* â”€â”€ status â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+    .ap-status {
+      border-radius: 12px;
+      padding: 12px 16px;
+      margin-bottom: 20px;
+      font-size: .88rem;
+      font-weight: 500;
+      line-height: 1.4;
+    }
+    .ap-status--info  { background:rgba(83,74,183,.16);  color:#AFA9EC; border:1px solid rgba(127,119,221,.24); }
+    .ap-status--ok    { background:rgba(20,83,45,.26);   color:#86efac; border:1px solid rgba(134,239,172,.22); }
+    .ap-status--warn  { background:rgba(113,63,18,.26);  color:#fcd34d; border:1px solid rgba(252,211,77,.22);  }
+    .ap-status--error { background:rgba(127,29,29,.28);  color:#fca5a5; border:1px solid rgba(252,165,165,.24); }
+
+    /* â”€â”€ stats â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+    .ap-stats {
+      display: grid;
+      grid-template-columns: repeat(4,1fr);
+      gap: 12px;
+      margin-bottom: 28px;
+    }
+    .ap-stat {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      padding: 18px 20px;
+      background: rgba(14,9,44,.82);
+      border: 1px solid rgba(175,169,236,.14);
+      border-radius: 16px;
+      box-shadow: 0 4px 28px rgba(0,0,0,.55);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      transition: transform .22s, box-shadow .22s;
+    }
+    .ap-stat:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 14px 44px rgba(0,0,0,.65), 0 3px 10px rgba(83,74,183,.25);
+    }
+    .ap-stat__label {
+      display: block !important;
+      font-size: .7rem !important;
+      font-weight: 700 !important;
+      letter-spacing: .08em !important;
+      text-transform: uppercase !important;
+      color: #6c6398 !important;
+      line-height: 1 !important;
+      margin: 0 !important;
+    }
+    .ap-stat__val {
+      display: block !important;
+      font-size: 2.1rem !important;
+      font-weight: 900 !important;
+      letter-spacing: -.05em !important;
+      line-height: 1 !important;
+      background: linear-gradient(130deg,#e8e4ff 0%,#7F77DD 100%) !important;
+      -webkit-background-clip: text !important;
+      -webkit-text-fill-color: transparent !important;
+      background-clip: text !important;
+      margin: 0 !important;
+    }
+    .ap-stat__val--sm { font-size:1.35rem !important; letter-spacing:-.02em !important; }
+
+    /* â”€â”€ grid â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+    .ap-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px,1fr));
+      gap: 22px;
+    }
+
+    /* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+       PRODUCT CARD â€” todos con !important para ganarle
+       a cualquier estilo global de BaseLayout
+    â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
+    .ap-card {
+      display: flex !important;
+      flex-direction: column !important;
+      background: rgba(10,6,34,.88) !important;
+      border: 1px solid rgba(175,169,236,.14) !important;
+      border-radius: 22px !important;
+      overflow: hidden !important;
+      box-shadow: 0 4px 28px rgba(0,0,0,.55), 0 1px 4px rgba(0,0,0,.3) !important;
+      opacity: 0;
+      transform: translateY(20px) scale(.98);
+      animation: apCardIn .46s cubic-bezier(.22,.61,.36,1) forwards;
+      transition: transform .32s cubic-bezier(.22,.61,.36,1),
+                  box-shadow .32s ease,
+                  border-color .22s ease !important;
+    }
+    @keyframes apCardIn {
+      to { opacity:1; transform:translateY(0) scale(1); }
+    }
+    .ap-card:hover {
+      transform: translateY(-7px) scale(1.005) !important;
+      box-shadow: 0 14px 44px rgba(0,0,0,.65), 0 3px 10px rgba(83,74,183,.25) !important;
+      border-color: rgba(175,169,236,.28) !important;
+    }
+    .ap-card--exit-ok { animation: apExitOk .38s forwards !important; }
+    .ap-card--exit-ko { animation: apExitKo .38s forwards !important; }
+    @keyframes apExitOk { to { opacity:0; transform:scale(.93) translateY(-10px); filter:blur(3px); } }
+    @keyframes apExitKo { to { opacity:0; transform:scale(.93) translateX(16px);  filter:blur(3px); } }
+
+    /* image zone */
+    .ap-card__img {
+      position: relative !important;
+      height: 230px !important;
+      overflow: hidden !important;
+      background: rgba(83,74,183,.08) !important;
+      flex-shrink: 0 !important;
+    }
+    .ap-card__photo {
+      width: 100% !important;
+      height: 100% !important;
+      object-fit: cover !important;
+      display: block !important;
+      transition: transform .55s cubic-bezier(.22,.61,.36,1) !important;
+    }
+    .ap-card:hover .ap-card__photo { transform: scale(1.07) !important; }
+
+    .ap-card__imggrad {
+      position: absolute !important;
+      inset: 0 !important;
+      background: linear-gradient(to top,
+        rgba(10,6,34,.9) 0%,
+        rgba(10,6,34,.2) 45%,
+        transparent 70%) !important;
+      pointer-events: none !important;
+    }
+    .ap-card__noimg {
+      display: flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      height: 100% !important;
+      color: #6c6398 !important;
+    }
+
+    /* badges */
+    .ap-card__badges {
+      position: absolute !important;
+      top: 12px !important; left: 12px !important;
+      display: flex !important;
+      gap: 6px !important;
+      pointer-events: none !important;
+      z-index: 2 !important;
+    }
+    .ap-badge {
+      display: inline-block !important;
+      font-size: .66rem !important;
+      font-weight: 800 !important;
+      letter-spacing: .07em !important;
+      text-transform: uppercase !important;
+      border-radius: 999px !important;
+      padding: 4px 11px !important;
+      line-height: 1.3 !important;
+    }
+    .ap-badge--new { background:#534AB7 !important; color:#EEEDFE !important; box-shadow:0 2px 10px rgba(83,74,183,.55) !important; }
+    .ap-badge--low { background:rgba(234,179,8,.2) !important; color:#fde047 !important; border:1px solid rgba(253,224,71,.3) !important; }
+    .ap-badge--out { background:rgba(239,68,68,.2) !important; color:#fca5a5 !important; border:1px solid rgba(252,165,165,.3) !important; }
+
+    /* price on image */
+    .ap-card__imgprice {
+      position: absolute !important;
+      bottom: 13px !important; right: 15px !important;
+      font-size: 1.3rem !important;
+      font-weight: 900 !important;
+      letter-spacing: -.03em !important;
+      color: #fff !important;
+      -webkit-text-fill-color: #fff !important;
+      text-shadow: 0 2px 14px rgba(0,0,0,.8) !important;
+      pointer-events: none !important;
+      z-index: 2 !important;
+      line-height: 1 !important;
+    }
+
+    /* body */
+    .ap-card__body {
+      display: flex !important;
+      flex-direction: column !important;
+      gap: 11px !important;
+      padding: 18px 20px 20px !important;
+      flex: 1 !important;
+    }
+
+    /* chips */
+    .ap-card__chips {
+      display: flex !important;
+      flex-wrap: wrap !important;
+      gap: 6px !important;
+    }
+    .ap-chip {
+      display: inline-flex !important;
+      align-items: center !important;
+      font-size: .7rem !important;
+      font-weight: 700 !important;
+      border-radius: 999px !important;
+      padding: 4px 11px !important;
+      border: 1px solid transparent !important;
+      line-height: 1.3 !important;
+    }
+    .ap-chip--purple { background:rgba(127,119,221,.15) !important; color:#AFA9EC !important; border-color:rgba(127,119,221,.28) !important; }
+    .ap-chip--pink   { background:rgba(212,83,126,.13)  !important; color:#f4c0d1 !important; border-color:rgba(212,83,126,.25) !important; }
+    .ap-chip--teal   { background:rgba(29,158,117,.13)  !important; color:#9fe1cb !important; border-color:rgba(29,158,117,.25) !important; }
+    .ap-chip--green  { background:rgba(99,153,34,.13)   !important; color:#c0dd97 !important; border-color:rgba(99,153,34,.25)  !important; }
+    .ap-chip--amber  { background:rgba(186,117,23,.13)  !important; color:#fac775 !important; border-color:rgba(186,117,23,.25) !important; }
+    .ap-chip--blue   { background:rgba(55,138,221,.13)  !important; color:#b5d4f4 !important; border-color:rgba(55,138,221,.25) !important; }
+    .ap-chip--slate  { background:rgba(175,169,236,.08) !important; color:#a89fd4 !important; border-color:rgba(175,169,236,.14) !important; }
+    .ap-chip--indigo { background:rgba(127,119,221,.18) !important; color:#d8d4ff !important; border-color:rgba(127,119,221,.4) !important; }
+
+    /* name */
+    .ap-card__name {
+      font-size: 1.12rem !important;
+      font-weight: 800 !important;
+      letter-spacing: -.015em !important;
+      line-height: 1.3 !important;
+      color: #f0ecff !important;
+      -webkit-text-fill-color: #f0ecff !important;
+      margin: 0 !important;
+    }
+
+    /* description */
+    .ap-card__desc {
+      font-size: .86rem !important;
+      color: #a89fd4 !important;
+      line-height: 1.6 !important;
+      margin: 0 !important;
+      display: -webkit-box !important;
+      -webkit-line-clamp: 2 !important;
+      -webkit-box-orient: vertical !important;
+      overflow: hidden !important;
+    }
+
+    /* meta */
+    .ap-card__meta {
+      display: flex !important;
+      flex-direction: column !important;
+      gap: 6px !important;
+      padding: 10px 13px !important;
+      background: rgba(127,119,221,.07) !important;
+      border: 1px solid rgba(175,169,236,.14) !important;
+      border-radius: 11px !important;
+    }
+    .ap-meta-row {
+      display: flex !important;
+      align-items: center !important;
+      gap: 8px !important;
+      font-size: .8rem !important;
+      color: #a89fd4 !important;
+    }
+    .ap-meta-row svg  { flex-shrink: 0; opacity: .55; }
+    .ap-meta-row span { font-size: .8rem !important; color: #a89fd4 !important; }
+
+    /* action buttons */
+    .ap-card__actions {
+      display: grid !important;
+      grid-template-columns: 1fr 1fr !important;
+      gap: 9px !important;
+      margin-top: auto !important;
+    }
+    .ap-btn {
+      display: inline-flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      gap: 7px !important;
+      padding: 13px 10px !important;
+      border-radius: 13px !important;
+      font-size: .86rem !important;
+      font-weight: 800 !important;
+      cursor: pointer !important;
+      line-height: 1 !important;
+      transition: background .18s, transform .14s, box-shadow .18s !important;
+    }
+    .ap-btn svg { flex-shrink: 0; }
+    .ap-btn--ok {
+      background: rgba(34,197,94,.13) !important;
+      color: #86efac !important;
+      border: 1px solid rgba(134,239,172,.3) !important;
+    }
+    .ap-btn--ok:hover {
+      background: rgba(34,197,94,.24) !important;
+      box-shadow: 0 4px 18px rgba(34,197,94,.22) !important;
+      transform: translateY(-2px) !important;
+    }
+    .ap-btn--danger {
+      background: rgba(239,68,68,.13) !important;
+      color: #fca5a5 !important;
+      border: 1px solid rgba(252,165,165,.3) !important;
+    }
+    .ap-btn--danger:hover {
+      background: rgba(239,68,68,.24) !important;
+      box-shadow: 0 4px 18px rgba(239,68,68,.22) !important;
+      transform: translateY(-2px) !important;
+    }
+    .ap-btn:active { transform: scale(.96) !important; }
+
+    /* â”€â”€ empty state â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+    .ap-empty {
+      grid-column: 1/-1;
+      display: flex !important;
+      flex-direction: column !important;
+      align-items: center !important;
+      text-align: center !important;
+      padding: 72px 24px !important;
+      background: rgba(14,9,44,.82) !important;
+      border: 1px dashed rgba(175,169,236,.14) !important;
+      border-radius: 22px !important;
+      gap: 14px !important;
+    }
+    .ap-empty__icon {
+      width: 74px; height: 74px;
+      border-radius: 50% !important;
+      background: rgba(127,119,221,.1) !important;
+      border: 1px solid rgba(127,119,221,.22) !important;
+      display: flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      color: #7F77DD !important;
+    }
+    .ap-empty__title {
+      font-size: 1.2rem !important;
+      font-weight: 800 !important;
+      color: #f0ecff !important;
+      -webkit-text-fill-color: #f0ecff !important;
+      margin: 0 !important;
+    }
+    .ap-empty__sub {
+      font-size: .9rem !important;
+      color: #a89fd4 !important;
+      margin: 0 !important;
+    }
+
+    /* â”€â”€ responsive â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+    @media (max-width: 700px) {
+      .ap-page  { padding: 82px 12px 48px !important; }
+      .ap-hero  { flex-direction: column !important; padding: 22px 18px !important; }
+      .ap-stats { grid-template-columns: repeat(2,1fr) !important; }
+      .ap-grid  { grid-template-columns: 1fr !important; }
+    }
+    @media (min-width: 1080px) {
+      .ap-grid  { grid-template-columns: repeat(3,1fr) !important; }
+    }
+
+  </style>
+</BaseLayout>
+
+

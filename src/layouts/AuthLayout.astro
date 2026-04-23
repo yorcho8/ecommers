@@ -1,0 +1,22 @@
+---
+// src/layouts/AuthLayout.astro
+// Layout ligero para páginas de autenticación (login/registro)
+// Usa BaseLayout internamente para heredar navbar/footer y estructura general.
+
+import BaseLayout from "./BaseLayout.astro";
+import Footer from "../components/Footer.astro";
+
+const { title = "", currentLang = "es" } = Astro.props;
+---
+
+<BaseLayout title={title} currentLang={currentLang}>
+  <div class="auth-page">
+    <slot />
+  </div>
+  <Footer currentLang={currentLang} />
+</BaseLayout>
+
+<style>
+.auth-page {
+}
+</style>

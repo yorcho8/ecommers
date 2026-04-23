@@ -1,0 +1,43 @@
+{
+  "totalSessions": 0,
+  "totalMessages": 0,
+  "totalWhatsApp": 0,
+  "totalPDFs": 0,
+  "products": {},
+  "keywords": {},
+  "intents": {
+    "compra": 0,
+    "pdf": 0,
+    "info": 0,
+    "reclutamiento": 0,
+    "otro": 0
+  },
+  "daily": {},
+  "hourly": [
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+  ],
+  "lastMessages": []
+}

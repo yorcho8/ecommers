@@ -1,0 +1,311 @@
+﻿---
+import BaseLayout from "../../../layouts/BaseLayout.astro";
+
+export function getStaticPaths() {
+  return [{ params: { lang: "es" } }];
+}
+const currentLang = "es";
+const cspNonce = Astro.locals?.cspNonce || "";
+
+const role = String(Astro.locals?.user?.rol || "").trim().toLowerCase().replace(/[\s_-]/g, "")
+  .replace(/^superadmin$|^superuser$|^superusuario$/, "superusuario");
+
+if (!role) return Astro.redirect(`/${currentLang}/login`);
+if (role !== "admin" && role !== "superusuario") return Astro.redirect(`/${currentLang}`);
+
+const canVerdict = role === "superusuario";
+---
+
+<BaseLayout title="Quejas de productos" currentLang={currentLang}>
+  <main class="pi-page" data-app-view>
+    <section class="pi-head">
+      <div>
+        <p class="pi-kicker">Incidencias de pedidos</p>
+        <h1>Quejas por producto entregado</h1>
+        <p>Revisa evidencias de clientes y emite veredicto de devolucion.</p>
+      </div>
+      <div class="pi-actions">
+        <select id="pi-status-filter">
+          <option value="all">Todos</option>
+          <option value="pendiente">Pendientes</option>
+          <option value="aprobada_devolucion">Aprobadas</option>
+          <option value="rechazada_devolucion">Rechazadas</option>
+        </select>
+      </div>
+    </section>
+
+    <section id="pi-list" class="pi-list"></section>
+  </main>
+
+  <script nonce={cspNonce} is:inline define:vars={{ canVerdict }}>
+    (function () {
+      var list = document.getElementById("pi-list");
+      var filter = document.getElementById("pi-status-filter");
+
+      function fmtDate(iso) {
+        if (!iso) return "-";
+        var d = new Date(iso);
+        if (Number.isNaN(d.getTime())) return String(iso);
+        return d.toLocaleString("es-MX", { year: "numeric", month: "short", day: "2-digit", hour: "2-digit", minute: "2-digit" });
+      }
+
+      function statusLabel(status) {
+        var map = {
+          pendiente: "Pendiente",
+          aprobada_devolucion: "Aprobada",
+          rechazada_devolucion: "Rechazada",
+        };
+        return map[String(status || "")] || String(status || "-");
+      }
+
+      function statusClass(status) {
+        var map = {
+          pendiente: "is-pending",
+          aprobada_devolucion: "is-ok",
+          rechazada_devolucion: "is-no",
+        };
+        return map[String(status || "")] || "";
+      }
+
+      function priorityLabel(priority) {
+        var map = {
+          alta: "Alta Â· roto grave",
+          media: "Media Â· faltante parcial",
+          baja: "Baja Â· detalle menor",
+        };
+        return map[String(priority || "")] || "Media Â· faltante parcial";
+      }
+
+      function priorityClass(priority) {
+        var map = {
+          alta: "is-high",
+          media: "is-medium",
+          baja: "is-low",
+        };
+        return map[String(priority || "")] || "is-medium";
+      }
+
+      function logLabel(action) {
+        var map = {
+          creada: "Incidencia creada",
+          dictamen_aprobado: "Veredicto: devolucion aprobada",
+          dictamen_rechazado: "Veredicto: devolucion rechazada",
+          notificacion_fallida: "Fallo en notificacion",
+        };
+        return map[String(action || "")] || String(action || "Accion");
+      }
+
+      function cardHtml(item) {
+        var images = Array.isArray(item.imagenes) ? item.imagenes : [];
+        var imageGrid = images.length
+          ? '<div class="pi-images">' + images.map(function (u) {
+              return '<a href="' + u + '" target="_blank" rel="noopener"><img src="' + u + '" alt="Evidencia" loading="lazy" /></a>';
+            }).join("") + '</div>'
+          : '<p class="pi-muted">Sin imagenes</p>';
+
+        var verdictInfo = item.veredicto
+          ? '<p class="pi-verdict">Veredicto: ' + item.veredicto + '</p>' + (item.comentarioVeredicto ? '<p class="pi-verdict-comment">' + item.comentarioVeredicto + '</p>' : '')
+          : '';
+
+        var logItems = Array.isArray(item.bitacora) ? item.bitacora : [];
+        var logHtml = logItems.length
+          ? '<div class="pi-log"><h3>Bitacora de acciones</h3>' + logItems.map(function (entry) {
+              var actor = entry.actorNombre || 'Sistema';
+              var when = fmtDate(entry.fecha);
+              var role = entry.actorRol ? ' (' + entry.actorRol + ')' : '';
+              var detail = entry.detalle ? '<p>' + entry.detalle + '</p>' : '';
+              return '<article><header><strong>' + logLabel(entry.accion) + '</strong><span>' + when + '</span></header><small>' + actor + role + '</small>' + detail + '</article>';
+            }).join('') + '</div>'
+          : '';
+
+        var buttons = '';
+        if (canVerdict && item.estado === "pendiente") {
+          buttons =
+            '<div class="pi-buttons">' +
+            '<button data-action="aprobar" data-id="' + item.id + '">Aprobar devolucion</button>' +
+            '<button data-action="rechazar" data-id="' + item.id + '" class="danger">Rechazar devolucion</button>' +
+            '</div>';
+        }
+
+        return '' +
+          '<article class="pi-card">' +
+            '<header class="pi-card-head">' +
+              '<div>' +
+                '<p class="pi-folio">' + item.folio + ' Â· Pedido #' + item.numeroPedido + '</p>' +
+                '<h2>' + item.motivo + '</h2>' +
+                '<p class="pi-priority ' + priorityClass(item.prioridad) + '">' + priorityLabel(item.prioridad) + '</p>' +
+              '</div>' +
+              '<span class="pi-status ' + statusClass(item.estado) + '">' + statusLabel(item.estado) + '</span>' +
+            '</header>' +
+            '<p class="pi-desc">' + (item.descripcion || "") + '</p>' +
+            '<div class="pi-meta">' +
+              '<span>Cliente: ' + (item.usuario?.nombre || "-") + '</span>' +
+              '<span>Correo: ' + (item.usuario?.correo || "-") + '</span>' +
+              '<span>Limite reporte: ' + fmtDate(item.fechaLimiteReporte) + '</span>' +
+              '<span>Creada: ' + fmtDate(item.fechaCreacion) + '</span>' +
+            '</div>' +
+            imageGrid +
+            verdictInfo +
+            logHtml +
+            buttons +
+          '</article>';
+      }
+
+      async function loadItems() {
+        if (!list) return;
+        list.innerHTML = '<p class="pi-loading">Cargando incidencias...</p>';
+        try {
+          var status = filter ? filter.value : "all";
+          var res = await fetch('/api/admin/incidencias-pedidos?status=' + encodeURIComponent(status), { credentials: 'include' });
+          var data = await res.json().catch(function () { return {}; });
+          if (!res.ok || !data?.success) {
+            list.innerHTML = '<p class="pi-error">' + (data?.error || 'No se pudo cargar incidencias') + '</p>';
+            return;
+          }
+          var items = Array.isArray(data.items) ? data.items : [];
+          if (!items.length) {
+            list.innerHTML = '<p class="pi-empty">No hay incidencias para este filtro.</p>';
+            return;
+          }
+          list.innerHTML = items.map(cardHtml).join('');
+        } catch (e) {
+          list.innerHTML = '<p class="pi-error">Error de red cargando incidencias.</p>';
+        }
+      }
+
+      async function handleVerdict(id, action) {
+        var comment = window.prompt(action === 'aprobar' ? 'Comentario para aprobar (opcional):' : 'Motivo de rechazo (recomendado):', '') || '';
+        var res = await fetch('/api/admin/incidencias-pedidos', {
+          method: 'PATCH',
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id: Number(id), veredicto: action, comentario: comment }),
+        });
+        var data = await res.json().catch(function () { return {}; });
+        if (!res.ok || !data?.success) {
+          window.alert(data?.error || 'No se pudo registrar veredicto');
+          return;
+        }
+        await loadItems();
+      }
+
+      list?.addEventListener('click', function (ev) {
+        var target = ev.target;
+        if (!(target instanceof HTMLElement)) return;
+        var btn = target.closest('button[data-action]');
+        if (!(btn instanceof HTMLElement)) return;
+        var id = btn.getAttribute('data-id');
+        var action = btn.getAttribute('data-action');
+        if (!id || !action) return;
+        handleVerdict(id, action);
+      });
+
+      filter?.addEventListener('change', loadItems);
+      loadItems();
+    })();
+  </script>
+
+  <style is:global>
+    .pi-page {
+      max-width: 1180px;
+      margin: 0 auto;
+      padding: 112px 22px 52px;
+      color: #e8edf5;
+      position: relative;
+    }
+    .pi-page::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      z-index: -1;
+      pointer-events: none;
+      background:
+        radial-gradient(circle at 15% 18%, rgba(122,37,50,.2), transparent 35%),
+        radial-gradient(circle at 78% 22%, rgba(34,211,238,.16), transparent 34%),
+        linear-gradient(180deg, #0b1120 0%, #111827 100%);
+    }
+    .pi-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 14px;
+      align-items: end;
+      margin-bottom: 18px;
+      padding: 14px 16px;
+      border: 1px solid rgba(71,85,105,.5);
+      border-radius: 16px;
+      background: linear-gradient(170deg, rgba(15,23,42,.75), rgba(2,6,23,.65));
+      box-shadow: 0 14px 34px rgba(2,6,23,.38);
+    }
+    .pi-kicker { margin: 0; font-size: .68rem; letter-spacing: .08em; text-transform: uppercase; color: #94a3b8; }
+    .pi-head h1 { margin: 2px 0 4px; font-size: clamp(1.3rem, 2.3vw, 1.9rem); }
+    .pi-head p { margin: 0; color: #94a3b8; font-size: .86rem; }
+    .pi-actions select {
+      background: rgba(15,23,42,.95);
+      border: 1px solid rgba(148,163,184,.45);
+      color: #e8edf5;
+      border-radius: 12px;
+      padding: 9px 12px;
+      font-weight: 600;
+    }
+    .pi-list { display: grid; gap: 12px; }
+    .pi-card {
+      border: 1px solid rgba(71,85,105,.6);
+      border-radius: 16px;
+      background: linear-gradient(165deg, rgba(15,23,42,.95), rgba(2,6,23,.88));
+      box-shadow: 0 16px 32px rgba(2,6,23,.35);
+      padding: 14px;
+      transition: transform .16s ease, border-color .16s ease;
+    }
+    .pi-card:hover { transform: translateY(-1px); border-color: rgba(122,37,50,.45); }
+    .pi-card-head { display: flex; justify-content: space-between; gap: 12px; align-items: start; }
+    .pi-folio { margin: 0; color: #94a3b8; font-size: .72rem; }
+    .pi-card h2 { margin: 4px 0 0; font-size: 1rem; }
+    .pi-priority { margin: 8px 0 0; display: inline-flex; align-items: center; gap: 6px; font-size: .72rem; font-weight: 700; padding: 4px 10px; border-radius: 999px; border: 1px solid transparent; }
+    .pi-priority::before { content: ""; width: 8px; height: 8px; border-radius: 999px; }
+    .pi-priority.is-high { color: #fecaca; border-color: rgba(248,113,113,.42); background: rgba(127,29,29,.35); }
+    .pi-priority.is-high::before { background: #ef4444; box-shadow: 0 0 10px rgba(239,68,68,.68); }
+    .pi-priority.is-medium { color: #fde68a; border-color: rgba(245,158,11,.4); background: rgba(120,53,15,.35); }
+    .pi-priority.is-medium::before { background: #f59e0b; box-shadow: 0 0 10px rgba(245,158,11,.68); }
+    .pi-priority.is-low { color: #bbf7d0; border-color: rgba(52,211,153,.4); background: rgba(6,78,59,.35); }
+    .pi-priority.is-low::before { background: #34d399; box-shadow: 0 0 10px rgba(52,211,153,.68); }
+    .pi-status { font-size: .72rem; font-weight: 800; border-radius: 999px; padding: 4px 10px; border: 1px solid #334155; }
+    .pi-status.is-pending { color: #f59e0b; border-color: rgba(245,158,11,.4); background: rgba(245,158,11,.1); }
+    .pi-status.is-ok { color: #34d399; border-color: rgba(52,211,153,.4); background: rgba(52,211,153,.1); }
+    .pi-status.is-no { color: #fb7185; border-color: rgba(251,113,133,.45); background: rgba(251,113,133,.1); }
+    .pi-desc { margin: 10px 0; color: #cbd5e1; font-size: .87rem; white-space: pre-wrap; }
+    .pi-meta { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; margin-bottom: 10px; font-size: .77rem; color: #94a3b8; }
+    .pi-images { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 8px; margin-bottom: 10px; }
+    .pi-images a { display: block; border-radius: 10px; overflow: hidden; border: 1px solid #334155; box-shadow: 0 8px 18px rgba(2,6,23,.32); }
+    .pi-images img { width: 100%; height: 120px; object-fit: cover; display: block; }
+    .pi-buttons { display: flex; gap: 8px; flex-wrap: wrap; }
+    .pi-buttons button {
+      border: 0;
+      border-radius: 10px;
+      padding: 8px 12px;
+      font-weight: 700;
+      background: linear-gradient(140deg, #7a2532, #6b202d);
+      color: #fff;
+      cursor: pointer;
+      transition: transform .14s ease, box-shadow .14s ease;
+    }
+    .pi-buttons button:hover { transform: translateY(-1px); box-shadow: 0 10px 20px rgba(122,37,50,.26); }
+    .pi-buttons button.danger { background: #be123c; }
+    .pi-verdict { margin: 8px 0 4px; color: #7dd3fc; font-size: .8rem; }
+    .pi-verdict-comment { margin: 0 0 8px; color: #cbd5e1; font-size: .83rem; }
+    .pi-log { margin: 10px 0 12px; border: 1px solid #334155; border-radius: 10px; padding: 10px; background: rgba(15,23,42,.45); display: grid; gap: 8px; }
+    .pi-log h3 { margin: 0; font-size: .76rem; letter-spacing: .04em; color: #93c5fd; text-transform: uppercase; }
+    .pi-log article { border-top: 1px solid rgba(51,65,85,.8); padding-top: 8px; }
+    .pi-log article:first-of-type { border-top: 0; padding-top: 0; }
+    .pi-log header { display: flex; justify-content: space-between; gap: 10px; font-size: .74rem; color: #cbd5e1; }
+    .pi-log small { color: #94a3b8; font-size: .72rem; }
+    .pi-log p { margin: 4px 0 0; color: #e2e8f0; font-size: .79rem; white-space: pre-wrap; }
+    .pi-loading, .pi-error, .pi-empty, .pi-muted { margin: 0; color: #94a3b8; }
+    @media (max-width: 720px) {
+      .pi-head { flex-direction: column; align-items: start; }
+      .pi-meta { grid-template-columns: 1fr; }
+    }
+  </style>
+</BaseLayout>
+
+
+

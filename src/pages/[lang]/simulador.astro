@@ -1,0 +1,336 @@
+---
+// src/pages/[lang]/simulador.astro
+import BaseLayout from "../../layouts/BaseLayout.astro";
+
+const { lang } = Astro.params;
+const cspNonce = Astro.locals?.cspNonce || "";
+
+const role = String(Astro.locals?.user?.rol || "").trim().toLowerCase().replace(/[\s_-]/g, "")
+  .replace(/^superadmin$|^superuser$|^superusuario$/, "superusuario");
+const isAdmin = role === "admin" || role === "superusuario";
+
+if (!isAdmin) {
+  return Astro.redirect(`/${lang}/`);
+}
+---
+
+<BaseLayout title="Simulador · GO2026" currentLang={lang}>
+
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@300;400;500&display=swap');
+
+  .pg {
+    min-height: 80vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 40px 24px;
+  }
+
+  .wrap {
+    width: 100%;
+    max-width: 420px;
+  }
+
+  /* ── Encabezado ── */
+  .heading {
+    margin-bottom: 48px;
+  }
+  .heading h1 {
+    font-family: 'DM Serif Display', Georgia, serif;
+    font-size: 32px;
+    font-weight: 400;
+    letter-spacing: -0.02em;
+    line-height: 1.15;
+    color: #f0ede8;
+    margin: 0 0 8px;
+  }
+  html:not(.dark) .heading h1 { color: #1a1614; }
+
+  .heading h1 em {
+    font-style: italic;
+    color: #e8521a;
+  }
+  .heading p {
+    font-size: 13px;
+    color: #ffffff;
+    letter-spacing: 0.01em;
+  }
+  html:not(.dark) .heading p { color: #8a7f78; }
+
+  /* ── Input ── */
+  .input-area {
+    position: relative;
+    margin-bottom: 40px;
+  }
+  .input-area .prefix {
+    position: absolute;
+    left: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    font-family: 'DM Mono', monospace;
+    font-size: 28px;
+    font-weight: 300;
+    color: #ffffff;
+    pointer-events: none;
+    transition: color .2s;
+  }
+  html:not(.dark) .input-area .prefix { color: #b0a8a2; }
+
+  .input-area input {
+    width: 100%;
+    background: transparent;
+    border: none;
+    border-bottom: 1.5px solid #ffffff;
+    outline: none;
+    font-family: 'DM Mono', monospace;
+    font-size: 42px;
+    font-weight: 400;
+    color: #ffffff;
+    padding: 8px 0 12px 32px;
+    letter-spacing: -0.02em;
+    transition: border-color .2s;
+    -moz-appearance: textfield;
+  }
+  html:not(.dark) .input-area input {
+    border-bottom-color: #ddd;
+    color: #1a1614;
+  }
+  .input-area input::placeholder { color: rgba(255,255,255,0.4); }
+  html:not(.dark) .input-area input::placeholder { color: #ccc; }
+  .input-area input:focus { border-bottom-color: #e8521a; }
+  .input-area input:focus + .line { background: #e8521a; }
+  .input-area input::-webkit-outer-spin-button,
+  .input-area input::-webkit-inner-spin-button { -webkit-appearance: none; }
+
+  .input-hint {
+    position: absolute;
+    right: 0;
+    bottom: -20px;
+    font-size: 11px;
+    color: #ffffff;
+    font-family: 'DM Mono', monospace;
+    letter-spacing: .04em;
+  }
+  html:not(.dark) .input-hint { color: #bbb; }
+
+  /* ── Desglose ── */
+  .breakdown {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    margin-bottom: 32px;
+    opacity: 0;
+    transform: translateY(8px);
+    transition: opacity .3s ease, transform .3s ease;
+    pointer-events: none;
+  }
+  .breakdown.visible {
+    opacity: 1;
+    transform: translateY(0);
+    pointer-events: auto;
+  }
+
+  .bk-row {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    padding: 13px 0;
+    border-bottom: 1px solid rgba(255,255,255,0.25);
+  }
+  html:not(.dark) .bk-row { border-bottom-color: #f0ece8; }
+  .bk-row:first-child { border-top: 1px solid rgba(255,255,255,0.25); }
+  html:not(.dark) .bk-row:first-child { border-top-color: #f0ece8; }
+
+  .bk-left {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .bk-name {
+    font-size: 13px;
+    font-weight: 500;
+    color: #ffffff;
+    letter-spacing: .01em;
+  }
+  html:not(.dark) .bk-name { color: #8a7f78; }
+
+  .bk-val {
+    font-family: 'DM Mono', monospace;
+    font-size: 15px;
+    font-weight: 400;
+    letter-spacing: -0.01em;
+    transition: color .2s;
+  }
+
+  /* ── Resultado ── */
+  .result-row {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    padding-top: 4px;
+    opacity: 0;
+    transform: translateY(6px);
+    transition: opacity .35s ease .08s, transform .35s ease .08s;
+  }
+  .result-row.visible {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  .result-label {
+    font-size: 12px;
+    color: #ffffff;
+    text-transform: uppercase;
+    letter-spacing: .1em;
+    font-family: 'DM Mono', monospace;
+    margin-bottom: 6px;
+  }
+  html:not(.dark) .result-label { color: #bbb; }
+
+  .result-amount {
+    font-family: 'DM Serif Display', Georgia, serif;
+    font-size: 48px;
+    font-weight: 400;
+    letter-spacing: -0.02em;
+    line-height: 1;
+    transition: color .3s;
+  }
+  .result-amount.pos { color: #e8521a; }
+  .result-amount.neg { color: #ef4444; }
+  .result-amount.zero { color: #3e3a37; }
+
+  .result-pct {
+    font-family: 'DM Mono', monospace;
+    font-size: 13px;
+    color: #ffffff;
+    text-align: right;
+    padding-bottom: 6px;
+    transition: color .3s;
+  }
+  html:not(.dark) .result-pct { color: #bbb; }
+  .result-pct.pos { color: #e8521a; }
+
+  /* ── Nota ── */
+  .nota {
+    margin-top: 48px;
+    font-size: 11px;
+    color: rgba(255,255,255,0.5);
+    letter-spacing: .03em;
+    line-height: 1.8;
+  }
+  html:not(.dark) .nota { color: #ccc; }
+</style>
+
+<div class="pg">
+  <div class="wrap">
+
+    <div class="heading">
+      <h1>¿Cuánto<br>ganas <em>realmente?</em></h1>
+      <p>Escribe el precio de tu producto.</p>
+    </div>
+
+    <div class="input-area">
+      <span class="prefix">$</span>
+      <input
+        type="number"
+        id="precioInput"
+        placeholder="0"
+        min="0"
+        step="1"
+        autocomplete="off"
+        autofocus
+      />
+      <span class="input-hint">MXN</span>
+    </div>
+
+    <div class="breakdown" id="breakdown">
+      <div class="bk-row">
+        <span class="bk-name">IVA 16%</span>
+        <span class="bk-val" id="v-iva" style="color:#4a7fa5">—</span>
+      </div>
+      <div class="bk-row">
+        <span class="bk-name">Comisión GO (8% + IVA)</span>
+        <span class="bk-val" id="v-com" style="color:#c0503a">—</span>
+      </div>
+      <div class="bk-row">
+        <span class="bk-name">ISR retenido (1.5%)</span>
+        <span class="bk-val" id="v-isr" style="color:#b08040">—</span>
+      </div>
+    </div>
+
+    <div class="result-row" id="resultRow">
+      <div>
+        <div class="result-label">Tu ganancia</div>
+        <div class="result-amount zero" id="resultAmt">—</div>
+      </div>
+      <div class="result-pct" id="resultPct">de tu precio</div>
+    </div>
+
+    <div class="nota">
+      IVA 16% · Comisión 8% + IVA · ISR RESICO 1.5%<br>
+      Precios con IVA incluido · Solo orientativo
+    </div>
+
+  </div>
+</div>
+
+<script>
+  // @ts-nocheck
+  const IVA = 0.16;
+  const COM = 0.08;
+  const ISR = 0.015;
+
+  const fmt = n => new Intl.NumberFormat('es-MX', {
+    style: 'currency', currency: 'MXN', minimumFractionDigits: 2
+  }).format(n);
+
+  function calc(p) {
+    if (!p || p <= 0) return null;
+    const base = p / (1 + IVA);
+    const iva  = p - base;
+    const cb   = base * COM;
+    const ivaC = cb * IVA;
+    const com  = cb + ivaC;
+    const isr  = base * ISR;
+    const net  = base - cb - ivaC - isr;
+    return { iva, com, isr, net, pct: net / p * 100 };
+  }
+
+  const input      = document.getElementById('precioInput');
+  const breakdown  = document.getElementById('breakdown');
+  const resultRow  = document.getElementById('resultRow');
+  const vIva       = document.getElementById('v-iva');
+  const vCom       = document.getElementById('v-com');
+  const vIsr       = document.getElementById('v-isr');
+  const resultAmt  = document.getElementById('resultAmt');
+  const resultPct  = document.getElementById('resultPct');
+
+  function render() {
+    const r = calc(parseFloat(input.value));
+
+    if (!r) {
+      breakdown.classList.remove('visible');
+      resultRow.classList.remove('visible');
+      return;
+    }
+
+    vIva.textContent = '−' + fmt(r.iva);
+    vCom.textContent = '−' + fmt(r.com);
+    vIsr.textContent = '−' + fmt(r.isr);
+
+    resultAmt.textContent = fmt(r.net);
+    resultPct.textContent = r.pct.toFixed(1) + '% del precio';
+
+    const cls = r.net > 0 ? 'pos' : r.net < 0 ? 'neg' : 'zero';
+    resultAmt.className = 'result-amount ' + cls;
+    resultPct.className = 'result-pct ' + (r.net > 0 ? 'pos' : '');
+
+    breakdown.classList.add('visible');
+    resultRow.classList.add('visible');
+  }
+
+  input.addEventListener('input', render);
+</script>
+
+</BaseLayout>

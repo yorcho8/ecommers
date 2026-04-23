@@ -1,0 +1,16 @@
+---
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import AdDashboard from "../../components/premium/AdDashboard.astro";
+import "../../styles/premium/theme.css";
+import "../../styles/premium/publicidad.css";
+
+export function getStaticPaths() {
+  return [{ params: { lang: "es" } }];
+}
+
+const { lang = "es" } = Astro.params;
+---
+
+<BaseLayout title="Publicidad" currentLang={lang}>
+  <AdDashboard />
+</BaseLayout>

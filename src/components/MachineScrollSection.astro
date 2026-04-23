@@ -1,0 +1,685 @@
+---
+/**
+ * MachineScrollSection.astro
+ * 
+ * Sección 3D con scroll cinematográfico.
+ * La cámara orbita y se acerca a la máquina GLB mientras el usuario hace scroll.
+ * 
+ * USO:
+ *   <MachineScrollSection glbPath="/models/machine.glb" />
+ * 
+ * Coloca tu archivo .glb en: /public/models/machine.glb
+ */
+
+interface Props {
+  glbPath?: string;
+  scrollHeight?: string; // altura del contenedor scroll, ej: "350vh"
+}
+
+const { 
+  glbPath = "/models/machine.glb",
+  scrollHeight = "350vh"
+} = Astro.props;
+---
+
+<!-- ====================================================================
+     MACHINE 3D SCROLL SECTION
+     ==================================================================== -->
+<section class="machine-scroll-section" id="machine-scroll-section">
+  
+  <!-- Contenedor de scroll (determina la distancia total de scroll) -->
+  <div class="machine-scroll-track" style={`height: ${scrollHeight}`}>
+    
+    <!-- Canvas sticky — se queda fijo mientras scrolleamos la pista -->
+    <div class="machine-canvas-sticky">
+      
+      <!-- Canvas Three.js -->
+      <canvas id="machine-3d-canvas"></canvas>
+
+      <!-- Loading screen -->
+      <div class="machine-loader" id="machine-loader">
+        <div class="loader-inner">
+          <div class="loader-bar-wrap">
+            <div class="loader-bar" id="loader-bar"></div>
+          </div>
+          <span class="loader-text" id="loader-text">Cargando modelo... 0%</span>
+        </div>
+      </div>
+
+      <!-- Overlay de texto — aparece en fases de scroll -->
+      <div class="machine-overlay">
+        
+        <!-- FASE 0: Intro (scroll 0–30%) -->
+        <div class="machine-phase" data-phase="0">
+          <div class="phase-tag">Ingeniería de precisión</div>
+          <h2 class="phase-title">
+            TECNOLOGÍA<br/>
+            <span class="text-orange">DE PUNTA</span>
+          </h2>
+          <p class="phase-desc">
+            Maquinaria de última generación para la producción<br/>
+            de film estirable de alta resistencia.
+          </p>
+        </div>
+
+        <!-- FASE 1: Medio (scroll 30–65%) -->
+        <div class="machine-phase" data-phase="1">
+          <div class="phase-tag">Proceso continuo</div>
+          <h2 class="phase-title">
+            RENDIMIENTO<br/>
+            <span class="text-orange">MÁXIMO</span>
+          </h2>
+          <p class="phase-desc">
+            Sistemas automatizados que garantizan<br/>
+            calidad uniforme en cada metro producido.
+          </p>
+        </div>
+
+        <!-- FASE 2: Reveal final (scroll 65–100%) -->
+        <div class="machine-phase" data-phase="2">
+          <div class="phase-tag">Fabricación avanzada</div>
+          <h2 class="phase-title">
+            65 AÑOS<br/>
+            <span class="text-orange">INNOVANDO</span>
+          </h2>
+          <p class="phase-desc">
+            Desde 1959 liderando la industria<br/>
+            de polímeros plásticos en México.
+          </p>
+        </div>
+
+      </div>
+
+      <!-- Indicador de scroll (desaparece al avanzar) -->
+      <div class="machine-scroll-hint" id="machine-scroll-hint">
+        <span>Desliza para explorar</span>
+        <div class="hint-arrow">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 5v14"/><path d="m19 12-7 7-7-7"/>
+          </svg>
+        </div>
+      </div>
+
+      <!-- Barra de progreso scroll -->
+      <div class="scroll-progress-bar">
+        <div class="scroll-progress-fill" id="scroll-progress-fill"></div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- ====================================================================
+     ESTILOS
+     ==================================================================== -->
+<style>
+  /* --- Contenedor principal --- */
+  .machine-scroll-section {
+    position: relative;
+    background: #000;
+  }
+
+  /* La pista define cuánto scroll existe */
+  .machine-scroll-track {
+    position: relative;
+  }
+
+  /* El sticky se queda fijo 100vh durante todo el scroll */
+  .machine-canvas-sticky {
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    width: 100%;
+    overflow: hidden;
+    background: #050505;
+  }
+
+  /* Canvas ocupa todo el área */
+  #machine-3d-canvas {
+    width: 100% !important;
+    height: 100% !important;
+    display: block;
+  }
+
+  /* --- Loader --- */
+  .machine-loader {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #050505;
+    z-index: 20;
+    transition: opacity 0.8s ease, visibility 0.8s ease;
+  }
+
+  .machine-loader.hidden {
+    opacity: 0;
+    visibility: hidden;
+  }
+
+  .loader-inner {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 20px;
+  }
+
+  .loader-bar-wrap {
+    width: 280px;
+    height: 3px;
+    background: rgba(255,255,255,0.1);
+    border-radius: 99px;
+    overflow: hidden;
+  }
+
+  .loader-bar {
+    height: 100%;
+    width: 0%;
+    background: #fb670b;
+    border-radius: 99px;
+    transition: width 0.3s ease;
+  }
+
+  .loader-text {
+    font-family: 'NeueMontreal', sans-serif;
+    font-size: 0.85rem;
+    color: rgba(255,255,255,0.5);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+  }
+
+  /* --- Overlay de fases de texto --- */
+  .machine-overlay {
+    position: absolute;
+    inset: 0;
+    z-index: 10;
+    pointer-events: none;
+    display: flex;
+    align-items: flex-end;
+    padding: 0 80px 100px;
+  }
+
+  @media (max-width: 768px) {
+    .machine-overlay {
+      padding: 0 30px 80px;
+    }
+  }
+
+  /* Cada fase empieza invisible */
+  .machine-phase {
+    position: absolute;
+    bottom: 100px;
+    left: 80px;
+    max-width: 700px;
+    opacity: 0;
+    transform: translateY(30px);
+    transition: opacity 0.7s cubic-bezier(0.22,1,0.36,1),
+                transform 0.7s cubic-bezier(0.22,1,0.36,1);
+    pointer-events: none;
+  }
+
+  @media (max-width: 768px) {
+    .machine-phase {
+      left: 30px;
+      bottom: 80px;
+      max-width: 90%;
+    }
+  }
+
+  /* Fase activa */
+  .machine-phase.active {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  /* Fase que sale (va hacia arriba) */
+  .machine-phase.exiting {
+    opacity: 0;
+    transform: translateY(-30px);
+  }
+
+  .phase-tag {
+    font-family: 'NeueMontreal', sans-serif;
+    font-size: 0.9rem;
+    color: #fb670b;
+    text-transform: uppercase;
+    letter-spacing: 3px;
+    margin-bottom: 16px;
+    border-left: 3px solid #fb670b;
+    padding-left: 14px;
+  }
+
+  .phase-title {
+    font-family: var(--font-title, 'NeueMontreal', 'SF Pro', sans-serif);
+    font-size: clamp(4rem, 9vw, 8rem);
+    font-weight: 800;
+    line-height: 0.85;
+    color: #ffffff;
+    text-transform: uppercase;
+    margin: 0 0 28px 0;
+    text-shadow: 0 0 80px rgba(0,0,0,0.8);
+  }
+
+  .text-orange {
+    color: #fb670b;
+    text-shadow: 0 0 60px rgba(251,103,11,0.6);
+  }
+
+  .phase-desc {
+    font-family: 'NeueMontreal', sans-serif;
+    font-size: 1.15rem;
+    line-height: 1.65;
+    color: rgba(255,255,255,0.75);
+    text-shadow: 0 2px 20px rgba(0,0,0,0.8);
+    margin: 0;
+  }
+
+  /* --- Scroll hint --- */
+  .machine-scroll-hint {
+    position: absolute;
+    bottom: 40px;
+    right: 80px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    color: rgba(255,255,255,0.5);
+    font-family: 'NeueMontreal', sans-serif;
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    z-index: 15;
+    transition: opacity 0.5s ease;
+  }
+
+  .machine-scroll-hint.hidden {
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  .hint-arrow {
+    animation: bounce-hint 2s ease infinite;
+  }
+
+  @keyframes bounce-hint {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(8px); }
+  }
+
+  @media (max-width: 768px) {
+    .machine-scroll-hint {
+      right: 30px;
+    }
+  }
+
+  /* --- Barra de progreso --- */
+  .scroll-progress-bar {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: rgba(255,255,255,0.08);
+    z-index: 15;
+  }
+
+  .scroll-progress-fill {
+    height: 100%;
+    width: 0%;
+    background: #fb670b;
+    transition: width 0.1s linear;
+    box-shadow: 0 0 12px rgba(251,103,11,0.8);
+  }
+
+  /* --- Gradiente inferior para transición suave a la siguiente sección --- */
+  .machine-canvas-sticky::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 180px;
+    background: linear-gradient(to bottom, transparent, #050505);
+    pointer-events: none;
+    z-index: 5;
+  }
+</style>
+
+<!-- ====================================================================
+     SCRIPT THREE.JS — Carga GLB + animación de cámara por scroll
+     ==================================================================== -->
+<script is:inline define:vars={{ glbPath }}>
+(async () => {
+
+  // ------------------------------------------------------------------
+  // 1. IMPORTAR THREE.JS y GLTFLOADER desde CDN ESM
+  // ------------------------------------------------------------------
+  const THREE_URL  = 'https://cdn.jsdelivr.net/npm/three@0.155.0/build/three.module.js';
+  const GLTF_URL   = 'https://cdn.jsdelivr.net/npm/three@0.155.0/examples/jsm/loaders/GLTFLoader.js';
+  const ORBIT_URL  = 'https://cdn.jsdelivr.net/npm/three@0.155.0/examples/jsm/controls/OrbitControls.js';
+
+  let THREE, GLTFLoader;
+
+  try {
+    const threeModule = await import(THREE_URL);
+    THREE = threeModule;
+    const gltfModule  = await import(GLTF_URL);
+    GLTFLoader        = gltfModule.GLTFLoader;
+  } catch(e) {
+    console.error('[Machine3D] No se pudo cargar Three.js:', e);
+    document.getElementById('machine-loader')?.classList.add('hidden');
+    return;
+  }
+
+  // ------------------------------------------------------------------
+  // 2. REFERENCIAS DOM
+  // ------------------------------------------------------------------
+  const canvas       = document.getElementById('machine-3d-canvas');
+  const loader       = document.getElementById('machine-loader');
+  const loaderBar    = document.getElementById('loader-bar');
+  const loaderText   = document.getElementById('loader-text');
+  const progressFill = document.getElementById('scroll-progress-fill');
+  const scrollHint   = document.getElementById('machine-scroll-hint');
+  const phases       = document.querySelectorAll('.machine-phase');
+  const section      = document.getElementById('machine-scroll-section');
+
+  if (!canvas || !section) return;
+
+  // ------------------------------------------------------------------
+  // 3. ESCENA THREE.JS
+  // ------------------------------------------------------------------
+  const scene    = new THREE.Scene();
+  scene.fog      = new THREE.FogExp2(0x050505, 0.025);
+  scene.background = new THREE.Color(0x050505);
+
+  // Renderer
+  const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: false });
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  renderer.setSize(canvas.clientWidth, canvas.clientHeight);
+  renderer.shadowMap.enabled  = true;
+  renderer.shadowMap.type     = THREE.PCFSoftShadowMap;
+  renderer.toneMapping        = THREE.ACESFilmicToneMapping;
+  renderer.toneMappingExposure = 1.2;
+  renderer.outputColorSpace   = THREE.SRGBColorSpace;
+
+  // Cámara
+  const camera = new THREE.PerspectiveCamera(45, canvas.clientWidth / canvas.clientHeight, 0.01, 500);
+
+  // ------------------------------------------------------------------
+  // 4. KEYFRAMES DE CÁMARA
+  // Definimos posición + target para 0%, 50%, 100% de scroll
+  // Ajusta estos valores según la escala y forma de tu modelo
+  // ------------------------------------------------------------------
+  const camKeyframes = [
+    { 
+      pos:    new THREE.Vector3(0,  4,  18),   // inicio: vista general
+      target: new THREE.Vector3(0,  1,   0)
+    },
+    { 
+      pos:    new THREE.Vector3(5,  2.5, 8),   // medio: lateral derecho
+      target: new THREE.Vector3(0,  1,   0)
+    },
+    { 
+      pos:    new THREE.Vector3(-3, 1.5, 4),   // final: primer plano izquierdo
+      target: new THREE.Vector3(0,  1.5, 0)
+    }
+  ];
+
+  // Estado inicial de cámara
+  camera.position.copy(camKeyframes[0].pos);
+  const camTarget = new THREE.Vector3().copy(camKeyframes[0].target);
+
+  // ------------------------------------------------------------------
+  // 5. LUCES
+  // ------------------------------------------------------------------
+  // Luz ambiental suave
+  const ambientLight = new THREE.AmbientLight(0xffffff, 0.4);
+  scene.add(ambientLight);
+
+  // Luz principal (naranja cálida — paleta de marca)
+  const keyLight = new THREE.DirectionalLight(0xff8844, 2.5);
+  keyLight.position.set(8, 12, 8);
+  keyLight.castShadow = true;
+  keyLight.shadow.mapSize.set(2048, 2048);
+  keyLight.shadow.camera.near = 0.1;
+  keyLight.shadow.camera.far  = 80;
+  keyLight.shadow.camera.left = keyLight.shadow.camera.bottom = -20;
+  keyLight.shadow.camera.right = keyLight.shadow.camera.top   =  20;
+  scene.add(keyLight);
+
+  // Luz de relleno (azul frío para contraste)
+  const fillLight = new THREE.DirectionalLight(0x4488ff, 1.0);
+  fillLight.position.set(-10, 5, -5);
+  scene.add(fillLight);
+
+  // Rim light (contorno naranja marca)
+  const rimLight = new THREE.PointLight(0xfb670b, 3, 30);
+  rimLight.position.set(-5, 8, -8);
+  scene.add(rimLight);
+
+  // Suelo con plano receptor de sombras
+  const groundGeo  = new THREE.PlaneGeometry(80, 80);
+  const groundMat  = new THREE.ShadowMaterial({ opacity: 0.35 });
+  const ground     = new THREE.Mesh(groundGeo, groundMat);
+  ground.rotation.x = -Math.PI / 2;
+  ground.receiveShadow = true;
+  scene.add(ground);
+
+  // Partículas de fondo (polvo en el aire — atmosférico)
+  const partCount = 600;
+  const partGeo   = new THREE.BufferGeometry();
+  const partPos   = new Float32Array(partCount * 3);
+  for (let i = 0; i < partCount * 3; i++) {
+    partPos[i] = (Math.random() - 0.5) * 40;
+  }
+  partGeo.setAttribute('position', new THREE.BufferAttribute(partPos, 3));
+  const partMat = new THREE.PointsMaterial({ color: 0xfb670b, size: 0.04, opacity: 0.3, transparent: true });
+  scene.add(new THREE.Points(partGeo, partMat));
+
+  // ------------------------------------------------------------------
+  // 6. CARGAR EL MODELO GLB
+  // ------------------------------------------------------------------
+  let machineModel = null;
+
+  const gltfLoader = new GLTFLoader();
+
+  gltfLoader.load(
+    glbPath,
+
+    // onLoad
+    (gltf) => {
+      machineModel = gltf.scene;
+
+      // Centrar y escalar el modelo automáticamente
+      const box    = new THREE.Box3().setFromObject(machineModel);
+      const center = new THREE.Vector3();
+      const size   = new THREE.Vector3();
+      box.getCenter(center);
+      box.getSize(size);
+
+      const maxDim  = Math.max(size.x, size.y, size.z);
+      const scale   = 4 / maxDim;           // normaliza a ~4 unidades de alto
+      machineModel.scale.setScalar(scale);
+      machineModel.position.sub(center.multiplyScalar(scale));
+      machineModel.position.y = 0;          // apoya en el suelo
+
+      // Sombras en todos los meshes
+      machineModel.traverse(child => {
+        if (child.isMesh) {
+          child.castShadow    = true;
+          child.receiveShadow = true;
+          // Mejorar materiales si son MeshStandardMaterial
+          if (child.material) {
+            child.material.envMapIntensity = 1.5;
+          }
+        }
+      });
+
+      scene.add(machineModel);
+
+      // Ocultar loader
+      setTimeout(() => {
+        loader?.classList.add('hidden');
+        // Mostrar fase 0
+        activatePhase(0);
+      }, 300);
+    },
+
+    // onProgress
+    (xhr) => {
+      if (xhr.total > 0) {
+        const pct = Math.round((xhr.loaded / xhr.total) * 100);
+        if (loaderBar)   loaderBar.style.width  = pct + '%';
+        if (loaderText)  loaderText.textContent  = `Cargando modelo... ${pct}%`;
+      }
+    },
+
+    // onError
+    (err) => {
+      console.error('[Machine3D] Error al cargar el GLB:', err);
+      if (loaderText) loaderText.textContent = 'Error al cargar el modelo';
+      // Ocultamos el loader igual para no bloquear
+      setTimeout(() => loader?.classList.add('hidden'), 1000);
+    }
+  );
+
+  // ------------------------------------------------------------------
+  // 7. FASES DE TEXTO
+  // ------------------------------------------------------------------
+  let currentPhase = -1;
+
+  function activatePhase(idx) {
+    if (idx === currentPhase) return;
+    phases.forEach((el, i) => {
+      if (i === currentPhase) {
+        el.classList.remove('active');
+        el.classList.add('exiting');
+        setTimeout(() => el.classList.remove('exiting'), 700);
+      }
+      if (i === idx) {
+        el.classList.add('active');
+      }
+    });
+    currentPhase = idx;
+  }
+
+  // ------------------------------------------------------------------
+  // 8. SCROLL HANDLER
+  // ------------------------------------------------------------------
+  function getScrollProgress() {
+    const rect   = section.getBoundingClientRect();
+    const total  = section.offsetHeight - window.innerHeight;
+    const scrolled = -rect.top;
+    return Math.min(Math.max(scrolled / total, 0), 1);
+  }
+
+  // Interpolación suave entre dos Vector3
+  function lerpVec(a, b, t) {
+    return new THREE.Vector3(
+      a.x + (b.x - a.x) * t,
+      a.y + (b.y - a.y) * t,
+      a.z + (b.z - a.z) * t
+    );
+  }
+
+  // Easing suave
+  function easeInOutCubic(t) {
+    return t < 0.5 ? 4*t*t*t : 1 - Math.pow(-2*t+2,3)/2;
+  }
+
+  let scrollProgress   = 0;
+  let targetCamPos     = new THREE.Vector3().copy(camKeyframes[0].pos);
+  let targetCamLook    = new THREE.Vector3().copy(camKeyframes[0].target);
+  let currentCamPos    = new THREE.Vector3().copy(camKeyframes[0].pos);
+  let currentCamLook   = new THREE.Vector3().copy(camKeyframes[0].target);
+
+  function onScroll() {
+    scrollProgress = getScrollProgress();
+
+    // Actualizar barra de progreso
+    if (progressFill) progressFill.style.width = (scrollProgress * 100) + '%';
+
+    // Ocultar hint tras 10% de scroll
+    if (scrollHint) {
+      scrollHint.classList.toggle('hidden', scrollProgress > 0.08);
+    }
+
+    // Determinar segmento de keyframe (0→1 o 1→2)
+    const segs = camKeyframes.length - 1;
+    const scaled = scrollProgress * segs;
+    const seg  = Math.min(Math.floor(scaled), segs - 1);
+    const t    = easeInOutCubic(scaled - seg);
+
+    targetCamPos  = lerpVec(camKeyframes[seg].pos,    camKeyframes[seg+1].pos,    t);
+    targetCamLook = lerpVec(camKeyframes[seg].target, camKeyframes[seg+1].target, t);
+
+    // Determinar fase de texto
+    if (scrollProgress < 0.32) {
+      activatePhase(0);
+    } else if (scrollProgress < 0.66) {
+      activatePhase(1);
+    } else {
+      activatePhase(2);
+    }
+  }
+
+  window.addEventListener('scroll', onScroll, { passive: true });
+  onScroll(); // inicializar
+
+  // ------------------------------------------------------------------
+  // 9. LOOP DE ANIMACIÓN
+  // ------------------------------------------------------------------
+  let frameId;
+  let time = 0;
+
+  function animate() {
+    frameId = requestAnimationFrame(animate);
+    time += 0.005;
+
+    // Suavizar cámara hacia el target (lerp en cada frame)
+    currentCamPos.lerp(targetCamPos,  0.06);
+    currentCamLook.lerp(targetCamLook, 0.06);
+
+    camera.position.copy(currentCamPos);
+    camTarget.copy(currentCamLook);
+    camera.lookAt(camTarget);
+
+    // Rotación lenta del modelo en Y (gira suavemente)
+    if (machineModel) {
+      machineModel.rotation.y = Math.sin(time * 0.3) * 0.08;
+    }
+
+    // Animación suave de la luz rim
+    rimLight.intensity = 3 + Math.sin(time * 1.5) * 0.5;
+
+    renderer.render(scene, camera);
+  }
+
+  animate();
+
+  // ------------------------------------------------------------------
+  // 10. RESIZE HANDLER
+  // ------------------------------------------------------------------
+  function onResize() {
+    const w = canvas.clientWidth;
+    const h = canvas.clientHeight;
+    camera.aspect = w / h;
+    camera.updateProjectionMatrix();
+    renderer.setSize(w, h);
+  }
+
+  window.addEventListener('resize', onResize);
+
+  // ------------------------------------------------------------------
+  // 11. LIMPIEZA al navegar (Astro View Transitions)
+  // ------------------------------------------------------------------
+  document.addEventListener('astro:before-swap', () => {
+    cancelAnimationFrame(frameId);
+    window.removeEventListener('scroll', onScroll);
+    window.removeEventListener('resize', onResize);
+    renderer.dispose();
+  });
+
+})();
+</script>

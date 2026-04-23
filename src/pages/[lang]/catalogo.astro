@@ -1,0 +1,197 @@
+---
+// src/pages/[lang]/catalogo.astro
+import "../../styles/catalogo.css";
+import "../../styles/catalogo-carousel.css";
+import "../../styles/global.css";
+
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import Footer from "../../components/Footer.astro";
+
+import { GET as getCategorias } from "../api/categorias/index.js";
+
+export function getStaticPaths() {
+  return [{ params: { lang: "es" } }];
+}
+
+const currentLang = "es";
+
+// --- Categorías dinámicas desde la BD ---
+let catalogsData: Array<{
+  id:    string | number;
+  name:  string;
+  desc:  string;
+  image: string;
+}> = [];
+
+try {
+  const res  = await getCategorias();
+  const data = await res.json();
+  catalogsData = (data.categorias ?? []).map((cat: any) => ({
+    id:    cat.Id_Categoria,
+    name:  cat.Nombre,
+    desc:  cat.Descripcion ?? '',
+    image: cat.Imagen_URL  ?? '/images/placeholder-categoria.jpg',
+  }));
+} catch (e) {
+  console.error('Error cargando categorías en catálogo:', e);
+  catalogsData = [];
+}
+
+const catalogsJson    = JSON.stringify(catalogsData);
+const firstCatalogImg = catalogsData[0]?.image ?? null;
+---
+
+<BaseLayout title="Catálogos | NEXUS" currentLang={currentLang}>
+
+  {firstCatalogImg && (
+    <link rel="preload" as="image" href={firstCatalogImg} slot="head" />
+  )}
+
+  <main class="catalogo-main" data-catalogs={catalogsJson}>
+
+    <section class="hero-section">
+      <div class="hero-video-container">
+        <div class="video-wrapper">
+          <video autoplay muted loop playsinline preload="none">
+            <source src="/videos/catalog-hero.mp4" type="video/mp4" />
+          </video>
+          <div class="hero-overlay"></div>
+        </div>
+      </div>
+
+      <div class="hero-content" dir="ltr">
+        <div class="hero-label">DOCUMENTACIÓN TÉCNICA</div>
+        <h1 class="hero-title">CATÁLOGO</h1>
+        <p class="hero-desc">Accede a nuestra oferta comercial completa.</p>
+
+        <!-- Botones de descarga del catálogo COMPLETO (todos los productos) -->
+        <div class="hero-download-grid">
+          <a
+            href="/api/catalogo/pdf?lang=es"
+            class="hero-download-item"
+            id="download-es"
+          >
+            <span class="lang-flag">🇲🇽</span>
+            <span>ES</span>
+            <span class="dl-spinner" hidden>⏳</span>
+          </a>
+        </div>
+        <p class="hero-download-hint">
+          Catálogo completo generado en tiempo real desde nuestra base de productos
+        </p>
+      </div>
+
+      <div class="scroll-indicator" id="scroll-trigger">
+        <span>VER DIVISIONES</span>
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3" />
+        </svg>
+      </div>
+    </section>
+
+    <section class="carousel-section" id="carousel-target">
+      <div class="section-divider" dir="ltr">
+        <div class="division-label">DIVISIONES</div>
+        <h2>ESPECIALIZADAS</h2>
+      </div>
+
+      <div class="carousel">
+        <div class="list">
+          {catalogsData.map((item, index) => (
+            <div class="item" data-catalog-id={item.id}>
+              <img
+                src={item.image}
+                alt={item.name}
+                class="catalog-thumb"
+                loading={index === 0 ? "eager" : "lazy"}
+                fetchpriority={index === 0 ? "high" : "auto"}
+                decoding="async"
+              />
+
+              <div class="introduce" dir="ltr">
+                <div class="title">DIVISIÓN</div>
+                <div class="topic">{item.name}</div>
+                <div class="des">{item.desc}</div>
+
+                <div class="catalog-actions">
+                  <a
+                    href="/api/catalogo/pdf?lang=es"
+                    class="download-btn"
+                    data-catalog-id={item.id}
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                    </svg>
+                    DESCARGAR PDF
+                  </a>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <div class="arrows">
+          <button id="prev" aria-label="Anterior">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M15 18l-6-6 6-6"/>
+            </svg>
+          </button>
+          <button id="next" aria-label="Siguiente">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M9 18l6-6-6-6"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      <div class="catalog-mobile-controls" id="mobile-controls">
+        <a href="/api/catalogo/pdf?lang=es" class="mobile-download-btn" id="mobile-download-btn">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+          </svg>
+          DESCARGAR PDF
+        </a>
+      </div>
+
+      <div class="mobile-catalog-info" style="display: none;">
+        {catalogsData.map((item) => (
+          <div class="catalog-data" data-id={item.id} data-name={item.name} data-desc={item.desc}></div>
+        ))}
+      </div>
+    </section>
+  </main>
+
+  <Footer currentLang={currentLang} />
+
+  <!-- is:inline silencia el warning de Astro sobre scripts con atributos src -->
+  <script is:inline src="/scripts/catalogo.js" defer></script>
+
+  <!-- Feedback visual mientras se genera el PDF -->
+  <script is:inline>
+    document.addEventListener("DOMContentLoaded", () => {
+      document.querySelectorAll(".hero-download-item, .download-btn, .mobile-download-btn").forEach((a) => {
+        a.addEventListener("click", function () {
+          const spinner = this.querySelector(".dl-spinner");
+          if (spinner) {
+            spinner.hidden = false;
+            setTimeout(() => { spinner.hidden = true; }, 8000);
+          }
+        });
+      });
+    });
+  </script>
+
+  <style>
+    .hero-download-hint {
+      margin-top: 8px;
+      font-size: 11px;
+      opacity: 0.55;
+      color: #fff;
+    }
+    .dl-spinner {
+      font-size: 13px;
+      margin-left: 4px;
+    }
+  </style>
+
+</BaseLayout>

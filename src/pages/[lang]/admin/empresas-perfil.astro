@@ -1,0 +1,236 @@
+﻿---
+import BaseLayout from "../../../layouts/BaseLayout.astro";
+
+export function getStaticPaths() {
+  return [{ params: { lang: "es" } }];
+}
+const currentLang = "es";
+const cspNonce = Astro.locals?.cspNonce || "";
+
+const role = String(Astro.locals?.user?.rol || "").trim().toLowerCase().replace(/[\s_-]/g, "")
+  .replace(/^superadmin$|^superuser$|^superusuario$/, "superusuario");
+
+if (!role) return Astro.redirect(`/${currentLang}/login`);
+if (role !== "admin" && role !== "superusuario") return Astro.redirect(`/${currentLang}`);
+---
+
+<BaseLayout title="Perfil de empresa destacada" currentLang={currentLang}>
+  <main class="ep-root">
+    <section class="ep-shell">
+      <header class="ep-head">
+        <div>
+          <p class="ep-kicker">Perfil tipo store</p>
+          <h1>Crear pagina de empresa destacada</h1>
+          <p>Publica una vista estilo marketplace (banner + foto + catÃ¡logo) y activa su visibilidad con pago.</p>
+        </div>
+      </header>
+
+      <section class="ep-grid">
+        <article class="ep-card">
+          <h2>Datos del perfil</h2>
+          <div class="ep-form">
+            <label>Nombre comercial<input id="epNombre" type="text" placeholder="Ej: Grupo Ortiz Industrial" /></label>
+            <label>Slogan<input id="epSlogan" type="text" placeholder="Soluciones de empaque para industria" /></label>
+            <label>DescripciÃ³n<textarea id="epDescripcion" rows="3" placeholder="Describe tu empresa"></textarea></label>
+            <label>Giro<input id="epGiro" type="text" placeholder="Manufactura / DistribuciÃ³n" /></label>
+            <label>Sitio web<input id="epWeb" type="url" placeholder="https://empresa.com" /></label>
+
+            <div class="ep-upload-row">
+              <div>
+                <label>Foto/logo del perfil</label>
+                <input id="epLogoFile" type="file" accept="image/png,image/jpeg,image/webp,image/jpg" />
+                <input id="epLogoUrl" type="text" placeholder="URL logo (auto al subir)" />
+              </div>
+              <div>
+                <label>Banner principal (estilo Amazon)</label>
+                <input id="epBannerFile" type="file" accept="image/png,image/jpeg,image/webp,image/jpg" />
+                <input id="epBannerUrl" type="text" placeholder="URL banner (auto al subir)" />
+              </div>
+            </div>
+          </div>
+        </article>
+
+        <article class="ep-card">
+          <h2>Pago de publicaciÃ³n</h2>
+          <div class="ep-form">
+            <label>Tarjeta<select id="epCard"></select></label>
+            <label>Plan
+              <select id="epPlan">
+                <option value="30|399">30 dÃ­as - $399</option>
+                <option value="60|699">60 dÃ­as - $699</option>
+                <option value="90|999">90 dÃ­as - $999</option>
+              </select>
+            </label>
+            <button id="epPay" type="button" class="ep-btn">Pagar y publicar perfil</button>
+            <p id="epStatus" class="ep-status" hidden></p>
+          </div>
+        </article>
+      </section>
+    </section>
+  </main>
+
+  <script nonce={cspNonce} is:inline>
+    const $ = (id) => document.getElementById(id);
+    const UPLOAD_API = '/api/admin/productos/imagenes/upload';
+
+    function setStatus(msg, ok = true) {
+      const el = $('epStatus');
+      if (!el) return;
+      el.hidden = false;
+      el.textContent = msg;
+      el.className = `ep-status ${ok ? 'ok' : 'err'}`;
+    }
+
+    async function uploadImage(file, targetInputId) {
+      if (!file) return;
+      const fd = new FormData();
+      fd.append('file', file);
+      const res = await fetch(UPLOAD_API, { method: 'POST', credentials: 'include', body: fd });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || !data?.success || !data?.url) throw new Error(data?.error || 'No se pudo subir imagen');
+      const input = $(targetInputId);
+      if (input) input.value = String(data.url);
+    }
+
+    $('epLogoFile')?.addEventListener('change', async (e) => {
+      try {
+        await uploadImage(e.target.files?.[0], 'epLogoUrl');
+        setStatus('Logo subido correctamente.', true);
+      } catch (err) {
+        setStatus(err?.message || 'Error subiendo logo', false);
+      }
+    });
+
+    $('epBannerFile')?.addEventListener('change', async (e) => {
+      try {
+        await uploadImage(e.target.files?.[0], 'epBannerUrl');
+        setStatus('Banner subido correctamente.', true);
+      } catch (err) {
+        setStatus(err?.message || 'Error subiendo banner', false);
+      }
+    });
+
+    async function loadData() {
+      const res = await fetch('/api/admin/empresas-perfil', { credentials: 'include' });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || !data?.success) throw new Error(data?.error || 'No se pudo cargar perfil');
+
+      const empresa = data.empresa || {};
+      $('epNombre').value = empresa.Nombre_Comercial || empresa.Nombre_Empresa || '';
+      $('epSlogan').value = empresa.Perfil_Slogan || '';
+      $('epDescripcion').value = empresa.Descripcion || '';
+      $('epGiro').value = empresa.Giro || '';
+      $('epWeb').value = empresa.Sitio_Web || '';
+      $('epLogoUrl').value = empresa.Logo_URL || '';
+      $('epBannerUrl').value = empresa.Banner_URL || '';
+
+      const cardSel = $('epCard');
+      cardSel.innerHTML = '';
+      const cards = Array.isArray(data.cards) ? data.cards : [];
+      if (!cards.length) {
+        const op = document.createElement('option');
+        op.value = '';
+        op.textContent = 'No tienes tarjetas guardadas';
+        cardSel.appendChild(op);
+      } else {
+        cards.forEach((c) => {
+          const op = document.createElement('option');
+          op.value = String(c.id);
+          op.textContent = c.label;
+          if (c.default) op.selected = true;
+          cardSel.appendChild(op);
+        });
+      }
+    }
+
+    $('epPay')?.addEventListener('click', async () => {
+      const payBtn = $('epPay');
+      if (payBtn.disabled) return; // prevent double-click
+
+      const cardId = Number($('epCard').value || 0);
+      const [daysRaw, amountRaw] = String($('epPlan').value || '30|399').split('|');
+      const duracionDias = Number(daysRaw || 30);
+      const amount = Number(amountRaw || 399);
+
+      const payload = {
+        cardId,
+        duracionDias,
+        amount,
+        nombreComercial: $('epNombre').value,
+        slogan: $('epSlogan').value,
+        descripcion: $('epDescripcion').value,
+        giro: $('epGiro').value,
+        sitioWeb: $('epWeb').value,
+        logoUrl: $('epLogoUrl').value,
+        bannerUrl: $('epBannerUrl').value,
+      };
+
+      // Show loading modal & disable button to prevent duplicates
+      payBtn.disabled = true;
+      payBtn.textContent = 'Procesando…';
+      const epOverlay = $('epLoadingOverlay');
+      if (epOverlay) epOverlay.hidden = false;
+      document.body.style.overflow = 'hidden';
+
+      try {
+        const res = await fetch('/api/admin/empresas-perfil', {
+          method: 'POST',
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok || !data?.success) throw new Error(data?.error || 'No se pudo publicar perfil');
+        if (epOverlay) epOverlay.hidden = true;
+        document.body.style.overflow = '';
+        setStatus(`✅ Perfil publicado. Vigencia hasta: ${new Date(data.fechaFin).toLocaleDateString('es-MX')}`, true);
+        payBtn.textContent = '¡Perfil publicado!';
+      } catch (err) {
+        if (epOverlay) epOverlay.hidden = true;
+        document.body.style.overflow = '';
+        payBtn.disabled = false;
+        payBtn.textContent = 'Pagar y publicar perfil';
+        setStatus(err?.message || 'Error publicando perfil', false);
+      }
+    });
+
+    loadData().catch((err) => setStatus(err?.message || 'Error inicial', false));
+  </script>
+
+  <!-- Loading overlay -->
+  <div id="epLoadingOverlay" hidden style="position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.7);backdrop-filter:blur(6px)">
+    <div style="background:rgba(16,22,34,.96);border:1px solid rgba(255,255,255,.15);border-radius:20px;padding:32px 40px;text-align:center;max-width:320px">
+      <div style="width:44px;height:44px;border:3px solid rgba(249,115,22,.2);border-top-color:#f97316;border-radius:50%;animation:ep-spin 0.8s linear infinite;margin:0 auto 16px"></div>
+      <p style="color:#fff5eb;font-weight:700;font-size:1rem;margin:0 0 6px">Procesando pago…</p>
+      <p style="color:#9ca3af;font-size:.82rem;margin:0">No cierres esta ventana. Esto puede tardar unos segundos.</p>
+    </div>
+  </div>
+
+  <style is:global>
+    @keyframes ep-spin { to { transform: rotate(360deg); } }
+    #epLoadingOverlay[hidden] { display: none !important; }
+    .ep-root { max-width: 1180px; margin: 0 auto; padding: 118px 18px 56px; }
+    .ep-shell { border: 1px solid rgba(255,255,255,.12); border-radius: 20px; background: linear-gradient(160deg, rgba(9,13,20,.95), rgba(16,22,34,.9)); padding: 18px; }
+    .ep-kicker { margin: 0; color: #ffb27a; font-size: .72rem; text-transform: uppercase; font-weight: 800; letter-spacing: .08em; }
+    .ep-head h1 { margin: 6px 0 0; color: #fff5eb; font-size: clamp(1.3rem,2.4vw,1.9rem); }
+    .ep-head p { margin: 6px 0 0; color: #c9d1dc; }
+    .ep-grid { margin-top: 16px; display: grid; gap: 12px; grid-template-columns: 1.2fr .8fr; }
+    .ep-card { border: 1px solid rgba(255,255,255,.12); border-radius: 16px; background: rgba(255,255,255,.02); padding: 14px; }
+    .ep-card h2 { margin: 0 0 10px; color: #f4f8ff; font-size: 1rem; }
+    .ep-form { display: grid; gap: 10px; }
+    .ep-form label { display: grid; gap: 5px; color: #aeb8c6; font-size: .76rem; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; }
+    .ep-form input, .ep-form textarea, .ep-form select { width: 100%; border: 1px solid rgba(255,255,255,.16); border-radius: 10px; padding: 9px 11px; background: rgba(255,255,255,.03); color: #f3f7ff; }
+    .ep-upload-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .ep-btn { border: 1px solid rgba(122,37,50,.5); border-radius: 12px; padding: 10px 14px; font-weight: 800; color: #fff; background: linear-gradient(135deg, #7a2532, #6b202d); cursor: pointer; }
+    .ep-status { margin: 0; border-radius: 10px; padding: 10px 12px; font-size: .82rem; font-weight: 700; }
+    .ep-status.ok { background: rgba(52,211,153,.1); border: 1px solid rgba(52,211,153,.35); color: #86efac; }
+    .ep-status.err { background: rgba(239,68,68,.1); border: 1px solid rgba(239,68,68,.35); color: #fca5a5; }
+    @media (max-width: 900px) {
+      .ep-grid { grid-template-columns: 1fr; }
+      .ep-upload-row { grid-template-columns: 1fr; }
+    }
+  </style>
+</BaseLayout>
+
+
+

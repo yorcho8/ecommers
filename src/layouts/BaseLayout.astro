@@ -1,0 +1,1780 @@
+﻿---
+// src/layouts/BaseLayout.astro
+
+import { pwaInfo } from "virtual:pwa-info";
+import Loader from "../components/Loader.astro";
+import Navbar from "../components/Nadbar.astro";
+import FondoGlobal from "../components/FondoGlobal.astro";
+import DockMenu from "../components/DockMenu.astro";
+
+const {
+  title = "Mi sitio",
+  currentLang = "es",
+  moveLogoMobile = false,
+  pwaIcon = "/pwa-192x192.png",
+  showAdminSidebar = true,
+  useAdminOffset = true,
+} = Astro.props;
+
+const cspNonce = Astro.locals?.cspNonce || "";
+
+let isAdmin = false;
+let isSuperAdmin = false;
+try {
+  const trustedSession = Astro.locals?.user || null;
+  const roleRaw = String(trustedSession?.rol || "").trim().toLowerCase();
+  if (roleRaw) {
+    const compactRole = roleRaw.replace(/[\s_-]/g, "");
+    const role = compactRole === "superusuario" || compactRole === "superuser" || compactRole === "superadmin"
+      ? "superusuario"
+      : compactRole === "admin"
+        ? "admin"
+        : roleRaw;
+    isAdmin = role === "admin" || role === "superusuario";
+    isSuperAdmin = role === "superusuario";
+  }
+} catch (error) {
+  isAdmin = false;
+  isSuperAdmin = false;
+}
+
+const canShowAdminSidebar = isAdmin && showAdminSidebar;
+const supportWhatsappNumber = "5255123456789";
+const supportEmail = "soporte@goecomers.com";
+const feedbackPageHref = `/${currentLang}/quejas-sugerencias`;
+const whatsappSupportHref = `https://wa.me/${supportWhatsappNumber}?text=Hola%2C%20quiero%20reportar%20un%20fallo%20o%20queja.`;
+const mailSupportHref = `mailto:${supportEmail}?subject=Reporte%20de%20fallo%20o%20queja`;
+---
+
+<!doctype html>
+<html lang={currentLang}>
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=1, viewport-fit=cover"
+    />
+    <meta name="theme-color" content="#090909" />
+
+    <title>{title}</title>
+
+<link rel="preload" href="/fonts/SF-Pro.ttf" as="font" type="font/ttf" crossorigin />
+<link rel="preload" href="/fonts/NeueMontreal-Medium.otf" as="font" type="font/otf" crossorigin />
+
+    <link rel="icon" href="/favicon.ico" sizes="32x32" />
+    <link rel="icon" type="image/png" href="https://res.cloudinary.com/dfuzfdrat/image/upload/v1772744553/logob_pw3jsd.png" />
+    <link rel="apple-touch-icon" href={pwaIcon} />
+
+    {pwaInfo && <Fragment set:html={pwaInfo.webManifest.linkTag} />}
+
+    <!-- Google Analytics 4 -->
+    {import.meta.env.PUBLIC_GA4_MEASUREMENT_ID && (
+      <>
+        <script nonce={cspNonce} is:inline async src={`https://www.googletagmanager.com/gtag/js?id=${import.meta.env.PUBLIC_GA4_MEASUREMENT_ID}`}></script>
+        <script nonce={cspNonce} is:inline define:vars={{ GA4_ID: import.meta.env.PUBLIC_GA4_MEASUREMENT_ID }}>
+          window.dataLayer = window.dataLayer || [];
+          function gtag(){dataLayer.push(arguments);}
+          gtag('js', new Date());
+          gtag('config', GA4_ID, { anonymize_ip: true });
+        </script>
+      </>
+    )}
+
+    <!-- Meta Pixel (Facebook / Instagram Ads) -->
+    {import.meta.env.PUBLIC_META_PIXEL_ID && (
+      <script nonce={cspNonce} is:inline define:vars={{ META_PIXEL_ID: import.meta.env.PUBLIC_META_PIXEL_ID }}>
+        !function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+        n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;
+        n.push=n;n.loaded=!0;n.version='2.0';n.queue=[];t=b.createElement(e);t.async=!0;
+        t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}(window,
+        document,'script','https://connect.facebook.net/en_US/fbevents.js');
+        fbq('init', META_PIXEL_ID);
+        fbq('track', 'PageView');
+      </script>
+    )}
+
+    <script nonce={cspNonce} is:inline>
+      (function () {
+        try {
+          const t = localStorage.getItem("theme");
+          if (t === "dark") document.documentElement.classList.add("dark");
+        } catch (e) {}
+      })();
+    </script>
+
+    <script nonce={cspNonce} is:inline>
+      (function () {
+        if (typeof window === "undefined") return;
+        if (window.__goCsrfFetchPatched) return;
+        window.__goCsrfFetchPatched = true;
+
+        function getCsrfTokenFromCookie() {
+          var match = document.cookie.match(/(?:^|;\s*)go_csrf=([^;]+)/);
+          return match ? decodeURIComponent(match[1]) : "";
+        }
+
+        var originalFetch = window.fetch.bind(window);
+
+        window.fetch = function (input, init) {
+          try {
+            var requestLike = input instanceof Request ? input : null;
+            var method = String((init && init.method) || (requestLike && requestLike.method) || "GET").toUpperCase();
+            var isMutating = method === "POST" || method === "PUT" || method === "DELETE" || method === "PATCH";
+
+            if (isMutating) {
+              var reqUrl = requestLike
+                ? new URL(requestLike.url, window.location.origin)
+                : new URL(String(input), window.location.origin);
+
+              if (reqUrl.origin === window.location.origin) {
+                var csrf = getCsrfTokenFromCookie();
+                if (csrf) {
+                  var headers = new Headers((init && init.headers) || (requestLike && requestLike.headers) || {});
+                  if (!headers.has("x-csrf-token")) {
+                    headers.set("x-csrf-token", csrf);
+                  }
+                  init = Object.assign({}, init || {}, { headers: headers });
+                }
+              }
+            }
+          } catch (e) {
+            // No-op: if anything fails in the patching logic, fallback to native fetch.
+          }
+
+          return originalFetch(input, init);
+        };
+      })();
+    </script>
+
+    <style is:global>
+      @import "../styles/typography.css";
+      @import "../styles/app-reset.css";
+      @import "../styles/backgrounds.css";
+
+      :root {
+        --header-height: 72px;
+        --surface-0: #070709;
+        --surface-1: #111114;
+        --surface-2: #17171d;
+        --surface-soft: rgba(255, 255, 255, 0.06);
+        --line-soft: rgba(255, 255, 255, 0.12);
+        --text-strong: #f8f8fa;
+        --text-body: rgba(241, 241, 246, 0.9);
+        --text-muted: rgba(205, 205, 214, 0.76);
+        --brand-accent: #7a2532;
+        --brand-gold: #263a72;
+        --shadow-soft: 0 16px 36px rgba(0, 0, 0, 0.32);
+        --shadow-elevated: 0 24px 56px rgba(0, 0, 0, 0.42);
+        --radius-sm: 10px;
+        --radius-md: 16px;
+        --radius-lg: 22px;
+        --grid-gap: 24px;
+      }
+
+      html,
+      body {
+        background:
+          radial-gradient(circle at 0% -10%, rgba(251, 140, 55, 0.09), transparent 46%),
+          radial-gradient(circle at 100% -20%, rgba(214, 166, 81, 0.08), transparent 48%),
+          linear-gradient(180deg, #08080a 0%, #0b0b0f 48%, #09090d 100%);
+        color: var(--text-body);
+      }
+
+      body {
+        font-family: "SF Pro Display", "Inter", "Segoe UI", sans-serif;
+        text-rendering: optimizeLegibility;
+      }
+
+      .app-content {
+        width: 100%;
+        padding-top: calc(var(--header-height) + 24px);
+      }
+
+      .premium-shell {
+        width: min(1320px, calc(100% - 32px));
+        margin: 0 auto;
+      }
+
+      .premium-hero {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: var(--grid-gap);
+        align-items: center;
+        padding: 32px 0 48px;
+      }
+
+      .premium-hero__title {
+        margin: 0;
+        font-size: clamp(2rem, 5vw, 4rem);
+        line-height: 1.02;
+        letter-spacing: -0.03em;
+        color: var(--text-strong);
+      }
+
+      .premium-hero__lead {
+        margin: 16px 0 0;
+        max-width: 64ch;
+        color: var(--text-muted);
+        font-size: clamp(1rem, 1.4vw, 1.12rem);
+      }
+
+      .premium-cta {
+        margin-top: 24px;
+        min-height: 48px;
+        padding: 0 22px;
+        border-radius: 999px;
+        border: 1px solid rgba(251, 140, 55, 0.55);
+        color: #fff;
+        text-decoration: none;
+        font-weight: 650;
+        font-size: 0.95rem;
+        letter-spacing: 0.01em;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        background: linear-gradient(130deg, rgba(251, 140, 55, 0.92), rgba(214, 166, 81, 0.88));
+        box-shadow: 0 0 0 1px rgba(251, 140, 55, 0.42), 0 12px 28px rgba(251, 140, 55, 0.28);
+        transition: transform 180ms ease, box-shadow 180ms ease, filter 180ms ease;
+      }
+
+      .premium-cta:hover {
+        transform: translateY(-1px);
+        filter: brightness(1.03);
+        box-shadow: 0 0 0 1px rgba(251, 140, 55, 0.65), 0 16px 36px rgba(251, 140, 55, 0.34);
+      }
+
+      .premium-grid {
+        display: grid;
+        gap: var(--grid-gap);
+        grid-template-columns: repeat(12, minmax(0, 1fr));
+      }
+
+      .premium-card {
+        background: linear-gradient(160deg, rgba(21, 21, 27, 0.96), rgba(11, 11, 15, 0.94));
+        border: 1px solid var(--line-soft);
+        border-radius: var(--radius-md);
+        box-shadow: var(--shadow-soft);
+        transition: transform 220ms ease, border-color 220ms ease, box-shadow 220ms ease;
+      }
+
+      .premium-card:hover {
+        transform: translateY(-3px);
+        border-color: rgba(251, 140, 55, 0.38);
+        box-shadow: var(--shadow-elevated);
+      }
+
+      .product-showcase {
+        display: grid;
+        gap: var(--grid-gap);
+        grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
+      }
+
+      .tech-accordion {
+        border: 1px solid var(--line-soft);
+        border-radius: var(--radius-sm);
+        background: rgba(255, 255, 255, 0.02);
+        overflow: hidden;
+      }
+
+      .tech-accordion summary {
+        min-height: 52px;
+        padding: 0 16px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        color: var(--text-strong);
+        font-weight: 620;
+      }
+
+      .tech-accordion[open] summary {
+        border-bottom: 1px solid var(--line-soft);
+      }
+
+      .tech-accordion__content {
+        padding: 14px 16px 18px;
+        color: var(--text-muted);
+        line-height: 1.65;
+      }
+
+      .fade-slide-in {
+        animation: fadeSlideIn 320ms ease both;
+      }
+
+      @keyframes fadeSlideIn {
+        from {
+          opacity: 0;
+          transform: translateY(10px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      html:not(.dark) {
+        --surface-0: #f8fafc;
+        --surface-1: #ffffff;
+        --surface-2: #f2f5f9;
+        --surface-soft: rgba(15, 23, 42, 0.05);
+        --line-soft: rgba(15, 23, 42, 0.12);
+        --text-strong: #0f172a;
+        --text-body: rgba(15, 23, 42, 0.9);
+        --text-muted: rgba(51, 65, 85, 0.84);
+        --shadow-soft: 0 12px 30px rgba(15, 23, 42, 0.08);
+        --shadow-elevated: 0 20px 38px rgba(15, 23, 42, 0.12);
+      }
+
+      html:not(.dark) body {
+        background:
+          radial-gradient(circle at 0% -10%, rgba(251, 140, 55, 0.1), transparent 48%),
+          radial-gradient(circle at 100% -20%, rgba(214, 166, 81, 0.08), transparent 50%),
+          linear-gradient(180deg, #f8fafc 0%, #f4f6fb 50%, #f8fafc 100%);
+      }
+
+      html:not(.dark) .premium-card {
+        background: linear-gradient(160deg, rgba(255, 255, 255, 0.96), rgba(247, 250, 255, 0.94));
+      }
+
+      @media (max-width: 960px) {
+        .app-content {
+          padding-top: calc(var(--header-height) + 16px);
+        }
+
+        .premium-shell {
+          width: min(1320px, calc(100% - 20px));
+        }
+
+        .product-showcase {
+          grid-template-columns: 1fr;
+        }
+
+        .premium-hero {
+          padding-top: 20px;
+          padding-bottom: 32px;
+          gap: 16px;
+        }
+
+        :root {
+          --grid-gap: 16px;
+        }
+      }
+
+      .home-curtain {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh;
+        z-index: 99999;
+        pointer-events: none;
+        background: var(--slide-gradient);
+        clip-path: polygon(0 0, 100% 0, 100% 0, 0 0);
+      }
+
+      .home-curtain.active {
+        pointer-events: all;
+        animation: 2.2s cubic-bezier(0.25, 1, 0.3, 1) wipe-in-top-down both;
+      }
+
+      @keyframes wipe-in-top-down {
+        from { clip-path: polygon(0 0, 100% 0, 100% 0, 0 0); }
+        to   { clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%); }
+      }
+
+      #dock-menu-wrapper {
+        display: block;
+      }
+      @media all and (display-mode: standalone) {
+        #dock-menu-wrapper {
+          display: block !important;
+        }
+      }
+
+      #admin-panel-root {
+        pointer-events: none;
+      }
+      #admin-panel-root > * {
+        pointer-events: auto;
+      }
+
+      * {
+        -webkit-tap-highlight-color: transparent;
+      }
+
+      a,
+      button,
+      [role="button"],
+      label,
+      input[type="button"],
+      input[type="submit"],
+      input[type="reset"],
+      select,
+      summary {
+        -webkit-user-select: none;
+        -moz-user-select: none;
+        user-select: none;
+        outline: none;
+      }
+
+      section,
+      article,
+      .card,
+      .btn,
+      [class*="container"],
+      [class*="wrapper"],
+      [class*="section"],
+      [class*="block"],
+      [class*="tile"],
+      [class*="item"],
+      [class*="box"],
+      nav,
+      header,
+      footer,
+      aside {
+        -webkit-user-select: none;
+        -moz-user-select: none;
+        user-select: none;
+      }
+
+      p,
+      span,
+      h1, h2, h3, h4, h5, h6,
+      input[type="text"],
+      input[type="email"],
+      input[type="password"],
+      input[type="search"],
+      input[type="number"],
+      textarea {
+        -webkit-user-select: text;
+        -moz-user-select: text;
+        user-select: text;
+      }
+
+      .app-content.with-admin-offset {
+        box-sizing: border-box;
+        width: 100%;
+        padding-left: 252px;
+        transition: padding-left 0.22s ease;
+      }
+
+      body.admin-sidebar-collapsed .app-content.with-admin-offset {
+        padding-left: 0;
+      }
+
+      .admin-sidebar {
+        position: fixed;
+        top: 92px;
+        left: 16px;
+        bottom: 24px;
+        width: 220px;
+        z-index: 9000;
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        border-radius: 16px;
+        background: linear-gradient(180deg, rgba(20, 20, 20, 0.96), rgba(10, 10, 10, 0.9));
+        backdrop-filter: blur(8px);
+        padding: 14px;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+        transition: transform 0.24s ease, opacity 0.24s ease;
+      }
+
+      .admin-sidebar__scroll-area {
+        flex: 1;
+        min-height: 0;
+        overflow-y: auto;
+        padding-right: 4px;
+        scrollbar-width: thin;
+        scrollbar-color: rgba(122, 37, 50, 0.82) rgba(255, 255, 255, 0.08);
+      }
+
+      .admin-sidebar__scroll-area::-webkit-scrollbar {
+        width: 10px;
+      }
+
+      .admin-sidebar__scroll-area::-webkit-scrollbar-track {
+        background: rgba(255, 255, 255, 0.08);
+        border-radius: 999px;
+      }
+
+      .admin-sidebar__scroll-area::-webkit-scrollbar-thumb {
+        background: linear-gradient(180deg, rgba(122, 37, 50, 0.92), rgba(245, 158, 11, 0.88));
+        border-radius: 999px;
+        border: 2px solid rgba(10, 10, 10, 0.6);
+      }
+
+      .admin-sidebar-scroll {
+        margin-top: 12px;
+        padding-top: 10px;
+        border-top: 1px solid rgba(255, 255, 255, 0.12);
+        display: flex;
+        justify-content: center;
+        gap: 8px;
+      }
+
+      .admin-sidebar-scroll__btn {
+        width: 34px;
+        height: 34px;
+        border-radius: 999px;
+        border: 1px solid rgba(122, 37, 50, 0.5);
+        background: linear-gradient(160deg, rgba(122, 37, 50, 0.18), rgba(15, 23, 42, 0.75));
+        color: rgba(255, 255, 255, 0.95);
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        font-size: 0.92rem;
+        font-weight: 700;
+        line-height: 1;
+        transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+      }
+
+      .admin-sidebar-scroll__btn:hover {
+        transform: translateY(-1px);
+        border-color: rgba(122, 37, 50, 0.85);
+        box-shadow: 0 0 0 3px rgba(122, 37, 50, 0.18);
+      }
+
+      .admin-sidebar-scroll__btn:active {
+        transform: translateY(0);
+      }
+
+      .admin-sidebar.is-collapsed {
+        transform: translateX(-118%);
+        opacity: 0;
+        pointer-events: none;
+      }
+
+      .admin-sidebar__head {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 10px;
+      }
+
+      .admin-sidebar__close {
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        background: rgba(255, 255, 255, 0.04);
+        color: rgba(255, 255, 255, 0.86);
+        border-radius: 8px;
+        width: 30px;
+        height: 30px;
+        font-size: 1rem;
+        line-height: 1;
+        cursor: pointer;
+      }
+
+      .admin-sidebar__title {
+        margin: 0 0 2px;
+        font-size: 0.86rem;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: rgba(255, 255, 255, 0.88);
+      }
+
+      .admin-sidebar__subtitle {
+        margin: 0 0 14px;
+        font-size: 0.75rem;
+        color: rgba(255, 255, 255, 0.58);
+      }
+
+      .admin-sidebar__list {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+
+      .admin-sidebar__link {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 10px 12px;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 10px;
+        text-decoration: none;
+        color: rgba(255, 255, 255, 0.85);
+        font-size: 0.82rem;
+        background: rgba(255, 255, 255, 0.03);
+        transition: background 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
+      }
+
+      .admin-sidebar__link--pending {
+        position: relative;
+      }
+
+      .admin-sidebar__badge {
+        margin-left: auto;
+        min-width: 20px;
+        height: 20px;
+        padding: 0 6px;
+        border-radius: 7px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.69rem;
+        font-weight: 750;
+        letter-spacing: 0;
+        color: #fbbf24;
+        background: rgba(245, 158, 11, 0.14);
+        border: 1px solid rgba(245, 158, 11, 0.38);
+        animation: sidebarBadgeGlow 2.8s ease-in-out infinite;
+      }
+
+      @keyframes sidebarBadgeGlow {
+        0%, 100% { box-shadow: 0 0 4px rgba(245, 158, 11, 0.14); }
+        50%       { box-shadow: 0 0 10px rgba(245, 158, 11, 0.32); }
+      }
+
+      .admin-sidebar__link:hover {
+        background: rgba(122, 37, 50, 0.12);
+        border-color: rgba(122, 37, 50, 0.42);
+        transform: translateX(2px);
+      }
+
+      .admin-sidebar__dot {
+        width: 7px;
+        height: 7px;
+        border-radius: 999px;
+        background: #7a2532;
+        box-shadow: 0 0 8px rgba(122, 37, 50, 0.65);
+      }
+
+      /* ─── Admin Toggle v2 — "Command Center" ─── */
+      .admin-sidebar-toggle {
+        display: inline-flex;
+        position: fixed;
+        left: 14px;
+        bottom: 88px;
+        z-index: 9001;
+        align-items: center;
+        gap: 9px;
+        padding: 9px 13px 9px 10px;
+        border-radius: 14px;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        background: rgba(13, 13, 17, 0.86);
+        backdrop-filter: blur(14px) saturate(1.5);
+        color: rgba(255, 255, 255, 0.84);
+        font-size: 0.79rem;
+        font-weight: 550;
+        letter-spacing: 0.01em;
+        cursor: pointer;
+        box-shadow: 0 4px 18px rgba(0, 0, 0, 0.32);
+        transition:
+          transform 200ms cubic-bezier(0.34, 1.56, 0.64, 1),
+          box-shadow 220ms ease,
+          border-color 220ms ease,
+          background 220ms ease,
+          opacity 200ms ease;
+      }
+
+      .admin-sidebar-toggle:hover {
+        transform: translateY(-2px) scale(1.012);
+        border-color: rgba(255, 255, 255, 0.14);
+        box-shadow: 0 8px 26px rgba(0, 0, 0, 0.38), 0 0 0 1px rgba(255, 255, 255, 0.05);
+      }
+
+      .admin-sidebar-toggle:active {
+        transform: scale(0.974);
+        transition-duration: 80ms;
+      }
+
+      .admin-sidebar-toggle__icon {
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        background: rgba(255, 255, 255, 0.22);
+        flex: 0 0 auto;
+        transition: background 300ms ease, box-shadow 300ms ease;
+      }
+
+      .admin-sidebar-toggle__label {
+        line-height: 1;
+        color: rgba(255, 255, 255, 0.82);
+      }
+
+      .admin-sidebar-toggle__badge {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 20px;
+        height: 20px;
+        padding: 0 6px;
+        border-radius: 8px;
+        font-size: 0.69rem;
+        font-weight: 750;
+        letter-spacing: 0;
+        color: #fbbf24;
+        background: rgba(245, 158, 11, 0.16);
+        border: 1px solid rgba(245, 158, 11, 0.38);
+        transition: all 250ms ease;
+      }
+
+      /* Prevent display:inline-flex from overriding [hidden] */
+      .admin-sidebar-toggle__badge[hidden],
+      .admin-sidebar__badge[hidden] {
+        display: none !important;
+      }
+
+      /* Badge pop-in when revealed */
+      @keyframes badgePopIn {
+        0%   { transform: scale(0.4); opacity: 0; }
+        70%  { transform: scale(1.18); opacity: 1; }
+        100% { transform: scale(1); opacity: 1; }
+      }
+
+      .admin-sidebar-toggle__badge.is-entering {
+        animation: badgePopIn 280ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
+      }
+
+      /* Button shake when new pending items arrive */
+      @keyframes adminToggleShake {
+        0%   { transform: translateX(0); }
+        15%  { transform: translateX(-3px) rotate(-0.8deg); }
+        30%  { transform: translateX(3px) rotate(0.8deg); }
+        45%  { transform: translateX(-2px); }
+        60%  { transform: translateX(2px); }
+        75%  { transform: translateX(-1px); }
+        100% { transform: translateX(0); }
+      }
+
+      .admin-sidebar-toggle.is-shaking {
+        animation: adminToggleShake 380ms ease both;
+      }
+
+      /* ── has-alert: breathing glow ── */
+      .admin-sidebar-toggle.has-alert {
+        border-color: rgba(245, 158, 11, 0.26);
+        animation: adminToggleBreathe 3s ease-in-out infinite;
+      }
+
+      .admin-sidebar-toggle.has-alert .admin-sidebar-toggle__icon {
+        background: #f59e0b;
+        animation: adminDotPulse 2.4s ease-in-out infinite;
+      }
+
+      .admin-sidebar-toggle.has-alert .admin-sidebar-toggle__badge {
+        color: #fbbf24;
+        background: rgba(245, 158, 11, 0.2);
+        border-color: rgba(245, 158, 11, 0.55);
+        box-shadow: 0 0 8px rgba(245, 158, 11, 0.22);
+        animation: adminBadgeBreathe 3s ease-in-out infinite;
+      }
+
+      /* ── is-urgent: 5+ items → coral escalation ── */
+      .admin-sidebar-toggle.has-alert.is-urgent {
+        border-color: rgba(244, 63, 94, 0.32);
+        animation: adminToggleBreatheUrgent 2.2s ease-in-out infinite;
+      }
+
+      .admin-sidebar-toggle.has-alert.is-urgent .admin-sidebar-toggle__icon {
+        background: #f43f5e;
+        animation: adminDotPulseUrgent 2s ease-in-out infinite;
+      }
+
+      .admin-sidebar-toggle.has-alert.is-urgent .admin-sidebar-toggle__badge {
+        color: #fda4af;
+        background: rgba(244, 63, 94, 0.18);
+        border-color: rgba(244, 63, 94, 0.52);
+        box-shadow: 0 0 10px rgba(244, 63, 94, 0.26);
+        animation: adminBadgeBreatheUrgent 2.2s ease-in-out infinite;
+      }
+
+      /* ── interaction-cooling: pauses all animations on interaction ── */
+      .admin-sidebar-toggle.interaction-cooling,
+      .admin-sidebar-toggle.interaction-cooling .admin-sidebar-toggle__icon,
+      .admin-sidebar-toggle.interaction-cooling .admin-sidebar-toggle__badge {
+        animation-play-state: paused;
+      }
+
+      /* ── Keyframes ── */
+      @keyframes adminToggleBreathe {
+        0%, 100% {
+          box-shadow: 0 4px 18px rgba(0, 0, 0, 0.32), 0 0 0 0 rgba(245, 158, 11, 0);
+        }
+        50% {
+          box-shadow: 0 6px 22px rgba(0, 0, 0, 0.36), 0 0 0 3px rgba(245, 158, 11, 0.09), 0 0 18px rgba(245, 158, 11, 0.11);
+        }
+      }
+
+      @keyframes adminToggleBreatheUrgent {
+        0%, 100% {
+          box-shadow: 0 4px 18px rgba(0, 0, 0, 0.32), 0 0 0 0 rgba(244, 63, 94, 0);
+        }
+        50% {
+          box-shadow: 0 6px 22px rgba(0, 0, 0, 0.36), 0 0 0 3px rgba(244, 63, 94, 0.12), 0 0 18px rgba(244, 63, 94, 0.14);
+        }
+      }
+
+      @keyframes adminDotPulse {
+        0%   { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.52); }
+        65%  { box-shadow: 0 0 0 6px rgba(245, 158, 11, 0); }
+        100% { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0); }
+      }
+
+      @keyframes adminDotPulseUrgent {
+        0%   { box-shadow: 0 0 0 0 rgba(244, 63, 94, 0.52); }
+        65%  { box-shadow: 0 0 0 6px rgba(244, 63, 94, 0); }
+        100% { box-shadow: 0 0 0 0 rgba(244, 63, 94, 0); }
+      }
+
+      @keyframes adminBadgeBreathe {
+        0%, 100% { transform: scale(1); box-shadow: 0 0 6px rgba(245, 158, 11, 0.16); }
+        50%       { transform: scale(1.06); box-shadow: 0 0 12px rgba(245, 158, 11, 0.32); }
+      }
+
+      @keyframes adminBadgeBreatheUrgent {
+        0%, 100% { transform: scale(1); box-shadow: 0 0 6px rgba(244, 63, 94, 0.16); }
+        50%       { transform: scale(1.06); box-shadow: 0 0 12px rgba(244, 63, 94, 0.32); }
+      }
+
+      .admin-sidebar-toggle.is-hidden {
+        opacity: 0;
+        pointer-events: none;
+        transform: translateY(8px);
+      }
+
+      html:not(.dark) .admin-sidebar {
+        border: 1px solid rgba(15, 23, 42, 0.16);
+        background: linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(244, 247, 252, 0.94));
+      }
+
+      html:not(.dark) .admin-sidebar__title {
+        color: rgba(15, 23, 42, 0.9);
+      }
+
+      html:not(.dark) .admin-sidebar__subtitle {
+        color: rgba(51, 65, 85, 0.76);
+      }
+
+      html:not(.dark) .admin-sidebar__link {
+        border: 1px solid rgba(15, 23, 42, 0.12);
+        color: rgba(15, 23, 42, 0.86);
+        background: rgba(255, 255, 255, 0.74);
+      }
+
+      html:not(.dark) .admin-sidebar__link:hover {
+        background: rgba(122, 37, 50, 0.08);
+        border-color: rgba(122, 37, 50, 0.45);
+      }
+
+      html:not(.dark) .admin-sidebar__badge {
+        background: rgba(245, 158, 11, 0.12);
+        border-color: rgba(245, 158, 11, 0.45);
+        color: #b45309;
+      }
+
+      html:not(.dark) .admin-sidebar__close {
+        border: 1px solid rgba(15, 23, 42, 0.2);
+        background: rgba(15, 23, 42, 0.04);
+        color: rgba(15, 23, 42, 0.85);
+      }
+
+      html:not(.dark) .admin-sidebar__scroll-area {
+        scrollbar-color: rgba(122, 37, 50, 0.88) rgba(15, 23, 42, 0.08);
+      }
+
+      html:not(.dark) .admin-sidebar__scroll-area::-webkit-scrollbar-track {
+        background: rgba(15, 23, 42, 0.08);
+      }
+
+      html:not(.dark) .admin-sidebar__scroll-area::-webkit-scrollbar-thumb {
+        border-color: rgba(255, 255, 255, 0.88);
+      }
+
+      html:not(.dark) .admin-sidebar-scroll__btn {
+        color: rgba(15, 23, 42, 0.88);
+        background: linear-gradient(160deg, rgba(122, 37, 50, 0.2), rgba(255, 255, 255, 0.95));
+      }
+
+      html:not(.dark) .admin-sidebar-toggle {
+        border: 1px solid rgba(15, 23, 42, 0.12);
+        background: rgba(255, 255, 255, 0.9);
+        backdrop-filter: blur(14px) saturate(1.5);
+        color: rgba(15, 23, 42, 0.86);
+      }
+
+      html:not(.dark) .admin-sidebar-toggle__label {
+        color: rgba(15, 23, 42, 0.8);
+      }
+
+      html:not(.dark) .admin-sidebar-toggle__icon {
+        background: rgba(15, 23, 42, 0.26);
+      }
+
+      html:not(.dark) .admin-sidebar-toggle.has-alert {
+        border-color: rgba(245, 158, 11, 0.42);
+      }
+
+      html:not(.dark) .admin-sidebar-toggle.has-alert .admin-sidebar-toggle__icon {
+        background: #d97706;
+      }
+
+      html:not(.dark) .admin-sidebar-toggle__badge {
+        color: #d97706;
+        background: rgba(245, 158, 11, 0.12);
+        border-color: rgba(245, 158, 11, 0.4);
+      }
+
+      @media (max-width: 1024px) {
+        .app-content.with-admin-offset {
+          padding-left: 0;
+        }
+
+        .admin-sidebar {
+          top: 84px;
+          left: 10px;
+          bottom: 10px;
+          transform: translateX(-115%);
+          transition: transform 0.25s ease;
+        }
+
+        .admin-sidebar.is-open {
+          transform: translateX(0);
+        }
+
+        .admin-sidebar__close {
+          display: inline-flex;
+        }
+      }
+
+      .support-launcher {
+        position: fixed;
+        right: 14px;
+        bottom: 156px;
+        z-index: 9300;
+        border: 1px solid rgba(122, 37, 50, 0.5);
+        background: linear-gradient(160deg, rgba(122, 37, 50, 0.92), rgba(194, 65, 12, 0.94));
+        color: #fff;
+        border-radius: 999px;
+        padding: 10px 16px;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 0.78rem;
+        font-weight: 700;
+        cursor: pointer;
+        box-shadow: 0 12px 30px rgba(194, 65, 12, 0.36);
+      }
+
+      .support-launcher:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 14px 34px rgba(194, 65, 12, 0.44);
+      }
+
+      .support-launcher__dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 999px;
+        background: #22d3ee;
+        box-shadow: 0 0 0 4px rgba(34, 211, 238, 0.18);
+      }
+
+      .support-modal {
+        position: fixed;
+        inset: 0;
+        z-index: 9400;
+        display: grid;
+        place-items: center;
+        background: rgba(2, 6, 23, 0.58);
+        padding: 20px;
+      }
+
+      .support-modal[hidden] {
+        display: none;
+      }
+
+      .support-modal__card {
+        width: min(760px, 100%);
+        border-radius: 20px;
+        border: 1px solid rgba(148, 163, 184, 0.28);
+        background: linear-gradient(165deg, rgba(15, 23, 42, 0.98), rgba(2, 6, 23, 0.98));
+        color: rgba(248, 250, 252, 0.95);
+        box-shadow: 0 30px 70px rgba(2, 6, 23, 0.6);
+        overflow: hidden;
+      }
+
+      .support-modal__head {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 12px;
+        padding: 18px 18px 10px;
+      }
+
+      .support-modal__title {
+        margin: 0;
+        font-size: 1rem;
+        letter-spacing: 0.01em;
+      }
+
+      .support-modal__close {
+        border: 1px solid rgba(148, 163, 184, 0.35);
+        background: rgba(148, 163, 184, 0.12);
+        color: #fff;
+        border-radius: 10px;
+        width: 32px;
+        height: 32px;
+        font-size: 1rem;
+        cursor: pointer;
+      }
+
+      .support-modal__sub {
+        margin: 0;
+        padding: 0 18px 14px;
+        color: rgba(203, 213, 225, 0.9);
+        font-size: 0.84rem;
+      }
+
+      .support-modal__body {
+        display: grid;
+        grid-template-columns: 1.2fr 1fr;
+        gap: 14px;
+        padding: 0 18px 18px;
+      }
+
+      .support-panel {
+        border: 1px solid rgba(148, 163, 184, 0.26);
+        border-radius: 14px;
+        padding: 12px;
+        background: rgba(15, 23, 42, 0.45);
+      }
+
+      .support-form {
+        display: grid;
+        gap: 10px;
+      }
+
+      .support-form__row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+      }
+
+      .support-form label {
+        display: grid;
+        gap: 6px;
+        font-size: 0.76rem;
+        color: rgba(226, 232, 240, 0.92);
+      }
+
+      .support-form input,
+      .support-form select,
+      .support-form textarea {
+        border-radius: 10px;
+        border: 1px solid rgba(148, 163, 184, 0.32);
+        background: rgba(2, 6, 23, 0.6);
+        color: rgba(248, 250, 252, 0.96);
+        padding: 10px 11px;
+        font-size: 0.84rem;
+      }
+
+      .support-form textarea {
+        min-height: 110px;
+        resize: vertical;
+      }
+
+      .support-form__submit {
+        border: 0;
+        border-radius: 10px;
+        background: linear-gradient(160deg, rgba(122, 37, 50, 0.95), rgba(245, 158, 11, 0.94));
+        color: #fff;
+        padding: 10px 14px;
+        font-size: 0.84rem;
+        font-weight: 700;
+        cursor: pointer;
+      }
+
+      .support-form__status {
+        margin: 0;
+        font-size: 0.78rem;
+        color: rgba(226, 232, 240, 0.9);
+      }
+
+      .support-form__status[data-type="error"] {
+        color: #fda4af;
+      }
+
+      .support-form__status[data-type="success"] {
+        color: #6ee7b7;
+      }
+
+      .support-links {
+        display: grid;
+        gap: 8px;
+      }
+
+      .support-links__title {
+        margin: 0 0 6px;
+        font-size: 0.82rem;
+        color: rgba(226, 232, 240, 0.92);
+      }
+
+      .support-link {
+        text-decoration: none;
+        border: 1px solid rgba(148, 163, 184, 0.26);
+        border-radius: 12px;
+        padding: 10px;
+        color: rgba(248, 250, 252, 0.95);
+        background: rgba(15, 23, 42, 0.52);
+        display: grid;
+        gap: 2px;
+      }
+
+      .support-link strong {
+        font-size: 0.8rem;
+      }
+
+      .support-link span {
+        font-size: 0.73rem;
+        color: rgba(203, 213, 225, 0.9);
+      }
+
+      html:not(.dark) .support-modal {
+        background: rgba(15, 23, 42, 0.38);
+      }
+
+      html:not(.dark) .support-modal__card {
+        border-color: rgba(15, 23, 42, 0.14);
+        background: linear-gradient(170deg, rgba(255, 255, 255, 0.98), rgba(241, 245, 249, 0.98));
+        color: rgba(15, 23, 42, 0.92);
+      }
+
+      html:not(.dark) .support-modal__sub,
+      html:not(.dark) .support-form label,
+      html:not(.dark) .support-form__status,
+      html:not(.dark) .support-links__title {
+        color: rgba(51, 65, 85, 0.9);
+      }
+
+      html:not(.dark) .support-form input,
+      html:not(.dark) .support-form select,
+      html:not(.dark) .support-form textarea,
+      html:not(.dark) .support-link,
+      html:not(.dark) .support-panel {
+        background: rgba(255, 255, 255, 0.84);
+        border-color: rgba(15, 23, 42, 0.15);
+        color: rgba(15, 23, 42, 0.9);
+      }
+
+      html:not(.dark) .support-link span {
+        color: rgba(71, 85, 105, 0.92);
+      }
+
+      @media (max-width: 900px) {
+        .support-modal__body {
+          grid-template-columns: 1fr;
+        }
+
+        .support-form__row {
+          grid-template-columns: 1fr;
+        }
+
+        .support-launcher {
+          right: 10px;
+          bottom: 146px;
+          font-size: 0.72rem;
+          padding: 9px 12px;
+        }
+      }
+    </style>
+  </head>
+
+  <body data-admin={isAdmin ? "1" : "0"} data-superadmin={isSuperAdmin ? "1" : "0"}>
+    <div id="home-transition-curtain" class="home-curtain"></div>
+    <FondoGlobal />
+
+
+    <Loader />
+    <Navbar currentLang={currentLang} moveLogoMobile={moveLogoMobile} />
+
+    <div
+      id="global-audio-player"
+      transition:persist
+      style="position: fixed; bottom: 30px; right: 96px; z-index: 9999;"
+    >
+    </div>
+
+    {
+      canShowAdminSidebar && (
+        <>
+          <button id="admin-sidebar-toggle" class="admin-sidebar-toggle" type="button" aria-label="Panel admin">
+            <span class="admin-sidebar-toggle__icon" aria-hidden="true"></span>
+            <span class="admin-sidebar-toggle__label">Ocultar panel admin</span>
+            <span id="admin-sidebar-toggle-count" class="admin-sidebar-toggle__badge" hidden>0</span>
+          </button>
+
+          <aside id="admin-sidebar" class="admin-sidebar" aria-label="Sidebar de administración">
+            <div class="admin-sidebar__head">
+              <div>
+                <p class="admin-sidebar__title">Admin</p>
+                <p class="admin-sidebar__subtitle">Accesos de gestión</p>
+              </div>
+              <button id="admin-sidebar-close" class="admin-sidebar__close" type="button" aria-label="Cerrar sidebar admin">×</button>
+            </div>
+
+            <div id="admin-sidebar-scroll-area" class="admin-sidebar__scroll-area">
+              <nav class="admin-sidebar__list">
+                <a class="admin-sidebar__link" href={`/${currentLang}/admin/dashboard`}>
+                  <span class="admin-sidebar__dot" style="background:#22d3ee;box-shadow:0 0 8px rgba(34,211,238,0.65)"></span>
+                  Dashboard ejecutivo
+                </a>
+                <a class="admin-sidebar__link" href={`/${currentLang}/admin/productos`}>
+                  <span class="admin-sidebar__dot"></span>
+                  Gestión de productos
+                </a>
+                {isSuperAdmin && (
+                  <a class="admin-sidebar__link" href={`/${currentLang}/admin/usuarios`}>
+                    <span class="admin-sidebar__dot"></span>
+                    Gestión de usuarios
+                  </a>
+                )}
+                <a class="admin-sidebar__link" href={`/${currentLang}/admin/categorias`}>
+                  <span class="admin-sidebar__dot"></span>
+                  Gestión de categorías
+                </a>
+                <a class="admin-sidebar__link" href={`/${currentLang}/admin/pedidos`}>
+                  <span class="admin-sidebar__dot"></span>
+                  Gestión de pedidos
+                </a>
+                <a class="admin-sidebar__link" href={`/${currentLang}/admin/equipo`}>
+                  <span class="admin-sidebar__dot" style="background:#38bdf8;box-shadow:0 0 8px rgba(56,189,248,0.62)"></span>
+                  Equipo admin
+                </a>
+                <a class="admin-sidebar__link" href={`/${currentLang}/admin/incidencias-pedidos`}>
+                  <span class="admin-sidebar__dot" style="background:#f43f5e;box-shadow:0 0 8px rgba(244,63,94,0.65)"></span>
+                  Quejas de productos
+                </a>
+                <a class="admin-sidebar__link" href={`/${currentLang}/simulador`}>
+                  <span class="admin-sidebar__dot" style="background:#22d87a;box-shadow:0 0 8px rgba(34,216,122,0.65)"></span>
+                  Simulador de costos
+                </a>
+                <a class="admin-sidebar__link" href={`/${currentLang}/admin/descuentos`}>
+                  <span class="admin-sidebar__dot" style="background:#f59e0b;box-shadow:0 0 8px rgba(245,158,11,0.6)"></span>
+                  Descuentos
+                </a>
+                <a class="admin-sidebar__link" href={`/${currentLang}/publicidad`}>
+                  <span class="admin-sidebar__dot" style="background:#7a2532;box-shadow:0 0 8px rgba(122,37,50,0.65)"></span>
+                  Gestión de publicidad
+                </a>
+                <a class="admin-sidebar__link" href={`/${currentLang}/admin/empresas-perfil`}>
+                  <span class="admin-sidebar__dot" style="background:#f59e0b;box-shadow:0 0 8px rgba(245,158,11,0.65)"></span>
+                  Perfil de empresa destacada
+                </a>
+                <a class="admin-sidebar__link" href={`/${currentLang}/admin/facturacion`}>
+                  <span class="admin-sidebar__dot" style="background:#0ea5e9;box-shadow:0 0 8px rgba(14,165,233,0.65)"></span>
+                  Facturación
+                </a>
+                {isSuperAdmin && (
+                  <>
+                    <a class="admin-sidebar__link admin-sidebar__link--pending" href={`/${currentLang}/admin/productos-aprobacion`}>
+                      <span class="admin-sidebar__dot" style="background:#7a2532;box-shadow:0 0 8px rgba(122,37,50,0.65)"></span>
+                      Productos por aprobar
+                      <span id="admin-pending-products" class="admin-sidebar__badge" hidden>0</span>
+                    </a>
+                    <a class="admin-sidebar__link admin-sidebar__link--pending" href={`/${currentLang}/admin/empresas`}>
+                      <span class="admin-sidebar__dot" style="background:#8b5cf6;box-shadow:0 0 8px rgba(139,92,246,0.65)"></span>
+                      Aprobar empresas
+                      <span id="admin-pending-empresas" class="admin-sidebar__badge" hidden>0</span>
+                    </a>
+                    <a class="admin-sidebar__link" href={`/${currentLang}/admin/empresas`}>
+                      <span class="admin-sidebar__dot" style="background:#10b981;box-shadow:0 0 8px rgba(16,185,129,0.65)"></span>
+                      Registrar empresas
+                    </a>
+                    <a class="admin-sidebar__link" href={`/${currentLang}/admin/feedback`}>
+                      <span class="admin-sidebar__dot" style="background:#06b6d4;box-shadow:0 0 8px rgba(6,182,212,0.65)"></span>
+                      Quejas y sugerencias
+                    </a>
+                  </>
+                )}
+              </nav>
+            </div>
+
+            <div class="admin-sidebar-scroll" aria-label="Desplazamiento del panel admin">
+              <button id="admin-sidebar-scroll-up" class="admin-sidebar-scroll__btn" type="button" aria-label="Subir en panel admin">▲</button>
+              <button id="admin-sidebar-scroll-down" class="admin-sidebar-scroll__btn" type="button" aria-label="Bajar en panel admin">▼</button>
+            </div>
+          </aside>
+        </>
+      )
+    }
+
+    <main class:list={["app-content", canShowAdminSidebar && useAdminOffset && "with-admin-offset"]}>
+      <slot />
+    </main>
+
+    <div id="dock-menu-wrapper">
+      <DockMenu />
+    </div>
+
+    <div id="support-modal" class="support-modal" role="dialog" aria-modal="true" aria-labelledby="support-modal-title" hidden>
+      <div class="support-modal__card">
+        <div class="support-modal__head">
+          <h2 id="support-modal-title" class="support-modal__title">Canal de quejas y fallos</h2>
+          <button id="support-modal-close" class="support-modal__close" type="button" aria-label="Cerrar">×</button>
+        </div>
+        <p class="support-modal__sub">Cuéntanos lo que pasó y elige cómo prefieres que te contactemos. También tienes 3 vías directas para comunicarte.</p>
+
+        <div class="support-modal__body">
+          <section class="support-panel">
+            <form id="support-form" class="support-form">
+              <div class="support-form__row">
+                <label>
+                  Tipo
+                  <select id="support-tipo" required>
+                    <option value="queja">Queja</option>
+                    <option value="fallo">Fallo técnico</option>
+                  </select>
+                </label>
+                <label>
+                  Categoría
+                  <select id="support-categoria" required>
+                    <option value="producto_pedido">Producto / pedido</option>
+                    <option value="atencion">Atención</option>
+                    <option value="tecnico_fallo">Técnico / sitio</option>
+                  </select>
+                </label>
+              </div>
+
+              <div class="support-form__row">
+                <label>
+                  Canal de respuesta
+                  <select id="support-canal" required>
+                    <option value="ticket">Ticket web</option>
+                    <option value="whatsapp">WhatsApp</option>
+                    <option value="correo">Correo</option>
+                  </select>
+                </label>
+                <label>
+                  Asunto
+                  <input id="support-asunto" type="text" minlength="6" maxlength="120" placeholder="Ej. Error al pagar pedido" required />
+                </label>
+              </div>
+
+              <label>
+                Descripción
+                <textarea id="support-mensaje" minlength="20" maxlength="3000" placeholder="Describe el fallo o queja con detalles para ayudarte más rápido." required></textarea>
+              </label>
+
+              <button id="support-submit" class="support-form__submit" type="submit">Enviar reporte</button>
+              <p id="support-status" class="support-form__status">Tu folio aparecerá aquí al enviar.</p>
+            </form>
+          </section>
+
+          <section class="support-panel">
+            <p class="support-links__title">Opciones directas de contacto (3)</p>
+            <div class="support-links">
+              <a class="support-link" href={whatsappSupportHref} target="_blank" rel="noreferrer">
+                <strong>WhatsApp</strong>
+                <span>Respuesta rápida para fallos urgentes.</span>
+              </a>
+              <a class="support-link" href={mailSupportHref}>
+                <strong>Correo</strong>
+                <span>Comparte más detalle o evidencia adjunta.</span>
+              </a>
+              <a class="support-link" href={feedbackPageHref}>
+                <strong>Ticket web</strong>
+                <span>Seguimiento con folio e historial en tu cuenta.</span>
+              </a>
+            </div>
+          </section>
+        </div>
+      </div>
+    </div>
+
+    <!--
+      ⚡ AdminPanel — carga LAZY, solo al pulsar Ctrl+9
+      El componente React NO se incluye en el bundle inicial.
+      El div wrapper tiene pointer-events:none para no
+      interferir con el cursor cuando el panel está cerrado.
+    -->
+    <div id="admin-panel-root"></div>
+
+    <script src="/scripts/theme-toggle.js" defer></script>
+
+    <!-- ⚡ PWA Service Worker — defer para no bloquear -->
+    <script>
+      import { registerSW } from "virtual:pwa-register";
+      registerSW({ immediate: false }); // immediate:false → no bloquea el hilo principal
+    </script>
+
+    <!-- ⚡ Loader oculto con requestAnimationFrame → no bloquea el paint -->
+    <script is:inline>
+      window.addEventListener("load", () => {
+        requestAnimationFrame(() => {
+          const loader = document.getElementById("loader-wrapper");
+          if (loader) {
+            loader.style.transition = "opacity 0.5s ease";
+            loader.style.opacity = "0";
+            setTimeout(() => { loader.style.display = "none"; }, 500);
+          }
+        });
+      });
+    </script>
+
+    <!--
+      ⚡ AdminPanel — lazy import solo cuando el usuario pulsa Ctrl+9
+      React + el componente se descargan únicamente en ese momento,
+      ahorrando ~150-400 KB del bundle inicial.
+    -->
+    <script>
+      const isAdminSession = document.body?.dataset?.admin === "1";
+      const isSuperAdminSession = document.body?.dataset?.superadmin === "1";
+      let adminMounted = false;
+      const sidebarStorageKey = "adminSidebarCollapsed";
+
+      const toggleButton = document.getElementById("admin-sidebar-toggle");
+      const sidebar = document.getElementById("admin-sidebar");
+      const sidebarScrollArea = document.getElementById("admin-sidebar-scroll-area");
+      const closeSidebarButton = document.getElementById("admin-sidebar-close");
+      const sidebarScrollUp = document.getElementById("admin-sidebar-scroll-up");
+      const sidebarScrollDown = document.getElementById("admin-sidebar-scroll-down");
+      const toggleLabel = toggleButton?.querySelector(".admin-sidebar-toggle__label");
+      const toggleCount = document.getElementById("admin-sidebar-toggle-count");
+      const pendingProductsBadge = document.getElementById("admin-pending-products");
+      const pendingEmpresasBadge = document.getElementById("admin-pending-empresas");
+
+      const setBadgeCount = (el: HTMLElement | null, count: number) => {
+        if (!(el instanceof HTMLElement)) return;
+        if (count > 0) {
+          const wasHidden = el.hidden;
+          el.textContent = String(count);
+          el.hidden = false;
+          // Pop-in animation only when badge transitions from hidden to visible
+          if (wasHidden) {
+            el.classList.remove("is-entering");
+            // Force reflow so animation restarts cleanly
+            void el.offsetWidth;
+            el.classList.add("is-entering");
+            el.addEventListener("animationend", () => el.classList.remove("is-entering"), { once: true });
+          }
+          return;
+        }
+        el.hidden = true;
+      };
+
+      let _prevTotal = 0;
+
+      const updateAdminPendingUI = ({ products = 0, empresas = 0 }) => {
+        const total = Math.max(0, Number(products || 0)) + Math.max(0, Number(empresas || 0));
+
+        setBadgeCount(pendingProductsBadge, products);
+        setBadgeCount(pendingEmpresasBadge, empresas);
+        setBadgeCount(toggleCount, total);
+
+        if (toggleButton instanceof HTMLElement) {
+          toggleButton.classList.toggle("has-alert", total > 0);
+          toggleButton.classList.toggle("is-urgent", total >= 5);
+          toggleButton.setAttribute("aria-label", total > 0
+            ? `Panel admin. ${total} pendiente${total === 1 ? "" : "s"} por aprobar`
+            : "Panel admin");
+
+          // Shake when new items appear (transition from 0 or total grows)
+          if (total > 0 && total > _prevTotal) {
+            toggleButton.classList.remove("is-shaking");
+            void (toggleButton as HTMLElement).offsetWidth; // reflow
+            toggleButton.classList.add("is-shaking");
+            toggleButton.addEventListener("animationend", () => toggleButton.classList.remove("is-shaking"), { once: true });
+          }
+        }
+
+        _prevTotal = total;
+      };
+
+      const fetchAdminPendings = async () => {
+        if (!isSuperAdminSession) return;
+        try {
+          const [productsRes, empresasRes] = await Promise.all([
+            fetch("/api/admin/productos/aprobaciones", { credentials: "include" }),
+            fetch("/api/admin/empresas", { credentials: "include" }),
+          ]);
+
+          const productsData = await productsRes.json().catch(() => ({}));
+          const empresasData = await empresasRes.json().catch(() => ({}));
+
+          const products = Array.isArray(productsData?.productos) ? productsData.productos.length : 0;
+          const empresas = Array.isArray(empresasData?.empresas)
+            ? empresasData.empresas.filter((e: { Estado?: string }) => String(e?.Estado || "").toLowerCase() === "pendiente").length
+            : 0;
+
+          updateAdminPendingUI({ products, empresas });
+        } catch (error) {
+          console.error("[admin-sidebar] Error obteniendo pendientes:", error);
+        }
+      };
+
+      const isMobile = () => window.matchMedia("(max-width: 1024px)").matches;
+
+      const updateToggleLabel = () => {
+        if (!toggleButton || !sidebar) return;
+        if (isMobile()) {
+          const label = sidebar.classList.contains("is-open")
+            ? "Cerrar panel admin"
+            : "Panel admin";
+          if (toggleLabel instanceof HTMLElement) {
+            toggleLabel.textContent = label;
+          } else {
+            toggleButton.textContent = label;
+          }
+          return;
+        }
+
+        const label = sidebar.classList.contains("is-collapsed")
+          ? "Mostrar panel admin"
+          : "Ocultar panel admin";
+        if (toggleLabel instanceof HTMLElement) {
+          toggleLabel.textContent = label;
+        } else {
+          toggleButton.textContent = label;
+        }
+      };
+
+      const syncToggleVisibility = () => {
+        if (!toggleButton || !sidebar) return;
+        const shouldHide = isMobile()
+          ? sidebar.classList.contains("is-open")
+          : !sidebar.classList.contains("is-collapsed");
+        toggleButton.classList.toggle("is-hidden", shouldHide);
+      };
+
+      const setDesktopCollapsed = (collapsed: boolean) => {
+        if (!sidebar) return;
+        sidebar.classList.toggle("is-collapsed", collapsed);
+        document.body.classList.toggle("admin-sidebar-collapsed", collapsed);
+        try {
+          localStorage.setItem(sidebarStorageKey, collapsed ? "1" : "0");
+        } catch {}
+        updateToggleLabel();
+        syncToggleVisibility();
+      };
+
+      let coolingTimer: number | null = null;
+
+      if (toggleButton && sidebar) {
+        toggleButton.addEventListener("click", () => {
+          // Pause breathing animations briefly — UX feedback that user noticed
+          if (toggleButton instanceof HTMLElement) {
+            toggleButton.classList.add("interaction-cooling");
+            if (coolingTimer !== null) clearTimeout(coolingTimer);
+            coolingTimer = window.setTimeout(() => {
+              toggleButton.classList.remove("interaction-cooling");
+            }, 28000);
+          }
+
+          if (isMobile()) {
+            sidebar.classList.toggle("is-open");
+            updateToggleLabel();
+            syncToggleVisibility();
+            return;
+          }
+
+          const collapsed = !sidebar.classList.contains("is-collapsed");
+          setDesktopCollapsed(collapsed);
+        });
+      }
+
+      if (closeSidebarButton && sidebar) {
+        closeSidebarButton.addEventListener("click", () => {
+          if (isMobile()) {
+            sidebar.classList.remove("is-open");
+            updateToggleLabel();
+            syncToggleVisibility();
+            return;
+          }
+
+          setDesktopCollapsed(true);
+        });
+      }
+
+      if (sidebarScrollArea && sidebarScrollUp) {
+        sidebarScrollUp.addEventListener("click", () => {
+          sidebarScrollArea.scrollBy({ top: -220, behavior: "smooth" });
+        });
+      }
+
+      if (sidebarScrollArea && sidebarScrollDown) {
+        sidebarScrollDown.addEventListener("click", () => {
+          sidebarScrollArea.scrollBy({ top: 220, behavior: "smooth" });
+        });
+      }
+
+      if (sidebar) {
+        if (isMobile()) {
+          sidebar.classList.remove("is-collapsed");
+          document.body.classList.remove("admin-sidebar-collapsed");
+        } else {
+          try {
+            const stored = localStorage.getItem(sidebarStorageKey) === "1";
+            setDesktopCollapsed(stored);
+          } catch {
+            setDesktopCollapsed(false);
+          }
+        }
+        updateToggleLabel();
+        syncToggleVisibility();
+      }
+
+      if (isSuperAdminSession) {
+        fetchAdminPendings();
+        window.setInterval(fetchAdminPendings, 45000);
+      }
+
+      window.addEventListener("resize", () => {
+        if (!sidebar) return;
+        if (isMobile()) {
+          document.body.classList.remove("admin-sidebar-collapsed");
+          sidebar.classList.remove("is-collapsed");
+        } else {
+          const storedCollapsed = (() => {
+            try {
+              return localStorage.getItem(sidebarStorageKey) === "1";
+            } catch {
+              return false;
+            }
+          })();
+          sidebar.classList.remove("is-open");
+          setDesktopCollapsed(storedCollapsed);
+        }
+        updateToggleLabel();
+        syncToggleVisibility();
+      });
+
+      document.addEventListener("keydown", async (e) => {
+        if (!isAdminSession) return;
+
+        // Activar con Ctrl+9
+        if (e.ctrlKey && e.key === "9") {
+          e.preventDefault();
+
+          const root = document.getElementById("admin-panel-root");
+          if (!root) return;
+
+          if (!adminMounted) {
+            adminMounted = true;
+
+            try {
+              // Importa React y el componente solo en este momento
+              const [{ default: React }, { createRoot }, { default: AdminPanel }] =
+                await Promise.all([
+                  import("react"),
+                  import("react-dom/client"),
+                  import("../components/AdminPanel.jsx"),
+                ]);
+
+              // Activa pointer-events ahora que el panel existe
+              root.style.pointerEvents = "none"; // el wrapper sigue sin capturar
+
+              const reactRoot = createRoot(root);
+              reactRoot.render(
+                React.createElement(AdminPanel, { defaultOpen: true })
+              );
+            } catch (err) {
+              console.error("[AdminPanel] Error al cargar:", err);
+              adminMounted = false; // permite reintentar
+            }
+          }
+        }
+      });
+    </script>
+    <script src="/scripts/modal.js" defer></script>
+    <script is:inline>
+      (function () {
+        var launcher = document.getElementById("support-launcher");
+        var modal = document.getElementById("support-modal");
+        var closeBtn = document.getElementById("support-modal-close");
+        var form = document.getElementById("support-form");
+        var status = document.getElementById("support-status");
+        var submitBtn = document.getElementById("support-submit");
+
+        if (!(launcher instanceof HTMLElement) || !(modal instanceof HTMLElement)) return;
+
+        function setStatus(text, type) {
+          if (!(status instanceof HTMLElement)) return;
+          status.textContent = text;
+          status.dataset.type = type || "info";
+        }
+
+        function openModal() {
+          modal.hidden = false;
+          launcher.setAttribute("aria-expanded", "true");
+          var asunto = document.getElementById("support-asunto");
+          if (asunto instanceof HTMLElement) asunto.focus();
+        }
+
+        function closeModal() {
+          modal.hidden = true;
+          launcher.setAttribute("aria-expanded", "false");
+          launcher.focus();
+        }
+
+        launcher.addEventListener("click", openModal);
+        closeBtn?.addEventListener("click", closeModal);
+
+        modal.addEventListener("click", function (ev) {
+          if (ev.target === modal) closeModal();
+        });
+
+        document.addEventListener("keydown", function (ev) {
+          if (ev.key === "Escape" && !modal.hidden) closeModal();
+        });
+
+        form?.addEventListener("submit", async function (ev) {
+          ev.preventDefault();
+
+          var tipo = document.getElementById("support-tipo");
+          var categoria = document.getElementById("support-categoria");
+          var canal = document.getElementById("support-canal");
+          var asunto = document.getElementById("support-asunto");
+          var mensaje = document.getElementById("support-mensaje");
+
+          var payload = {
+            tipo: tipo instanceof HTMLSelectElement ? tipo.value : "queja",
+            categoria: categoria instanceof HTMLSelectElement ? categoria.value : "general",
+            canalRespuesta: canal instanceof HTMLSelectElement ? canal.value : "ticket",
+            asunto: asunto instanceof HTMLInputElement ? asunto.value.trim() : "",
+            mensaje: mensaje instanceof HTMLTextAreaElement ? mensaje.value.trim() : "",
+          };
+
+          if (submitBtn instanceof HTMLButtonElement) {
+            submitBtn.disabled = true;
+            submitBtn.textContent = "Enviando...";
+          }
+
+          try {
+            var response = await fetch("/api/feedback", {
+              method: "POST",
+              credentials: "include",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify(payload),
+            });
+
+            var data = await response.json().catch(function () { return {}; });
+
+            if (!response.ok || !data?.success) {
+              if (response.status === 401) {
+                setStatus("Inicia sesión para registrar tu reporte y obtener folio.", "error");
+              } else {
+                setStatus(data?.error || "No se pudo enviar el reporte.", "error");
+              }
+              return;
+            }
+
+            var folio = data?.feedback?.folio || "Sin folio";
+            setStatus("Reporte enviado. Folio: " + folio + ".", "success");
+            if (asunto instanceof HTMLInputElement) asunto.value = "";
+            if (mensaje instanceof HTMLTextAreaElement) mensaje.value = "";
+          } catch (error) {
+            setStatus("Error de red. Intenta nuevamente.", "error");
+          } finally {
+            if (submitBtn instanceof HTMLButtonElement) {
+              submitBtn.disabled = false;
+              submitBtn.textContent = "Enviar reporte";
+            }
+          }
+        });
+      })();
+    </script>
+  </body>
+</html>
+
+

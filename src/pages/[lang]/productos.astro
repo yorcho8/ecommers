@@ -1,0 +1,445 @@
+---
+// src/pages/[lang]/productos.astro
+
+import "../../styles/producto.css";
+import "../../styles/carousel.css";
+import "../../styles/global.css";
+
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import { getProductosParaCarrusel } from "../../lib/productos-service.js";
+import AdminProductButton from "../../components/AdminProductButton.jsx";
+
+
+// 1. DEFINIR LA ESTRUCTURA DEL PRODUCTO
+interface ProductItem {
+  img: string;
+  division: string;
+  descripcion: string;
+  slug: string;
+  model?: string;
+  video?: string;
+  // ── NUEVOS ──
+  unidadVenta?: string;
+  especificaciones?: string;
+  variantes?: { descripcion: string; precio?: number; stock?: number }[];
+}
+
+export function getStaticPaths() {
+  return [{ params: { lang: "es" } }];
+}
+const currentLang = "es";
+const cspNonce = Astro.locals?.cspNonce || "";
+
+const sessionUserId = Number(Astro.locals?.user?.userId || 0) > 0
+  ? Number(Astro.locals?.user?.userId)
+  : null;
+
+// 2. OBTENER PRODUCTOS DEL BACK (servicio de BD)
+let productsList: ProductItem[] = [];
+try {
+  const dbProductos = await getProductosParaCarrusel({ userId: sessionUserId });
+  if (dbProductos.length > 0) {
+    productsList = dbProductos.map((p) => ({
+      img: p.imagen ?? "",
+      division: p.division ?? p.categoria,
+      descripcion: p.descripcion,
+      slug: `productos/categoria/${p.categoriaId ?? p.id}`,
+      // ── NUEVOS ── (undefined en vez de null para compatibilidad con el tipo)
+      unidadVenta: p.unidadVenta ?? undefined,
+      especificaciones: p.especificaciones ?? undefined,
+      variantes: p.variantes ?? [],
+    }));
+  }
+} catch (e) {
+  console.error("[productos] error servicio:", e);
+}
+
+const seeMoreText = "Ver más";
+const divisionText = "División";
+
+const resolveImageSrc = (src: string) => {
+  if (!src) return null;
+  if (src.startsWith("http") || src.startsWith("/")) return src;
+  return `/images/${src}`;
+};
+
+const firstProductImg =
+  productsList.length > 0
+    ? resolveImageSrc(productsList[0].img)
+    : null;
+
+// ── NUEVO: parsear especificaciones JSON ──
+function parseSpecs(raw: string | null | undefined) {
+  if (!raw) return null;
+  try { return JSON.parse(raw); } catch { return null; }
+}
+---
+
+<BaseLayout title={`Productos | NEXUS`} currentLang={currentLang} useAdminOffset={false}>
+  {
+    firstProductImg && (
+      <link rel="preload" as="image" href={firstProductImg} slot="head" />
+    )
+  }
+
+  <!-- Script para model-viewer (si usas modelos 3D) -->
+  <script
+    type="module"
+    src="https://ajax.googleapis.com/ajax/libs/model-viewer/3.4.0/model-viewer.min.js"
+  ></script>
+
+  <div id="reveal-container" class="reveal-container">
+    <div class="reveal-bg"></div>
+    <div class="reveal-content">
+      <img id="reveal-img" src="" alt="" />
+    </div>
+  </div>
+
+  <main class="productos-main">
+    <AdminProductButton client:load />
+    <a class="all-products-shortcut" href={`/${currentLang}/productos/todos`}>Ver todos los productos</a>
+    <div class="carousel">
+      <div class="list">
+        {
+          productsList.map((item, index) => {
+            // ── NUEVO: parsear specs para este item ──
+            const specs = parseSpecs(item.especificaciones);
+            const specsEntries = specs ? Object.entries(specs).slice(0, 3) : [];
+
+            return (
+              <div class="item">
+                {/* Renderizar modelo 3D o imagen */}
+                {item.model ? (
+                  <model-viewer
+                    src={`/${item.model}`}
+                    poster={`/images/${item.img}`}
+                    alt={item.division}
+                    class="product-thumb model-viewer-custom"
+                    camera-controls
+                    auto-rotate
+                    shadow-intensity="1"
+                    loading="eager"
+                  ></model-viewer>
+                ) : (
+                  <img
+                    src={resolveImageSrc(item.img) ?? ""}
+                    alt={item.division}
+                    class="product-thumb"
+                    loading={index === 0 ? "eager" : "lazy"}
+                    fetchpriority={index === 0 ? "high" : "auto"}
+                    decoding="async"
+                  />
+                )}
+
+                <div class="introduce">
+                  <div class="title" dir="ltr">
+                    {divisionText}
+                  </div>
+
+                  <div
+                    class="topic"
+                    data-name={item.division}
+                    dir="ltr"
+                  >
+                    {item.division}
+                  </div>
+
+                  <div class="des" dir="ltr">
+                    {item.descripcion}
+                  </div>
+
+                  {/* ── NUEVO: Unidad de venta ── */}
+                  {item.unidadVenta && (
+                    <div class="unidad-venta">
+                      <span class="uv-label">Unidad:</span> {item.unidadVenta}
+                    </div>
+                  )}
+
+                  {/* ── NUEVO: Specs técnicas (máx 3) ── */}
+                  {specsEntries.length > 0 && (
+                    <div class="specs-preview">
+                      {specsEntries.map(([key, val]: [string, any]) => (
+                        <div class="spec-row">
+                          <span class="spec-key">{key}</span>
+                          <span class="spec-val">
+                            {val?.min != null && val?.max != null
+                              ? `${val.min} – ${val.max} ${val.unidad ?? ""}`
+                              : String(val)}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* ── NUEVO: Variantes chips (máx 4) ── */}
+                  {item.variantes && item.variantes.length > 0 && (
+                    <div class="variantes-chips">
+                      {item.variantes.slice(0, 4).map((v) => (
+                        <span class="chip">{v.descripcion}</span>
+                      ))}
+                      {item.variantes.length > 4 && (
+                        <span class="chip chip--more">
+                          +{item.variantes.length - 4}
+                        </span>
+                      )}
+                    </div>
+                  )}
+
+                  
+                  <a href={`/${currentLang}/${item.slug}`}
+                    class="seeMore"
+                    data-link
+                    rel="prefetch"
+                  >
+                    {seeMoreText}
+                  </a>
+                </div>
+              </div>
+            );
+          })
+        }
+      </div>
+
+      <div class="arrows">
+        <button id="prev" aria-label="Anterior">
+          <svg
+            width="24"
+            height="24"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <path d="M15 18l-6-6 6-6"></path>
+          </svg>
+        </button>
+
+        <button id="next" aria-label="Siguiente">
+          <svg
+            width="24"
+            height="24"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <path d="M9 18l6-6-6-6"></path>
+          </svg>
+        </button>
+      </div>
+    </div>
+  </main>
+
+  <script src="/scripts/producto.js" defer></script>
+
+  <script is:inline define:vars={{ productsList }}>
+    window.PRODUCTS_DATA = {};
+    productsList.forEach((item) => {
+      if (item.video) {
+        window.PRODUCTS_DATA[item.division] = `/videos/${item.video}`;
+      }
+    });
+  </script>
+
+  <script is:inline>
+    function initAnimations() {
+      const revealContainer = document.getElementById("reveal-container");
+      const revealImg = document.getElementById("reveal-img");
+
+      if (!revealContainer || !revealImg) return;
+
+      const links = document.querySelectorAll("[data-link]");
+
+      links.forEach((link) => {
+        const newLink = link.cloneNode(true);
+        link.parentNode.replaceChild(newLink, link);
+
+        newLink.addEventListener("click", async (e) => {
+          e.preventDefault();
+
+          const url = newLink.getAttribute("href");
+          if (!url) return;
+
+          // Guardar posición del carrusel antes de navegar
+          const clickedItem = newLink.closest(".item");
+          const topicEl = clickedItem ? clickedItem.querySelector(".topic") : null;
+          if (topicEl) {
+            const name = topicEl.getAttribute("data-name") || topicEl.innerText.trim();
+            sessionStorage.setItem("carousel-active-product", name);
+          }
+
+          let sourceSrc = "";
+          const imgEl = clickedItem ? clickedItem.querySelector("img") : null;
+          const modelEl = clickedItem ? clickedItem.querySelector("model-viewer") : null;
+
+          if (imgEl) {
+            sourceSrc = imgEl.src;
+          } else if (modelEl) {
+            sourceSrc = modelEl.getAttribute("poster") || "";
+          }
+
+          if (sourceSrc) {
+            revealImg.src = sourceSrc;
+          }
+
+          revealContainer.classList.add("active");
+
+          fetch(url, { priority: "high" }).catch(() => {});
+
+          try {
+            await new Promise((resolve) => setTimeout(resolve, 1350));
+            window.location.href = url;
+          } catch (error) {
+            window.location.href = url;
+          }
+        });
+      });
+    }
+
+    document.addEventListener("DOMContentLoaded", initAnimations);
+    document.addEventListener("astro:page-load", initAnimations);
+
+    document.addEventListener("astro:after-swap", () => {
+      const revealContainer = document.getElementById("reveal-container");
+      if (revealContainer) {
+        revealContainer.classList.remove("active");
+        const revealImg = document.getElementById("reveal-img");
+        if (revealImg) revealImg.src = "";
+      }
+    });
+  </script>
+
+  <style>
+    .all-products-shortcut {
+      position: absolute;
+      top: 106px;
+      right: 20px;
+      z-index: 120;
+      text-decoration: none;
+      border: 1px solid rgba(255, 255, 255, 0.26);
+      border-radius: 10px;
+      padding: 9px 12px;
+      background: rgba(12, 13, 16, 0.65);
+      color: #f3f4f6;
+      font-size: 0.84rem;
+      font-weight: 800;
+      backdrop-filter: blur(6px);
+      transition: border-color 0.2s ease, transform 0.2s ease;
+    }
+
+    .all-products-shortcut:hover {
+      border-color: rgba(232, 82, 26, 0.65);
+      transform: translateY(-1px);
+      color: #ffd3c3;
+    }
+
+    @media screen and (max-width: 1024px) {
+      .all-products-shortcut {
+        top: 92px;
+        right: 14px;
+        font-size: 0.78rem;
+        padding: 8px 10px;
+      }
+    }
+
+    /* CONFIGURACIÓN GENERAL MODEL-VIEWER */
+    model-viewer.product-thumb {
+      background-color: transparent;
+      display: block;
+      --poster-color: transparent;
+    }
+
+    /* ESCRITORIO (PC) - PEGADO A LA DERECHA */
+    @media screen and (min-width: 1025px) {
+      model-viewer.product-thumb {
+        position: absolute;
+        right: -5%;
+        top: 50%;
+        transform: translateY(-50%);
+        width: 55%;
+        height: 90vh;
+        max-height: 800px;
+        z-index: 10;
+      }
+    }
+
+    /* MÓVIL (CELULAR) */
+    @media screen and (max-width: 1024px) {
+      model-viewer.product-thumb {
+        position: absolute;
+        top: 25%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        width: 90vw;
+        height: 40vh;
+        min-height: 350px;
+        z-index: 100;
+      }
+    }
+
+    /* ── NUEVO: Unidad de venta ── */
+    .unidad-venta {
+      font-size: 0.78rem;
+      color: rgba(255, 255, 255, 0.6);
+      margin: 4px 0 8px;
+      letter-spacing: 0.02em;
+    }
+    .unidad-venta .uv-label {
+      color: #e8521a;
+      font-weight: 700;
+      margin-right: 4px;
+    }
+
+    /* ── NUEVO: Specs técnicas ── */
+    .specs-preview {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+      margin: 6px 0 10px;
+      padding: 8px 10px;
+      background: rgba(255, 255, 255, 0.05);
+      border-left: 2px solid #e8521a;
+      border-radius: 4px;
+    }
+    .spec-row {
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+      font-size: 0.74rem;
+    }
+    .spec-key {
+      color: rgba(255, 255, 255, 0.55);
+      text-transform: capitalize;
+    }
+    .spec-val {
+      color: #fff;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+
+    /* ── NUEVO: Chips de variantes ── */
+    .variantes-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 5px;
+      margin: 4px 0 12px;
+    }
+    .chip {
+      font-size: 0.7rem;
+      padding: 3px 8px;
+      border: 1px solid rgba(232, 82, 26, 0.5);
+      border-radius: 20px;
+      color: #ffd3c3;
+      background: rgba(232, 82, 26, 0.1);
+    }
+    .chip--more {
+      border-color: rgba(255, 255, 255, 0.2);
+      color: rgba(255, 255, 255, 0.5);
+      background: transparent;
+    }
+  </style>
+</BaseLayout>

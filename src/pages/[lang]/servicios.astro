@@ -1,0 +1,87 @@
+---
+import BaseLayout from "../../layouts/BaseLayout.astro";
+export function getStaticPaths() {
+  return [{ params: { lang: "es" } }];
+}
+
+const currentLang = "es";
+
+const services = [
+  {
+    title: "Logistica 3PL para B2B",
+    desc: "Planeacion de rutas, consolidacion de carga y control de entregas para pedidos empresariales de alto volumen.",
+    bullets: ["SLA por zona", "Tracking operativo", "KPIs de entrega"],
+  },
+  {
+    title: "Red de Fleteras Aliadas",
+    desc: "Integracion con fleteras regionales y nacionales para ampliar cobertura y reducir costos de ultima milla.",
+    bullets: ["Multifleet", "Cotizacion dinamica", "Cobertura nacional"],
+  },
+  {
+    title: "Fulfillment y Cross-Dock",
+    desc: "Recepcion, almacenamiento temporal y redistribucion para operaciones just-in-time con ventanas de entrega.",
+    bullets: ["Cross-dock", "Picking por lote", "Despacho rapido"],
+  },
+  {
+    title: "Abasto Programado",
+    desc: "Contratos de reposicion continua para plantas, distribuidores y cadenas con demanda recurrente.",
+    bullets: ["Forecast colaborativo", "Reorden automatico", "Precio preferencial"],
+  },
+];
+---
+
+<BaseLayout title="Servicios B2B | Nexus" currentLang={currentLang}>
+  <main class="sv-root">
+    <section class="sv-hero">
+      <div class="sv-container">
+        <p class="sv-kicker">Business to Business</p>
+        <h1>Servicios que convierten a Nexus en tu socio logistico, no solo en un proveedor.</h1>
+        <p>
+          Diseñamos soluciones para empresas que compran por volumen: logistica con fleteras, fulfillment, y abasto continuo.
+        </p>
+        <div class="sv-cta-row">
+          <a href="https://wa.me/524432072593" target="_blank" rel="noopener noreferrer" class="sv-btn sv-btn--primary">Hablar con asesor B2B</a>
+          <a href={`/${currentLang}/productos/todos`} class="sv-btn sv-btn--ghost">Ver productos</a>
+        </div>
+      </div>
+    </section>
+
+    <section class="sv-grid-wrap">
+      <div class="sv-container sv-grid">
+        {services.map((s) => (
+          <article class="sv-card">
+            <h2>{s.title}</h2>
+            <p>{s.desc}</p>
+            <ul>
+              {s.bullets.map((b) => <li>{b}</li>)}
+            </ul>
+          </article>
+        ))}
+      </div>
+    </section>
+  </main>
+</BaseLayout>
+
+<style is:global>
+.sv-root { background: #0c1220; color: #eef3ff; min-height: 100vh; }
+.sv-container { width: min(1200px, calc(100% - 2rem)); margin: 0 auto; }
+.sv-hero {
+  padding: clamp(6rem, 12vw, 8rem) 0 2rem;
+  background: radial-gradient(circle at 10% -10%, rgba(251,103,11,.22), transparent 42%),
+              radial-gradient(circle at 92% 0%, rgba(34,211,238,.18), transparent 38%),
+              linear-gradient(145deg, #101829, #1c2a43 55%, #263758 100%);
+}
+.sv-kicker { margin: 0; letter-spacing: .15em; text-transform: uppercase; color: #ffbe90; font-weight: 800; font-size: .78rem; }
+.sv-hero h1 { margin: .7rem 0 0; font-size: clamp(1.9rem, 5vw, 3.5rem); line-height: 1.03; max-width: 18ch; }
+.sv-hero p { margin: 1rem 0 0; max-width: 65ch; color: rgba(238,243,255,.88); }
+.sv-cta-row { margin-top: 1.3rem; display: flex; flex-wrap: wrap; gap: .7rem; }
+.sv-btn { text-decoration: none; border-radius: 12px; padding: .78rem 1.05rem; font-weight: 800; }
+.sv-btn--primary { color: #fff; background: linear-gradient(120deg,#fb670b,#de5400); }
+.sv-btn--ghost { color: #fff; border: 1px solid rgba(255,255,255,.34); background: rgba(255,255,255,.08); }
+.sv-grid-wrap { padding: 1.2rem 0 2.5rem; }
+.sv-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: .85rem; }
+.sv-card { background: #121b2d; border: 1px solid rgba(255,255,255,.12); border-radius: 14px; padding: 1rem; }
+.sv-card h2 { margin: 0; font-size: 1.05rem; }
+.sv-card p { margin: .56rem 0 0; color: #a8b6d2; font-size: .93rem; }
+.sv-card ul { margin: .7rem 0 0; padding-left: 1rem; color: #dce7ff; display: grid; gap: .25rem; font-size: .88rem; }
+</style>

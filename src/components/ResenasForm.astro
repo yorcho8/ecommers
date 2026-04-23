@@ -1,0 +1,561 @@
+---
+// src/components/ResenaForm.astro
+interface Props {
+  productoId: number;
+  cloudName: string; // tu CLOUDINARY_CLOUD_NAME
+}
+const { productoId, cloudName } = Astro.props;
+---
+
+<!-- El wrapper empieza oculto; ResenasList lo muestra al pulsar "Escribir reseña" -->
+<div id="resena-form-wrapper" hidden data-producto-id={String(productoId)} data-cloud-name={cloudName}>
+  <div class="rf-card">
+
+    <div class="rf-header">
+      <h3 class="rf-title">Tu reseña</h3>
+      <button class="rf-close" id="rf-close" aria-label="Cerrar">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+        </svg>
+      </button>
+    </div>
+
+    <!-- Estrellas interactivas -->
+    <div class="rf-field">
+      <label class="rf-label">Calificación <span class="rf-required">*</span></label>
+      <div class="rf-stars" id="rf-stars" role="group" aria-label="Calificación de 1 a 5 estrellas">
+        {[1,2,3,4,5].map(n => (
+          <button
+            type="button"
+            class="rf-star"
+            data-value={String(n)}
+            aria-pressed="false"
+            aria-label={`${n} estrella${n > 1 ? "s" : ""}`}>
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#fb923c" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+            </svg>
+          </button>
+        ))}
+      </div>
+      <span class="rf-star-label" id="rf-star-label">Selecciona una calificación</span>
+    </div>
+
+    <!-- Comentario -->
+    <div class="rf-field">
+      <label class="rf-label" for="rf-comentario">Comentario <span class="rf-optional">(opcional)</span></label>
+      <textarea
+        id="rf-comentario"
+        class="rf-textarea"
+        placeholder="¿Qué te pareció el producto? Tu experiencia ayuda a otros compradores…"
+        maxlength="1000"
+        rows="4"
+      ></textarea>
+      <span class="rf-char-count" id="rf-char-count">0 / 1000</span>
+    </div>
+
+    <!-- Fotos -->
+    <div class="rf-field">
+      <label class="rf-label">Fotos <span class="rf-optional">(opcional, máx. 5)</span></label>
+      <div class="rf-upload-area" id="rf-upload-area">
+        <input type="file" id="rf-file-input" accept="image/*" multiple hidden />
+        <button type="button" class="rf-upload-btn" id="rf-upload-btn">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/>
+            <polyline points="21 15 16 10 5 21"/>
+          </svg>
+          Subir fotos
+        </button>
+        <span class="rf-upload-hint">JPG, PNG, WEBP · máx. 8 MB c/u</span>
+      </div>
+      <div class="rf-previews" id="rf-previews"></div>
+    </div>
+
+    <!-- Feedback y submit -->
+    <p class="rf-feedback" id="rf-feedback" hidden></p>
+
+    <div class="rf-actions">
+      <button type="button" class="rf-btn secondary" id="rf-cancel">Cancelar</button>
+      <button type="button" class="rf-btn primary" id="rf-submit">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M5 12h14M12 5l7 7-7 7"/>
+        </svg>
+        Publicar reseña
+      </button>
+    </div>
+  </div>
+</div>
+
+<style>
+  :global(body.rf-modal-open) {
+    overflow: hidden;
+    touch-action: none;
+  }
+
+  :root {
+    --rf-card-bg: rgba(10, 14, 22, .96);
+    --rf-card-border: rgba(232,82,26,.22);
+    --rf-title: #f9fafb;
+    --rf-label: rgba(255,255,255,.38);
+    --rf-text: #f3f4f6;
+    --rf-muted: rgba(255,255,255,.4);
+    --rf-input-bg: rgba(255,255,255,.06);
+    --rf-input-border: rgba(255,255,255,.1);
+    --rf-close: rgba(255,255,255,.55);
+    --rf-upload-bg: rgba(255,255,255,.03);
+    --rf-upload-border: rgba(255,255,255,.18);
+    --rf-upload-text: rgba(255,255,255,.7);
+  }
+
+  html:not(.dark) {
+    --rf-card-bg: #ffffff;
+    --rf-card-border: rgba(232,82,26,.28);
+    --rf-title: #0f172a;
+    --rf-label: #64748b;
+    --rf-text: #334155;
+    --rf-muted: #64748b;
+    --rf-input-bg: #f8fafc;
+    --rf-input-border: rgba(15,23,42,.14);
+    --rf-close: #64748b;
+    --rf-upload-bg: #ffffff;
+    --rf-upload-border: rgba(15,23,42,.2);
+    --rf-upload-text: #334155;
+  }
+
+  #resena-form-wrapper {
+    margin-top: 20px;
+    animation: rf-slide-in .25s ease;
+  }
+  @keyframes rf-slide-in {
+    from { opacity:0; transform:translateY(12px); }
+    to   { opacity:1; transform:translateY(0); }
+  }
+
+  .rf-card {
+    background: var(--rf-card-bg);
+    border: 1px solid var(--rf-card-border);
+    border-radius: 18px;
+    padding: 24px 22px 20px;
+  }
+
+  .rf-header {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 20px;
+  }
+  .rf-title {
+    font-size: 1rem; font-weight: 800; color: var(--rf-title); margin: 0;
+  }
+  .rf-close {
+    background: none; border: none; color: var(--rf-close);
+    cursor: pointer; padding: 4px; line-height: 1;
+    transition: color .15s;
+  }
+  .rf-close:hover { color: #f87171; }
+
+  .rf-field { margin-bottom: 18px; }
+  .rf-label {
+    display: block;
+    font-size: .72rem; font-weight: 800; letter-spacing: .09em;
+    text-transform: uppercase; color: var(--rf-label);
+    margin-bottom: 8px;
+  }
+  .rf-required { color: #fb923c; }
+  .rf-optional { color: var(--rf-muted); font-weight: 600; text-transform: none; letter-spacing: 0; }
+
+  /* Estrellas */
+  .rf-stars {
+    display: flex;
+    gap: 6px;
+    background: var(--rf-input-bg);
+    border: 1px solid var(--rf-input-border);
+    border-radius: 12px;
+    padding: 7px 10px;
+    width: fit-content;
+  }
+  .rf-star {
+    background: none; border: none; cursor: pointer; padding: 2px;
+    transition: transform .12s; line-height: 1;
+  }
+  .rf-star:hover { transform: scale(1.15); }
+  .rf-star svg { display: block; transition: fill .12s, filter .12s; }
+  .rf-star.active svg {
+    fill: #fb923c;
+    filter: drop-shadow(0 0 6px rgba(251,146,60,.35));
+  }
+  .rf-star:focus-visible {
+    outline: 2px solid rgba(232,82,26,.5);
+    outline-offset: 2px;
+    border-radius: 6px;
+  }
+  .rf-star-label {
+    display: block; margin-top: 6px;
+    font-size: .76rem; color: var(--rf-muted); font-weight: 600;
+  }
+  .rf-star-label.selected { color: #fb923c; }
+
+  /* Textarea */
+  .rf-textarea {
+    width: 100%; box-sizing: border-box;
+    background: var(--rf-input-bg);
+    border: 1px solid var(--rf-input-border);
+    border-radius: 12px;
+    color: var(--rf-text); font-family: inherit; font-size: .9rem;
+    padding: 12px 14px; resize: vertical; outline: none;
+    transition: border-color .15s;
+  }
+  .rf-textarea:focus { border-color: rgba(232,82,26,.5); }
+  .rf-textarea::placeholder { color: var(--rf-muted); }
+  .rf-char-count {
+    display: block; text-align: right; margin-top: 4px;
+    font-size: .7rem; color: var(--rf-muted);
+  }
+
+  /* Upload */
+  .rf-upload-area {
+    display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  }
+  .rf-upload-btn {
+    display: flex; align-items: center; gap: 7px;
+    padding: 8px 16px; border-radius: 10px;
+    border: 1px dashed var(--rf-upload-border);
+    background: var(--rf-upload-bg);
+    color: var(--rf-upload-text); font-size: .82rem; font-weight: 700;
+    cursor: pointer; transition: border-color .15s, color .15s;
+    font-family: inherit;
+  }
+  .rf-upload-btn:hover { border-color: rgba(232,82,26,.45); color: #fb923c; }
+  .rf-upload-hint { font-size: .7rem; color: var(--rf-muted); }
+
+  .rf-previews { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+  .rf-preview-wrap {
+    position: relative; width: 74px; height: 74px;
+  }
+  .rf-preview-img {
+    width: 74px; height: 74px; object-fit: cover;
+    border-radius: 9px; border: 1px solid rgba(255,255,255,.1);
+  }
+  .rf-preview-del {
+    position: absolute; top: -6px; right: -6px;
+    width: 20px; height: 20px; border-radius: 50%;
+    background: #ef4444; border: none; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    color: #fff; font-size: .9rem; font-weight: 900; line-height: 1;
+    transition: background .12s;
+  }
+  .rf-preview-del:hover { background: #dc2626; }
+
+  /* Feedback */
+  .rf-feedback {
+    font-size: .84rem; font-weight: 700; border-radius: 10px;
+    padding: 10px 14px; border: 1px solid; margin-bottom: 14px;
+    font-family: inherit;
+  }
+  .rf-feedback.error { color: #fca5a5; background: rgba(239,68,68,.1); border-color: rgba(239,68,68,.35); }
+  .rf-feedback.ok    { color: #86efac; background: rgba(34,197,94,.1);  border-color: rgba(34,197,94,.35); }
+
+  /* Botones */
+  .rf-actions { display: flex; gap: 10px; justify-content: flex-end; }
+  .rf-btn {
+    padding: 9px 20px; border-radius: 11px; font-size: .88rem;
+    font-weight: 700; cursor: pointer; border: 1px solid transparent;
+    display: flex; align-items: center; gap: 6px;
+    transition: filter .15s, transform .1s; font-family: inherit;
+  }
+  .rf-btn:hover   { filter: brightness(1.08); }
+  .rf-btn:active  { transform: scale(.97); }
+  .rf-btn:disabled{ opacity: .45; cursor: not-allowed; }
+  .rf-btn.primary   { background: linear-gradient(135deg,#e85d04,#fb923c); color: #fff; }
+  .rf-btn.secondary { background: rgba(255,255,255,.06); border-color: var(--rf-input-border); color: var(--rf-text); }
+
+  @media (max-width: 768px) {
+    #resena-form-wrapper {
+      position: fixed;
+      inset: 0;
+      z-index: 9999;
+      margin-top: 0;
+      padding: 12px;
+      background: rgba(2, 6, 23, .62);
+      backdrop-filter: blur(6px);
+      display: grid;
+      align-items: flex-end;
+    }
+
+    #resena-form-wrapper[hidden] {
+      display: none !important;
+    }
+
+    .rf-card {
+      width: min(760px, 100%);
+      max-height: 88vh;
+      overflow: auto;
+      padding: 16px 14px calc(18px + env(safe-area-inset-bottom));
+      border-radius: 16px;
+      box-shadow: 0 22px 52px rgba(0,0,0,.5);
+    }
+
+    .rf-header {
+      position: sticky;
+      top: 0;
+      z-index: 2;
+      background: var(--rf-card-bg);
+      padding-bottom: 8px;
+      margin-bottom: 14px;
+    }
+
+    .rf-actions {
+      position: sticky;
+      bottom: 0;
+      padding-top: 10px;
+      background: var(--rf-card-bg);
+    }
+
+    .rf-btn {
+      padding: 10px 14px;
+      font-size: .84rem;
+      flex: 1;
+      justify-content: center;
+    }
+
+    .rf-stars {
+      width: 100%;
+      justify-content: space-between;
+      box-sizing: border-box;
+    }
+
+    .rf-star svg {
+      width: 28px;
+      height: 28px;
+    }
+
+    .rf-upload-area {
+      align-items: stretch;
+      gap: 8px;
+    }
+
+    .rf-upload-btn {
+      width: 100%;
+      justify-content: center;
+    }
+  }
+</style>
+
+<script>
+  const STAR_LABELS = ["", "Muy malo", "Malo", "Regular", "Bueno", "Excelente"];
+
+  function initResenaForm() {
+    const wrapper = document.getElementById("resena-form-wrapper");
+    if (!wrapper || (wrapper as any)._rfReady) return;
+    (wrapper as any)._rfReady = true;
+
+    const el         = wrapper as HTMLElement;
+    const productoId = el.dataset.productoId!;
+    const cloudName  = el.dataset.cloudName!;
+
+    const starsEl    = document.getElementById("rf-stars")!;
+    const starLabel  = document.getElementById("rf-star-label")!;
+    const comentario = document.getElementById("rf-comentario") as HTMLTextAreaElement;
+    const charCount  = document.getElementById("rf-char-count")!;
+    const fileInput  = document.getElementById("rf-file-input") as HTMLInputElement;
+    const uploadBtn  = document.getElementById("rf-upload-btn")!;
+    const previews   = document.getElementById("rf-previews")!;
+    const feedback   = document.getElementById("rf-feedback")!;
+    const submitBtn  = document.getElementById("rf-submit") as HTMLButtonElement;
+    const cancelBtn  = document.getElementById("rf-cancel")!;
+    const closeBtn   = document.getElementById("rf-close")!;
+
+    function syncBodyLock() {
+      document.body.classList.toggle("rf-modal-open", !el.hidden && window.innerWidth <= 768);
+    }
+
+    let calificacion = 0;
+    // { file, previewUrl, cloudUrl?, publicId? }
+    let archivos: { file: File; previewUrl: string; cloudUrl?: string; publicId?: string }[] = [];
+
+    // ── Estrellas ──
+    starsEl.querySelectorAll<HTMLButtonElement>(".rf-star").forEach(btn => {
+      btn.addEventListener("mouseenter", () => highlightStars(Number(btn.dataset.value)));
+      btn.addEventListener("mouseleave", () => highlightStars(calificacion));
+      btn.addEventListener("click", () => {
+        calificacion = Number(btn.dataset.value);
+        highlightStars(calificacion);
+        starLabel.textContent = STAR_LABELS[calificacion];
+        starLabel.classList.add("selected");
+      });
+      btn.addEventListener("keydown", (ev: KeyboardEvent) => {
+        if (ev.key === "ArrowRight" || ev.key === "ArrowUp") {
+          ev.preventDefault();
+          calificacion = Math.min(5, calificacion + 1 || 1);
+          highlightStars(calificacion);
+          starLabel.textContent = STAR_LABELS[calificacion];
+          starLabel.classList.add("selected");
+          return;
+        }
+        if (ev.key === "ArrowLeft" || ev.key === "ArrowDown") {
+          ev.preventDefault();
+          calificacion = Math.max(1, calificacion - 1 || 1);
+          highlightStars(calificacion);
+          starLabel.textContent = STAR_LABELS[calificacion];
+          starLabel.classList.add("selected");
+          return;
+        }
+        if (ev.key === "Enter" || ev.key === " ") {
+          ev.preventDefault();
+          calificacion = Number(btn.dataset.value);
+          highlightStars(calificacion);
+          starLabel.textContent = STAR_LABELS[calificacion];
+          starLabel.classList.add("selected");
+        }
+      });
+    });
+
+    function highlightStars(n: number) {
+      starsEl.querySelectorAll<HTMLButtonElement>(".rf-star").forEach(b => {
+        const isActive = Number(b.dataset.value) <= n;
+        b.classList.toggle("active", isActive);
+        b.setAttribute("aria-pressed", String(isActive));
+      });
+    }
+
+    // ── Contador textarea ──
+    comentario.addEventListener("input", () => {
+      charCount.textContent = `${comentario.value.length} / 1000`;
+    });
+
+    // ── Fotos ──
+    uploadBtn.addEventListener("click", () => fileInput.click());
+
+    fileInput.addEventListener("change", () => {
+      const files = Array.from(fileInput.files || []);
+      const disponibles = 5 - archivos.length;
+      files.slice(0, disponibles).forEach(f => {
+        if (f.size > 8 * 1024 * 1024) {
+          showFeedback("Una imagen supera los 8 MB permitidos.", "error");
+          return;
+        }
+        const url = URL.createObjectURL(f);
+        archivos.push({ file: f, previewUrl: url });
+        addPreview(url, archivos.length - 1);
+      });
+      fileInput.value = "";
+    });
+
+    function addPreview(url: string, idx: number) {
+      const wrap = document.createElement("div");
+      wrap.className = "rf-preview-wrap";
+      wrap.dataset.idx = String(idx);
+      wrap.innerHTML = `
+        <img src="${url}" class="rf-preview-img" alt="Preview" />
+        <button class="rf-preview-del" aria-label="Quitar foto">×</button>`;
+      wrap.querySelector(".rf-preview-del")!.addEventListener("click", () => {
+        archivos[idx] = null as any;
+        wrap.remove();
+      });
+      previews.appendChild(wrap);
+    }
+
+    // ── Cerrar / cancelar ──
+    function cerrarForm() {
+      el.hidden = true;
+      syncBodyLock();
+    }
+    closeBtn.addEventListener("click", cerrarForm);
+    cancelBtn.addEventListener("click", cerrarForm);
+
+    el.addEventListener("click", (ev) => {
+      if (ev.target === el) cerrarForm();
+    });
+
+    document.addEventListener("keydown", (ev) => {
+      if (ev.key === "Escape" && !el.hidden) cerrarForm();
+    });
+
+    const observer = new MutationObserver(syncBodyLock);
+    observer.observe(el, { attributes: true, attributeFilter: ["hidden"] });
+    window.addEventListener("resize", syncBodyLock);
+    syncBodyLock();
+
+    // ── Submit ──
+    submitBtn.addEventListener("click", async () => {
+      if (!calificacion) {
+        showFeedback("Selecciona una calificación para continuar.", "error");
+        return;
+      }
+      submitBtn.disabled = true;
+      submitBtn.textContent = "Subiendo fotos…";
+
+      // 1. Subir fotos a Cloudinary desde el frontend
+      const fotosValidas = archivos.filter(Boolean);
+      const imagenesSubidas: { url: string; publicId: string }[] = [];
+
+      for (const a of fotosValidas) {
+        if (a.cloudUrl) {
+          imagenesSubidas.push({ url: a.cloudUrl, publicId: a.publicId! });
+          continue;
+        }
+        try {
+          const fd = new FormData();
+          fd.append("file", a.file);
+          fd.append("upload_preset", "resenas_productos"); // ← cambia por tu upload_preset
+          fd.append("folder", `resenas/${productoId}`);
+          const r = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/image/upload`, { method: "POST", body: fd });
+          const d = await r.json();
+          if (!d.secure_url) throw new Error("Error Cloudinary");
+          a.cloudUrl  = d.secure_url;
+          a.publicId  = d.public_id;
+          imagenesSubidas.push({ url: d.secure_url, publicId: d.public_id });
+        } catch {
+          showFeedback("Error al subir una imagen. Inténtalo de nuevo.", "error");
+          submitBtn.disabled = false;
+          submitBtn.innerHTML = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>Publicar reseña`;
+          return;
+        }
+      }
+
+      // 2. POST a tu API
+      submitBtn.textContent = "Publicando…";
+      try {
+        const res = await fetch("/api/resenas", {
+          method: "POST",
+          credentials: "include",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            productoId: Number(productoId),
+            calificacion,
+            comentario: comentario.value.trim() || null,
+            imagenes: imagenesSubidas,
+          }),
+        });
+        const data = await res.json();
+        if (data.success) {
+          showFeedback("¡Gracias por tu reseña! Se publicó correctamente.", "ok");
+          submitBtn.hidden = true;
+          cancelBtn.textContent = "Cerrar";
+          // Recargar sección de reseñas
+          setTimeout(() => location.reload(), 1400);
+        } else {
+          showFeedback(data.error || "No se pudo publicar la reseña.", "error");
+          submitBtn.disabled = false;
+          resetSubmitBtn();
+        }
+      } catch {
+        showFeedback("Error de conexión. Inténtalo de nuevo.", "error");
+        submitBtn.disabled = false;
+        resetSubmitBtn();
+      }
+    });
+
+    function resetSubmitBtn() {
+      submitBtn.innerHTML = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>Publicar reseña`;
+    }
+
+    function showFeedback(msg: string, type: "ok" | "error") {
+      feedback.textContent = msg;
+      feedback.className = `rf-feedback ${type}`;
+      feedback.hidden = false;
+      if (type === "ok") return;
+      setTimeout(() => { feedback.hidden = true; }, 4000);
+    }
+  }
+
+  document.addEventListener("DOMContentLoaded", initResenaForm);
+  document.addEventListener("astro:page-load", initResenaForm);
+</script>

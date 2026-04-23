@@ -1,0 +1,16 @@
+:root {
+  /* Core brand palette (register style) */
+  --brand-accent: #7a2532;
+  --brand-accent-2: #263a72;
+  --brand-accent-3: #3a56a0;
+  --brand-accent-soft: #b8c7ef;
+
+  /* RGB tokens for rgba() usage */
+  --brand-accent-rgb: 122, 37, 50;
+  --brand-accent-2-rgb: 38, 58, 114;
+  --brand-accent-3-rgb: 58, 86, 160;
+
+  /* Reusable gradients */
+  --brand-gradient: linear-gradient(120deg, var(--brand-accent), var(--brand-accent-2));
+  --brand-gradient-strong: linear-gradient(135deg, var(--brand-accent), var(--brand-accent-3));
+}

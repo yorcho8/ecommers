@@ -1,0 +1,1210 @@
+---
+import BaseLayout from "../../layouts/BaseLayout.astro";
+
+export function getStaticPaths() {
+  return [{ params: { lang: "es" } }];
+}
+const currentLang = "es";
+const stripePublicKey = String(
+  import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY || import.meta.env.STRIPE_PUBLISHABLE_KEY || ""
+).trim();
+const cspNonce = Astro.locals?.cspNonce || "";
+
+let user = null;
+let mustChangePassword = false;
+const session = Astro.locals?.user || null;
+if (session?.userId) {
+  mustChangePassword = Boolean(session?.mustChangePassword);
+  user = {
+    nombre: session?.nombre || "Usuario",
+    correo: session?.correo || "-",
+    telefono: "",
+  };
+}
+
+if (!user) return Astro.redirect(`/${currentLang}/login`);
+---
+
+<BaseLayout title="Mi cuenta" currentLang={currentLang}>
+<div class="ac-root">
+<main class="ac">
+
+  {/* ── Header con info de usuario ── */}
+  <header class="ac-header">
+    <div class="ac-user">
+      <div class="ac-avatar" id="avatarInitial">{user.nombre.charAt(0).toUpperCase()}</div>
+      <div>
+        <h1 class="ac-user__name" id="profileNombreDisplay">{user.nombre.split(' ')[0]}</h1>
+        <p class="ac-user__email" id="profileCorreoDisplay">{user.correo}</p>
+      </div>
+    </div>
+    <a href={`/${currentLang}`} class="ac-back">← Inicio</a>
+  </header>
+
+  {mustChangePassword && (
+    <section class="ac-card" style="border-color: rgba(239,68,68,0.35); background: rgba(239,68,68,0.06); margin-bottom: 12px;">
+      <h2 class="ac-card__title" style="color:#fca5a5">Cambio de contraseña obligatorio</h2>
+      <p class="ac-card__sub" style="color:#fecaca">Tu cuenta fue creada por un administrador. Antes de continuar debes definir tu contraseña personal.</p>
+    </section>
+  )}
+
+  {/* ── Tabs navigation ── */}
+  <nav class="ac-tabs" role="tablist" aria-label="Secciones de cuenta">
+    <button class="ac-tab is-active" role="tab" data-tab="perfil" aria-selected="true">Perfil</button>
+    <button class="ac-tab" role="tab" data-tab="seguridad">Seguridad</button>
+    <button class="ac-tab" role="tab" data-tab="direcciones">Direcciones</button>
+    <button class="ac-tab" role="tab" data-tab="pedidos">Pedidos</button>
+    <button class="ac-tab" role="tab" data-tab="tarjetas">Tarjetas</button>
+  </nav>
+
+  {/* ═══ TAB: Perfil ═══ */}
+  <section class="ac-panel is-active" data-panel="perfil" role="tabpanel">
+    <div class="ac-card">
+      <h2 class="ac-card__title">Información personal</h2>
+      <p class="ac-card__sub">Actualiza tus datos de contacto</p>
+      <div class="ac-fields">
+        <div class="ac-field ac-span2">
+          <label>Nombre completo</label>
+          <div class="ac-static" id="profileNombre">{user.nombre}</div>
+        </div>
+        <div class="ac-field">
+          <label for="profileCorreo">Correo electrónico</label>
+          <input id="profileCorreo" type="email" value={user.correo} placeholder="correo@ejemplo.com" />
+        </div>
+        <div class="ac-field">
+          <label for="profileTelefono">Teléfono</label>
+          <input id="profileTelefono" type="text" value={user.telefono} placeholder="+52 55 1234 5678" />
+        </div>
+      </div>
+      <div class="ac-actions">
+        <button id="btnSaveProfile" class="ac-btn ac-btn--primary">Guardar cambios</button>
+      </div>
+    </div>
+  </section>
+
+  {/* ═══ TAB: Seguridad ═══ */}
+  <section class="ac-panel" data-panel="seguridad" role="tabpanel" hidden>
+    <div class="ac-card" id="securityPasswordCard">
+      <h2 class="ac-card__title">Cambiar contraseña</h2>
+      <p class="ac-card__sub" id="securitySubtitle">Solicita un código y cambia tu contraseña</p>
+      <div class="ac-actions" style="margin-bottom:12px">
+        <button id="btnCodeEmail" class="ac-btn ac-btn--outline">Código por correo</button>
+        <button id="btnCodeSms" class="ac-btn ac-btn--ghost">Código por SMS</button>
+      </div>
+      <p class="ac-hint" id="securityDestinationHint">Aún no has solicitado un código.</p>
+      <p class="ac-hint ac-hint--dev" id="securityDevCode" style="display:none"></p>
+      <div class="ac-fields">
+        <div class="ac-field">
+          <label for="securityCode">Código</label>
+          <input id="securityCode" type="text" inputmode="numeric" maxlength="6" placeholder="123456" />
+        </div>
+        <div class="ac-field">
+          <label for="securityPass">Nueva contraseña</label>
+          <input id="securityPass" type="password" placeholder="Mínimo 8 caracteres" />
+        </div>
+        <div class="ac-field">
+          <label for="securityPass2">Confirmar</label>
+          <input id="securityPass2" type="password" placeholder="Repite la contraseña" />
+        </div>
+      </div>
+      <div class="ac-actions">
+        <button id="btnConfirmPassword" class="ac-btn ac-btn--primary">Cambiar contraseña</button>
+      </div>
+    </div>
+
+    <div class="ac-card" id="securityTwoFactorCard">
+      <h2 class="ac-card__title">Verificación de 2 pasos</h2>
+      <div class="ac-fields" style="max-width:240px">
+        <div class="ac-field">
+          <label for="twoFactorChannel">Canal</label>
+          <select id="twoFactorChannel">
+            <option value="email">Correo</option>
+            <option value="sms">SMS</option>
+          </select>
+        </div>
+      </div>
+      <p class="ac-hint" id="twoFactorCurrent">2 pasos desactivado.</p>
+      <div class="ac-actions">
+        <button id="btnEnable2fa" class="ac-btn ac-btn--primary">Activar</button>
+        <button id="btnDisable2fa" class="ac-btn ac-btn--ghost">Desactivar</button>
+      </div>
+    </div>
+  </section>
+
+  {/* ═══ TAB: Direcciones ═══ */}
+  <section class="ac-panel" data-panel="direcciones" role="tabpanel" hidden>
+    <div class="ac-card">
+      <div class="ac-card__head-row">
+        <h2 class="ac-card__title">Mis direcciones</h2>
+        <button id="btnNewAddress" class="ac-btn ac-btn--primary ac-btn--sm">+ Nueva</button>
+      </div>
+      <div id="addressList" class="ac-addr-grid"></div>
+      <div id="addressEmpty" class="ac-empty" style="display:none">
+        <p>Sin direcciones guardadas</p>
+        <span>Agrega una para agilizar tus compras</span>
+      </div>
+
+      <div id="addrFormPanel" class="ac-addr-form" style="display:none">
+        <h3 id="addrFormTitle" class="ac-addr-form__title">Nueva dirección</h3>
+        <input id="addrEditId" type="hidden" />
+        <div class="ac-fields">
+          <div class="ac-field ac-span2">
+            <label>Nombre (ej: Casa, Trabajo)</label>
+            <input id="addrNombre" type="text" placeholder="Casa, Trabajo…" />
+          </div>
+          <div class="ac-field"><label>País *</label><select id="addrPais"><option value="">Cargando…</option></select></div>
+          <div class="ac-field"><label>Estado *</label><select id="addrProvincia" disabled><option value="">Selecciona país</option></select></div>
+          <div class="ac-field"><label>Ciudad *</label><select id="addrCiudad" disabled><option value="">Selecciona estado</option></select></div>
+          <div class="ac-field"><label>Nº ext. *</label><input id="addrNumeroCasa" type="number" min="1" placeholder="123" /></div>
+          <div class="ac-field"><label>Calle *</label><input id="addrCalle" type="text" placeholder="Av. Reforma" /></div>
+          <div class="ac-field"><label>C.P. *</label><input id="addrCodigoPostal" type="number" min="1" placeholder="06600" /></div>
+        </div>
+        <div class="ac-actions">
+          <button id="btnSaveAddress" class="ac-btn ac-btn--primary">Guardar</button>
+          <button id="btnCancelAddress" class="ac-btn ac-btn--ghost">Cancelar</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  {/* ═══ TAB: Pedidos ═══ */}
+  <section class="ac-panel" data-panel="pedidos" role="tabpanel" hidden>
+    <div class="ac-card">
+      <div class="ac-card__head-row">
+        <h2 class="ac-card__title">Mis pedidos</h2>
+        <span class="ac-badge" id="ordersTotalBadge">— pedidos</span>
+      </div>
+      <div id="ordersList" class="ac-table-wrap"></div>
+      <div id="ordersEmpty" class="ac-empty" style="display:none">
+        <p>Sin pedidos</p>
+        <span>Tus compras aparecerán aquí</span>
+      </div>
+      <div id="ordersPagination" class="ac-pagination" style="display:none">
+        <button class="ac-pg-btn" id="pgPrev" disabled>‹</button>
+        <div class="ac-pg-pages" id="pgPages"></div>
+        <button class="ac-pg-btn" id="pgNext">›</button>
+      </div>
+    </div>
+  </section>
+
+  {/* ═══ TAB: Tarjetas ═══ */}
+  <section class="ac-panel" data-panel="tarjetas" role="tabpanel" hidden>
+    <div class="ac-cols">
+      <div class="ac-card">
+        <h2 class="ac-card__title">Agregar tarjeta</h2>
+        <p class="ac-secure-note">🔒 Cifrado por Stripe · Nunca vemos tus datos</p>
+        <div class="ac-stripe-wrap">
+          <div id="stripe-card-element" class="ac-stripe-el"></div>
+          <div id="stripe-card-errors" class="ac-stripe-err"></div>
+        </div>
+        <div class="ac-fields">
+          <div class="ac-field">
+            <label>Titular</label>
+            <input id="cardHolder" type="text" placeholder="NOMBRE COMPLETO" autocomplete="cc-name" style="text-transform:uppercase" />
+          </div>
+          <div class="ac-field">
+            <label>Tipo</label>
+            <select id="cardFundingType">
+              <option value="debito">Débito</option>
+              <option value="credito">Crédito</option>
+            </select>
+          </div>
+        </div>
+        <span id="cardBrandIcon" style="display:none"></span>
+        <div class="ac-actions">
+          <button id="btnSaveCard" class="ac-btn ac-btn--primary">Agregar</button>
+          <button id="btnResetCard" class="ac-btn ac-btn--ghost">Limpiar</button>
+        </div>
+      </div>
+
+      <div class="ac-card">
+        <div class="ac-card__head-row">
+          <h2 class="ac-card__title">Guardadas</h2>
+          <span class="ac-badge" id="cardsCount">0</span>
+        </div>
+        <div id="cardsList" class="ac-cards-list"></div>
+        <div id="cardsEmpty" class="ac-empty ac-empty--sm" style="display:none">
+          <p>Sin tarjetas</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  {/* ── Dialog nativo para confirmaciones ── */}
+  <dialog id="acDialog" class="ac-dialog">
+    <div class="ac-dialog__card">
+      <div class="ac-dialog__icon" id="acDialogIcon"></div>
+      <h3 id="acDialogTitle" class="ac-dialog__title"></h3>
+      <p id="acDialogText" class="ac-dialog__text"></p>
+      <div class="ac-dialog__actions">
+        <button id="acDialogCancel" class="ac-btn ac-btn--ghost ac-btn--sm" type="button">Cancelar</button>
+        <button id="acDialogOk" class="ac-btn ac-btn--primary ac-btn--sm" type="button">Aceptar</button>
+      </div>
+    </div>
+  </dialog>
+
+  {/* ── Toast para feedback rápido ── */}
+  <div id="acToast" class="ac-toast" hidden></div>
+
+</main>
+</div>
+
+<style is:global>
+/* ═══════════════════════════════════════════════
+   MI CUENTA v2 — Tabs, Dialog nativo, Toast
+   ═══════════════════════════════════════════════ */
+
+.ac-root {
+  --ac-bg: #09090b;
+  --ac-surface: #111113;
+  --ac-surface-2: #18181b;
+  --ac-border: #3f3f46;
+  --ac-border-h: rgba(249,115,22,0.35);
+  --ac-text: #fafafa;
+  --ac-text-2: #a1a1aa;
+  --ac-text-3: #52525b;
+  --ac-accent: #f97316;
+  --ac-accent-h: #ea580c;
+  --ac-danger: #ef4444;
+  --ac-success: #4ade80;
+  --ac-r: 10px;
+
+  background: var(--ac-bg);
+  min-height: 100vh;
+  position: relative;
+  z-index: 1;
+}
+
+html:not(.dark) .ac-root {
+  --ac-bg: #fafafa;
+  --ac-surface: #fff;
+  --ac-surface-2: #f4f4f5;
+  --ac-border: #d4d4d8;
+  --ac-text: #09090b;
+  --ac-text-2: #3f3f46;
+  --ac-text-3: #71717a;
+}
+
+.ac-root .ac {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 80px 20px 48px;
+  color: var(--ac-text);
+  font-family: -apple-system, 'Inter', 'SF Pro Text', system-ui, sans-serif;
+}
+
+.ac-root h1, .ac-root h2, .ac-root h3, .ac-root p, .ac-root label,
+.ac-root span, .ac-root a, .ac-root button, .ac-root select, .ac-root input {
+  font-family: inherit;
+  text-transform: none;
+  letter-spacing: normal;
+}
+
+/* ── Header ── */
+.ac-root .ac-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.ac-root .ac-user {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.ac-root .ac-avatar {
+  width: 38px; height: 38px;
+  border-radius: 50%;
+  background: var(--ac-accent);
+  color: #fff;
+  font-weight: 800;
+  font-size: 0.95rem;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+}
+
+.ac-root .ac-user__name {
+  font-size: 1rem;
+  font-weight: 700;
+  margin: 0;
+  color: var(--ac-text);
+}
+
+.ac-root .ac-user__email {
+  font-size: 0.72rem;
+  color: var(--ac-text-3);
+  margin: 0;
+}
+
+.ac-root .ac-back {
+  font-size: 0.78rem;
+  color: var(--ac-text-3);
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.ac-root .ac-back:hover { color: var(--ac-text-2); }
+
+/* ── Tabs ── */
+.ac-root .ac-tabs {
+  display: flex;
+  gap: 2px;
+  border-bottom: 1px solid var(--ac-border);
+  margin-bottom: 16px;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.ac-root .ac-tab {
+  padding: 9px 16px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--ac-text-3);
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: color 0.12s, border-color 0.12s;
+}
+
+.ac-root .ac-tab:hover { color: var(--ac-text-2); }
+
+.ac-root .ac-tab.is-active {
+  color: var(--ac-accent);
+  border-bottom-color: var(--ac-accent);
+}
+
+/* ── Panels ── */
+.ac-root .ac-panel { display: none; }
+.ac-root .ac-panel.is-active { display: flex; flex-direction: column; gap: 12px; }
+
+/* ── Cards ── */
+.ac-root .ac-card {
+  background: var(--ac-surface);
+  border: 1px solid var(--ac-border);
+  border-radius: var(--ac-r);
+  padding: 18px;
+}
+
+.ac-root .ac-card__title {
+  font-size: 0.92rem;
+  font-weight: 700;
+  margin: 0 0 2px;
+  color: var(--ac-text);
+}
+
+.ac-root .ac-card__sub {
+  font-size: 0.75rem;
+  color: var(--ac-text-3);
+  margin: 0 0 14px;
+}
+
+.ac-root .ac-card__head-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.ac-root .ac-card__head-row .ac-card__title { margin: 0; }
+
+/* ── Columns layout for tarjetas ── */
+.ac-root .ac-cols {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  align-items: start;
+}
+
+/* ── Fields ── */
+.ac-root .ac-fields {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.ac-root .ac-span2 { grid-column: span 2; }
+
+.ac-root .ac-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.ac-root .ac-field label {
+  font-size: 0.67rem;
+  font-weight: 700;
+  color: var(--ac-text-2);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.ac-root .ac-field input,
+.ac-root .ac-field select {
+  padding: 8px 10px;
+  background: var(--ac-surface-2);
+  border: 1px solid var(--ac-border);
+  border-radius: 6px;
+  color: var(--ac-text);
+  font-size: 0.82rem;
+  outline: none;
+  transition: border-color 0.12s;
+  width: 100%;
+  font-family: inherit;
+}
+
+.ac-root .ac-field input:focus,
+.ac-root .ac-field select:focus {
+  border-color: var(--ac-accent);
+  box-shadow: 0 0 0 2px rgba(249,115,22,0.1);
+}
+
+.ac-root .ac-static {
+  padding: 8px 10px;
+  background: var(--ac-surface-2);
+  border: 1px solid var(--ac-border);
+  border-radius: 6px;
+  font-size: 0.82rem;
+  color: var(--ac-text);
+  font-weight: 600;
+}
+
+/* ── Actions ── */
+.ac-root .ac-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 14px;
+  flex-wrap: wrap;
+}
+
+/* ── Buttons ── */
+.ac-root .ac-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 8px 16px;
+  border-radius: 7px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: all 0.12s;
+  font-family: inherit;
+  white-space: nowrap;
+}
+
+.ac-root .ac-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+.ac-root .ac-btn--primary { background: var(--ac-accent); color: #fff; }
+.ac-root .ac-btn--primary:hover:not(:disabled) { background: var(--ac-accent-h); }
+.ac-root .ac-btn--ghost { background: var(--ac-surface-2); border-color: var(--ac-border); color: var(--ac-text-2); }
+.ac-root .ac-btn--ghost:hover:not(:disabled) { color: var(--ac-text); border-color: var(--ac-text-3); }
+.ac-root .ac-btn--outline { background: transparent; border-color: var(--ac-border-h); color: var(--ac-accent); }
+.ac-root .ac-btn--outline:hover:not(:disabled) { background: rgba(249,115,22,0.06); }
+.ac-root .ac-btn--danger { background: rgba(239,68,68,0.08); border-color: rgba(239,68,68,0.2); color: #fca5a5; }
+.ac-root .ac-btn--danger:hover:not(:disabled) { background: rgba(239,68,68,0.14); }
+.ac-root .ac-btn--sm { padding: 6px 12px; font-size: 0.72rem; }
+.ac-root .ac-btn--xs { padding: 4px 9px; font-size: 0.68rem; }
+
+/* ── Hints ── */
+.ac-root .ac-hint { font-size: 0.75rem; color: #60a5fa; margin: 6px 0 0; }
+.ac-root .ac-hint--dev { color: #fcd34d; }
+
+/* ── Badge ── */
+.ac-root .ac-badge {
+  padding: 2px 9px;
+  background: var(--ac-surface-2);
+  border: 1px solid var(--ac-border);
+  border-radius: 999px;
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: var(--ac-text-2);
+}
+
+/* ── Empty state ── */
+.ac-root .ac-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 36px 16px;
+  border: 1px dashed var(--ac-border);
+  border-radius: var(--ac-r);
+  text-align: center;
+}
+
+.ac-root .ac-empty p { margin: 0; font-size: 0.85rem; font-weight: 600; color: var(--ac-text-2); }
+.ac-root .ac-empty span { font-size: 0.72rem; color: var(--ac-text-3); }
+.ac-root .ac-empty--sm { padding: 20px 12px; }
+
+/* ── Addresses grid ── */
+.ac-root .ac-addr-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 8px;
+}
+
+.ac-root .addr-card {
+  background: var(--ac-surface-2);
+  border: 1px solid var(--ac-border);
+  border-radius: var(--ac-r);
+  padding: 12px;
+}
+
+.ac-root .addr-card-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--ac-accent);
+  margin-bottom: 6px;
+}
+
+.ac-root .addr-card-line { margin: 0 0 2px; font-size: 0.8rem; font-weight: 600; color: var(--ac-text); }
+.ac-root .addr-card-dim { margin: 0 0 8px; font-size: 0.72rem; color: var(--ac-text-3); }
+.ac-root .addr-card-actions { display: flex; gap: 5px; }
+
+/* ── Address form ── */
+.ac-root .ac-addr-form {
+  margin-top: 12px;
+  padding: 16px;
+  border: 1px dashed var(--ac-border-h);
+  border-radius: var(--ac-r);
+  background: rgba(249,115,22,0.03);
+}
+
+.ac-root .ac-addr-form__title { margin: 0 0 12px; font-size: 0.88rem; font-weight: 700; color: var(--ac-accent); }
+
+/* ── Orders table ── */
+.ac-root .ac-table-wrap { overflow-x: auto; border-radius: 6px; }
+
+.ac-root .orders-table { width: 100%; border-collapse: collapse; font-size: 0.8rem; }
+.ac-root .orders-table thead tr { background: var(--ac-surface-2); }
+.ac-root .orders-table th {
+  padding: 8px 10px; text-align: left;
+  font-size: 0.65rem; font-weight: 700; color: var(--ac-text-3);
+  text-transform: uppercase; letter-spacing: 0.04em;
+  border-bottom: 1px solid var(--ac-border);
+}
+.ac-root .orders-table td { padding: 9px 10px; border-bottom: 1px solid rgba(255,255,255,0.03); }
+.ac-root .orders-table tbody tr:hover { background: var(--ac-surface-2); }
+.ac-root .ord-num { font-weight: 700; color: var(--ac-text); }
+.ac-root .ord-date { color: var(--ac-text-2); font-size: 0.76rem; }
+.ac-root .ord-items { color: var(--ac-text-2); max-width: 150px; }
+.ac-root .ord-total { font-weight: 700; color: var(--ac-accent); }
+.ac-root .ord-actions { display: flex; gap: 4px; justify-content: flex-end; }
+
+/* Status badges */
+.ac-root .est-badge { display:inline-block;padding:2px 8px;border-radius:999px;font-size:0.65rem;font-weight:700; }
+.ac-root .est-badge--green  { background:rgba(5,150,105,0.12);color:#6ee7b7;border:1px solid rgba(5,150,105,0.24); }
+.ac-root .est-badge--amber  { background:rgba(245,158,11,0.1);color:#fcd34d;border:1px solid rgba(245,158,11,0.24); }
+.ac-root .est-badge--blue   { background:rgba(59,130,246,0.1);color:#93c5fd;border:1px solid rgba(59,130,246,0.24); }
+.ac-root .est-badge--teal   { background:rgba(20,184,166,0.1);color:#99f6e4;border:1px solid rgba(20,184,166,0.24); }
+.ac-root .est-badge--red    { background:rgba(220,38,38,0.1);color:#fca5a5;border:1px solid rgba(220,38,38,0.24); }
+.ac-root .est-badge--purple { background:rgba(139,92,246,0.1);color:#c4b5fd;border:1px solid rgba(139,92,246,0.24); }
+.ac-root .est-badge--gray   { background:rgba(107,114,128,0.08);color:var(--ac-text-2);border:1px solid rgba(107,114,128,0.16); }
+
+/* ── Pagination ── */
+.ac-root .ac-pagination { display:flex;align-items:center;justify-content:center;gap:4px;margin-top:12px;padding-top:12px;border-top:1px solid var(--ac-border); }
+.ac-root .ac-pg-btn { width:28px;height:28px;display:grid;place-items:center;background:var(--ac-surface-2);border:1px solid var(--ac-border);border-radius:6px;color:var(--ac-text-2);cursor:pointer;font-size:0.9rem;font-weight:700; }
+.ac-root .ac-pg-btn:disabled { opacity:0.25;cursor:not-allowed; }
+.ac-root .ac-pg-pages { display:flex;gap:3px; }
+.ac-root .pg-num { width:28px;height:28px;display:grid;place-items:center;background:var(--ac-surface-2);border:1px solid var(--ac-border);border-radius:6px;color:var(--ac-text-2);font-size:0.75rem;font-weight:700;cursor:pointer; }
+.ac-root .pg-num.is-active { background:var(--ac-accent);border-color:var(--ac-accent);color:#fff; }
+.ac-root .pg-ellipsis { width:28px;text-align:center;color:var(--ac-text-3);font-size:0.75rem; }
+
+/* ── Stripe ── */
+.ac-root .ac-secure-note { font-size:0.72rem;color:var(--ac-success);margin:0 0 10px;display:flex;align-items:center;gap:5px; }
+.ac-root .ac-stripe-wrap { margin-bottom:10px; }
+.ac-root .ac-stripe-el { background:var(--ac-surface-2);border:1px solid var(--ac-border);border-radius:6px;padding:10px; }
+.ac-root .ac-stripe-el:focus-within { border-color:var(--ac-accent); }
+.ac-root .ac-stripe-err { min-height:14px;font-size:0.72rem;color:var(--ac-danger);margin-top:4px; }
+
+/* ── Saved cards ── */
+.ac-root .ac-cards-list { display:flex;flex-direction:column;gap:6px; }
+.ac-root .saved-crd { background:var(--ac-surface-2);border:1px solid var(--ac-border);border-radius:var(--ac-r);padding:10px 12px; }
+.ac-root .saved-crd.is-default { border-color:var(--ac-border-h); }
+.ac-root .saved-crd-top { display:flex;justify-content:space-between;align-items:center;margin-bottom:4px; }
+.ac-root .saved-crd-brand svg { width:36px;height:22px;border-radius:3px; }
+.ac-root .default-badge { font-size:0.58rem;font-weight:700;padding:2px 7px;border-radius:999px;background:rgba(249,115,22,0.08);border:1px solid var(--ac-border-h);color:var(--ac-accent); }
+.ac-root .saved-crd-number { margin:0 0 2px;font-size:0.82rem;font-weight:700;color:var(--ac-text); }
+.ac-root .saved-crd-meta { display:flex;justify-content:space-between;font-size:0.68rem;color:var(--ac-text-3);margin-bottom:8px; }
+.ac-root .saved-crd-actions { display:flex;gap:5px; }
+
+/* ── Dialog nativo ── */
+.ac-root .ac-dialog { border:none;border-radius:12px;background:transparent;padding:0;max-width:380px;width:calc(100% - 32px); }
+.ac-root .ac-dialog::backdrop { background:rgba(0,0,0,0.5);backdrop-filter:blur(4px); }
+.ac-root .ac-dialog__card { background:var(--ac-surface);border:1px solid var(--ac-border);border-radius:12px;padding:22px;color:var(--ac-text);text-align:center; }
+.ac-root .ac-dialog__icon { width:48px;height:48px;border-radius:50%;margin:0 auto 12px;display:grid;place-items:center;font-size:1.2rem; }
+.ac-root .ac-dialog__icon.is-success { background:rgba(74,222,128,0.1);color:var(--ac-success); }
+.ac-root .ac-dialog__icon.is-error { background:rgba(239,68,68,0.1);color:var(--ac-danger); }
+.ac-root .ac-dialog__icon.is-warning { background:rgba(251,191,36,0.1);color:#fbbf24; }
+.ac-root .ac-dialog__title { font-size:0.95rem;font-weight:700;margin:0 0 4px; }
+.ac-root .ac-dialog__text { font-size:0.8rem;color:var(--ac-text-2);margin:0;line-height:1.5; }
+.ac-root .ac-dialog__actions { display:flex;gap:8px;justify-content:center;margin-top:16px; }
+
+/* ── Toast ── */
+.ac-root .ac-toast {
+  position: fixed;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%) translateY(8px);
+  padding: 8px 18px;
+  border-radius: 8px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #fff;
+  z-index: 9999;
+  opacity: 0;
+  transition: opacity 0.2s, transform 0.2s;
+  pointer-events: none;
+}
+
+.ac-root .ac-toast.is-visible {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+
+.ac-root .ac-toast[hidden] { display: none; }
+.ac-root .ac-toast.is-success { background: #16a34a; }
+.ac-root .ac-toast.is-error { background: #dc2626; }
+.ac-root .ac-toast.is-warning { background: #d97706; }
+
+/* ── Responsive ── */
+@media (max-width: 640px) {
+  .ac-root .ac { padding: 68px 12px 40px; }
+  .ac-root .ac-tabs { gap: 0; }
+  .ac-root .ac-tab { padding: 8px 12px; font-size: 0.72rem; }
+  .ac-root .ac-fields { grid-template-columns: 1fr; }
+  .ac-root .ac-span2 { grid-column: span 1; }
+  .ac-root .ac-cols { grid-template-columns: 1fr; }
+  .ac-root .ac-addr-grid { grid-template-columns: 1fr; }
+  .ac-root .orders-table th:nth-child(3),
+  .ac-root .orders-table td:nth-child(3) { display: none; }
+}
+</style>
+
+<!-- Stripe.js: SRI intentionally omitted.
+     Per Stripe's official security guidance, do NOT add SRI to js.stripe.com—
+     they update the script continuously to patch vulnerabilities.
+     CSP already restricts this to https://js.stripe.com only. -->
+<script src="https://js.stripe.com/v3/" is:inline></script>
+
+<script nonce={cspNonce} is:inline define:vars={{ currentLang, stripePublicKey, mustChangePassword }}>
+(function () {
+  const $ = (id) => document.getElementById(id);
+  const show = (el) => { if (el) el.style.display = ""; };
+  const hide = (el) => { if (el) el.style.display = "none"; };
+
+  /* ═══ TABS ═══ */
+  const tabs = document.querySelectorAll(".ac-tab");
+  const panels = document.querySelectorAll(".ac-panel");
+
+  function switchTab(name) {
+    if (mustChangePassword && name !== "seguridad") return;
+    tabs.forEach((t) => t.classList.toggle("is-active", t.dataset.tab === name));
+    panels.forEach((p) => {
+      const active = p.dataset.panel === name;
+      p.classList.toggle("is-active", active);
+      p.hidden = !active;
+    });
+    if (name === "tarjetas") {
+      // Mount Stripe as soon as tarjetas panel is active (also covers hash-based entry).
+      setTimeout(() => {
+        try { mountStripe(); } catch {}
+      }, 0);
+    }
+    history.replaceState(null, "", `#${name}`);
+  }
+
+  tabs.forEach((t) => t.addEventListener("click", () => switchTab(t.dataset.tab)));
+
+  if (mustChangePassword) {
+    tabs.forEach((t) => {
+      if (t.dataset.tab !== "seguridad") t.style.display = "none";
+    });
+    const back = document.querySelector(".ac-back");
+    if (back) back.style.display = "none";
+    const securityTwoFactorCard = $("securityTwoFactorCard");
+    if (securityTwoFactorCard) securityTwoFactorCard.style.display = "none";
+    const securitySubtitle = $("securitySubtitle");
+    if (securitySubtitle) securitySubtitle.textContent = "Define una nueva contraseña para activar tu cuenta.";
+    const codeField = $("securityCode")?.closest(".ac-field");
+    if (codeField) codeField.style.display = "none";
+    hide($("btnCodeEmail"));
+    hide($("btnCodeSms"));
+    hide($("securityDestinationHint"));
+    hide($("securityDevCode"));
+    const btnConfirm = $("btnConfirmPassword");
+    if (btnConfirm) btnConfirm.textContent = "Actualizar y continuar";
+  }
+
+  // Init from hash/query
+  const initTabByQuery = new URLSearchParams(location.search).get("tab") || "";
+  const initTab = mustChangePassword ? "seguridad" : (location.hash.replace("#", "") || initTabByQuery || "perfil");
+  const hashMap = { "info-personal": "perfil", "mis-direcciones": "direcciones", "mis-pedidos": "pedidos", "mis-tarjetas": "tarjetas" };
+  switchTab(hashMap[initTab] || initTab);
+
+  /* ═══ TOAST (replaces Modal for simple messages) ═══ */
+  let toastTimer = null;
+  function toast(msg, type = "success", ms = 2500) {
+    const el = $("acToast");
+    if (!el) return;
+    clearTimeout(toastTimer);
+    el.hidden = false;
+    el.textContent = msg;
+    el.className = `ac-toast is-${type} is-visible`;
+    toastTimer = setTimeout(() => {
+      el.classList.remove("is-visible");
+      setTimeout(() => { el.hidden = true; }, 200);
+    }, ms);
+  }
+
+  /* ═══ DIALOG (replaces Modal for confirms) ═══ */
+  const dialog = $("acDialog");
+  const dIcon = $("acDialogIcon");
+  const dTitle = $("acDialogTitle");
+  const dText = $("acDialogText");
+  const dCancel = $("acDialogCancel");
+  const dOk = $("acDialogOk");
+  let dResolve = null;
+
+  function ask(title, text, opts = {}) {
+    return new Promise((resolve) => {
+      if (!dialog) { resolve(false); return; }
+      if (dTitle) dTitle.textContent = title;
+      if (dText) dText.textContent = text;
+      if (dOk) {
+        dOk.textContent = opts.confirmText || "Confirmar";
+        dOk.className = `ac-btn ac-btn--sm ${opts.danger ? "ac-btn--danger" : "ac-btn--primary"}`;
+      }
+      if (dIcon) {
+        const type = opts.type || "warning";
+        dIcon.className = `ac-dialog__icon is-${type}`;
+        dIcon.textContent = type === "success" ? "✓" : type === "error" ? "✕" : "!";
+      }
+      dCancel.style.display = opts.hideCancel ? "none" : "";
+      dResolve = resolve;
+      dialog.showModal();
+    });
+  }
+
+  dCancel?.addEventListener("click", () => { dialog?.close(); if (dResolve) { dResolve(false); dResolve = null; } });
+  dOk?.addEventListener("click", () => { dialog?.close(); if (dResolve) { dResolve(true); dResolve = null; } });
+  dialog?.addEventListener("close", () => { if (dResolve) { dResolve(false); dResolve = null; } });
+
+  // Convenience wrappers matching old Modal interface
+  const Modal = {
+    success: (t, m) => toast(m || t, "success"),
+    error: (t, m) => toast(m || t, "error", 3500),
+    warning: (t, m) => toast(m || t, "warning", 3000),
+    confirm: (t, m, opts) => ask(t, m, opts),
+  };
+
+  async function askConfirm(title, text, opts = {}) {
+    return ask(title, text, { ...opts, danger: true });
+  }
+
+  /* ═══ PROFILE ═══ */
+  async function loadProfile() {
+    try {
+      const r = await fetch("/api/me", { credentials: "include" });
+      const d = await r.json().catch(() => ({}));
+      if (!r.ok || !d?.success) return;
+      const n = d.user?.nombre || "Usuario";
+      const el = $("profileNombre"); if (el) el.textContent = n;
+      const dn = $("profileNombreDisplay"); if (dn) dn.textContent = n.split(" ")[0];
+      const de = $("profileCorreoDisplay"); if (de) de.textContent = d.user?.correo || "";
+      const av = $("avatarInitial"); if (av) av.textContent = n.charAt(0).toUpperCase();
+      const ci = $("profileCorreo"); if (ci) ci.value = d.user?.correo || "";
+      const ti = $("profileTelefono"); if (ti) ti.value = d.user?.telefono || "";
+    } catch {}
+  }
+
+  $("btnSaveProfile")?.addEventListener("click", async () => {
+    const correo = $("profileCorreo")?.value.trim() || "";
+    const telefono = $("profileTelefono")?.value.trim() || "";
+    if (!correo) { toast("El correo es obligatorio", "warning"); return; }
+    const btn = $("btnSaveProfile"); btn.disabled = true; btn.textContent = "Guardando…";
+    try {
+      const r = await fetch("/api/me", { method: "PUT", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ correo, telefono }) });
+      const d = await r.json().catch(() => ({}));
+      if (!r.ok || !d?.success) toast(d?.error || "Error al actualizar", "error");
+      else toast("Información actualizada");
+    } catch { toast("Error de conexión", "error"); }
+    btn.disabled = false; btn.textContent = "Guardar cambios";
+  });
+
+  /* ═══ SECURITY ═══ */
+  async function loadSecurityStatus() {
+    try {
+      const r = await fetch("/api/me/security", { credentials: "include" });
+      const d = await r.json().catch(() => ({}));
+      if (!r.ok || !d?.success) return;
+      const sec = d.security || {};
+      const ch = $("twoFactorChannel"); if (ch) ch.value = sec.twoFactorChannel === "sms" ? "sms" : "email";
+      const st = $("twoFactorCurrent");
+      if (st) st.textContent = sec.twoFactorEnabled
+        ? `Activo por ${sec.twoFactorChannel === "sms" ? "SMS" : "correo"}`
+        : "Desactivado";
+    } catch {}
+  }
+
+  async function requestCode(channel) {
+    const btn = channel === "sms" ? $("btnCodeSms") : $("btnCodeEmail");
+    if (btn) { btn.disabled = true; btn.textContent = "Enviando…"; }
+    try {
+      const r = await fetch("/api/me/security", { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "request-code", channel }) });
+      const d = await r.json().catch(() => ({}));
+      if (!r.ok || !d?.success) { toast(d?.error || "Error al enviar", "error"); return; }
+      const hint = $("securityDestinationHint"); if (hint) hint.textContent = `Código enviado a ${d.destination || "tu contacto"}`;
+      const dev = $("securityDevCode");
+      if (dev && d.devCode) { dev.style.display = ""; dev.textContent = `Dev: ${d.devCode}`; }
+      toast("Código enviado");
+    } catch { toast("Error de conexión", "error"); }
+    if (btn) { btn.disabled = false; btn.textContent = channel === "sms" ? "Código por SMS" : "Código por correo"; }
+  }
+
+  async function confirmPassword() {
+    const p1 = $("securityPass")?.value || "";
+    const p2 = $("securityPass2")?.value || "";
+    const code = $("securityCode")?.value.trim() || "";
+    if (!mustChangePassword && !code) { toast("Ingresa el código", "warning"); return; }
+    if (p1.length < 8) { toast("Mínimo 8 caracteres", "warning"); return; }
+    if (p1 !== p2) { toast("Las contraseñas no coinciden", "warning"); return; }
+    const btn = $("btnConfirmPassword"); if (btn) { btn.disabled = true; btn.textContent = "Cambiando…"; }
+    try {
+      const reqUrl = mustChangePassword ? "/api/me/force-password-change" : "/api/me/security";
+      const reqBody = mustChangePassword
+        ? { nuevaContrasena: p1, confirmacion: p2 }
+        : { action: "confirm-password", codigo: code, nuevaContrasena: p1 };
+      const r = await fetch(reqUrl, { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify(reqBody) });
+      const d = await r.json().catch(() => ({}));
+      if (!r.ok || !d?.success) { toast(d?.error || "Error", "error"); return; }
+      ["securityCode", "securityPass", "securityPass2"].forEach((id) => { const el = $(id); if (el) el.value = ""; });
+      toast("Contraseña actualizada");
+      if (mustChangePassword) {
+        setTimeout(() => {
+          window.location.href = `/${currentLang}/`;
+        }, 450);
+      }
+    } catch { toast("Error de conexión", "error"); }
+    if (btn) { btn.disabled = false; btn.textContent = mustChangePassword ? "Actualizar y continuar" : "Cambiar contraseña"; }
+  }
+
+  async function update2fa(enabled) {
+    const channel = $("twoFactorChannel")?.value === "sms" ? "sms" : "email";
+    try {
+      const r = await fetch("/api/me/security", { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "update-2fa", enabled, channel }) });
+      const d = await r.json().catch(() => ({}));
+      if (!r.ok || !d?.success) toast(d?.error || "Error", "error");
+      else { toast(d.message || "Actualizado"); await loadSecurityStatus(); }
+    } catch { toast("Error de conexión", "error"); }
+  }
+
+  $("btnCodeEmail")?.addEventListener("click", () => requestCode("email"));
+  $("btnCodeSms")?.addEventListener("click", () => requestCode("sms"));
+  $("btnConfirmPassword")?.addEventListener("click", confirmPassword);
+  $("btnEnable2fa")?.addEventListener("click", () => update2fa(true));
+  $("btnDisable2fa")?.addEventListener("click", () => update2fa(false));
+
+  /* ═══ ORDERS ═══ */
+  let orders = [], orderPage = 1;
+  const PER = 5;
+  const fmt = (v) => Number(v || 0).toLocaleString("es-MX", { style: "currency", currency: "MXN" });
+  const fmtDate = (iso) => { if (!iso) return "—"; const d = new Date(iso); return isNaN(d) ? String(iso) : d.toLocaleDateString("es-MX", { year: "numeric", month: "short", day: "2-digit" }); };
+  const ECFG = { pagado: { label: "Pagado", cls: "green" }, pendiente: { label: "Pendiente", cls: "amber" }, enviado: { label: "Enviado", cls: "blue" }, entregado: { label: "Entregado", cls: "teal" }, devolucion_solicitada: { label: "Devolución", cls: "purple" }, devolucion_completada: { label: "Devolución completada", cls: "teal" }, cancelado: { label: "Cancelado", cls: "red" }, procesamiento: { label: "Procesando", cls: "purple" } };
+  const getE = (e) => ECFG[String(e || "").toLowerCase()] || { label: "En proceso", cls: "gray" };
+
+  function renderOrders() {
+    const list = $("ordersList"), empty = $("ordersEmpty"), pgEl = $("ordersPagination"), badge = $("ordersTotalBadge");
+    if (!list) return;
+    if (badge) badge.textContent = `${orders.length} pedido${orders.length !== 1 ? "s" : ""}`;
+    if (!orders.length) { show(empty); list.innerHTML = ""; hide(pgEl); return; }
+    hide(empty);
+    const total = Math.ceil(orders.length / PER);
+    orderPage = Math.min(Math.max(1, orderPage), total);
+    const slice = orders.slice((orderPage - 1) * PER, orderPage * PER);
+    list.innerHTML = `<table class="orders-table"><thead><tr><th>Pedido</th><th>Fecha</th><th>Productos</th><th>Total</th><th>Estado</th><th></th></tr></thead><tbody>${slice.map((o) => {
+      const est = getE(o.estadoPedido);
+      return `<tr><td class="ord-num">#${o.numeroPedido || o.idPedido}</td><td class="ord-date">${fmtDate(o.fechaPedido)}</td><td class="ord-items">${String(o.resumenItems || "—").slice(0, 35)}${(o.resumenItems || "").length > 35 ? "…" : ""}</td><td class="ord-total">${fmt(o.totalPedido)}</td><td><span class="est-badge est-badge--${est.cls}">${est.label}</span></td><td class="ord-actions"><a href="/${currentLang}/pedido_detalle?id=${o.idPedido}" class="ac-btn ac-btn--xs ac-btn--outline">Ver</a>${o?.devolucion?.labelUrl ? `<a href="${o.devolucion.labelUrl}" target="_blank" rel="noopener" class="ac-btn ac-btn--xs ac-btn--outline">Guía retorno</a>` : ""}${o.puedeCancelar !== false ? `<button class="ac-btn ac-btn--xs ac-btn--danger" data-order-cancel="${o.idPedido}">${String(o.estadoPedido||"").toLowerCase()==="entregado" ? "Devolver" : "Cancelar"}</button>` : ""}</td></tr>`;
+    }).join("")}</tbody></table>`;
+    if (pgEl) {
+      total > 1 ? show(pgEl) : hide(pgEl);
+      const pgPrev = $("pgPrev"), pgNext = $("pgNext"), pgPages = $("pgPages");
+      if (pgPrev) { pgPrev.disabled = orderPage === 1; pgPrev.onclick = () => { if (orderPage > 1) { orderPage--; renderOrders(); } }; }
+      if (pgNext) { pgNext.disabled = orderPage === total; pgNext.onclick = () => { if (orderPage < total) { orderPage++; renderOrders(); } }; }
+      if (pgPages) {
+        pgPages.innerHTML = "";
+        const range = [];
+        for (let i = 1; i <= total; i++) { if (i === 1 || i === total || Math.abs(i - orderPage) <= 1) range.push(i); else if (range[range.length - 1] !== "…") range.push("…"); }
+        range.forEach((p) => {
+          if (p === "…") { const s = document.createElement("span"); s.className = "pg-ellipsis"; s.textContent = "…"; pgPages.appendChild(s); }
+          else { const b = document.createElement("button"); b.className = `pg-num${p === orderPage ? " is-active" : ""}`; b.textContent = String(p); b.onclick = () => { orderPage = p; renderOrders(); }; pgPages.appendChild(b); }
+        });
+      }
+    }
+  }
+
+  async function loadOrders() {
+    try {
+      const r = await fetch("/api/me/pedidos", { credentials: "include" });
+      const d = await r.json().catch(() => ({}));
+      orders = (r.ok && d?.success && Array.isArray(d.pedidos)) ? d.pedidos : [];
+    } catch { orders = []; }
+    renderOrders();
+  }
+
+  $("ordersList")?.addEventListener("click", async (e) => {
+    const btn = e.target?.closest("button[data-order-cancel]"); if (!btn) return;
+    const id = Number(btn.dataset.orderCancel);
+    const order = orders.find((o) => Number(o.idPedido) === id) || null;
+    const isDelivered = String(order?.estadoPedido || "").toLowerCase() === "entregado";
+    const ok = await askConfirm(
+      isDelivered ? "¿Solicitar devolución?" : "¿Cancelar pedido?",
+      isDelivered
+        ? "Generaremos tu guía de retorno para Estafeta. El reembolso se procesa cuando se reciba la devolución."
+        : "Esta acción no se puede deshacer.",
+      { confirmText: isDelivered ? "Sí, solicitar" : "Sí, cancelar" }
+    );
+    if (!ok) return;
+    btn.disabled = true; btn.textContent = "…";
+    try {
+      const r = await fetch(`/api/me/pedidos/${id}/cancelar`, { method: "POST", credentials: "include" });
+      const d = await r.json().catch(() => ({}));
+      if (!r.ok || !d?.success) toast(d?.error || "Error", "error");
+      else {
+        if (d?.devolucion?.labelUrl) {
+          const guia = d?.devolucion?.trackingNumber || "";
+          toast(guia ? `Devolución iniciada. Guía: ${guia}` : "Devolución iniciada. Descarga tu guía.");
+          window.open(String(d.devolucion.labelUrl), "_blank", "noopener");
+        } else {
+          toast("Pedido cancelado");
+        }
+        await loadOrders();
+      }
+    } catch { toast("Error de conexión", "error"); }
+    btn.disabled = false; btn.textContent = "Cancelar";
+  });
+
+  /* ═══ CARDS (Stripe) ═══ */
+  let cards = [];
+  const STRIPE_PK = String(stripePublicKey || "").trim();
+  let _stripe = null, _cardEl = null;
+
+  const brandSVG = (b) => {
+    const k = String(b || "").toLowerCase();
+    if (k === "visa") return `<svg viewBox="0 0 48 32" fill="none"><rect width="48" height="32" rx="4" fill="#1A1F71"/><text x="8" y="22" font-size="12" font-weight="800" fill="white">VISA</text></svg>`;
+    if (k === "mastercard") return `<svg viewBox="0 0 48 32" fill="none"><rect width="48" height="32" rx="4" fill="#252525"/><circle cx="19" cy="16" r="9" fill="#EB001B"/><circle cx="29" cy="16" r="9" fill="#F79E1B"/></svg>`;
+    return `<svg viewBox="0 0 48 32" fill="none"><rect width="48" height="32" rx="4" fill="#374151"/><rect x="8" y="9" width="32" height="5" rx="1" fill="#6B7280"/></svg>`;
+  };
+
+  function initStripe() {
+    if (!STRIPE_PK) return null;
+    if (!_stripe && typeof Stripe !== "undefined") _stripe = Stripe(STRIPE_PK);
+    return _stripe;
+  }
+
+  function mountStripe() {
+    if (!STRIPE_PK) {
+      toast("Falta configurar PUBLIC_STRIPE_PUBLISHABLE_KEY para guardar tarjetas.", "error");
+      return;
+    }
+    const s = initStripe(); if (!s || _cardEl) return;
+    _cardEl = s.elements().create("card", {
+      hidePostalCode: true,
+      style: { base: { fontSize: "13px", color: "#fafafa", fontFamily: "system-ui", "::placeholder": { color: "#52525b" } }, invalid: { color: "#fca5a5" } },
+    });
+    _cardEl.mount("#stripe-card-element");
+    _cardEl.on("change", (e) => {
+      const er = $("stripe-card-errors"); if (er) er.textContent = e.error?.message || "";
+    });
+  }
+
+  // Mount when tarjetas tab is first shown
+  const tarjetasTab = document.querySelector('[data-tab="tarjetas"]');
+  if (tarjetasTab) {
+    tarjetasTab.addEventListener("click", () => { setTimeout(mountStripe, 100); }, { once: true });
+  }
+
+  // Fallback: if user clicks card area before mount, initialize Stripe on demand.
+  $("stripe-card-element")?.addEventListener("pointerdown", () => {
+    if (!_cardEl) mountStripe();
+  });
+
+  function resetCard() {
+    const h = $("cardHolder"); if (h) h.value = "";
+    const f = $("cardFundingType"); if (f) f.value = "debito";
+    _cardEl?.clear();
+    const er = $("stripe-card-errors"); if (er) er.textContent = "";
+  }
+
+  async function loadCards() {
+    try {
+      const r = await fetch("/api/tarjetas", { credentials: "include" });
+      const d = await r.json().catch(() => ({}));
+      cards = (r.ok && d?.success && Array.isArray(d.tarjetas)) ? d.tarjetas : [];
+    } catch { cards = []; }
+    renderCards();
+  }
+
+  function renderCards() {
+    const list = $("cardsList"), empty = $("cardsEmpty"), count = $("cardsCount");
+    if (!list) return;
+    if (count) count.textContent = String(cards.length);
+    cards.length > 0 ? hide(empty) : show(empty);
+    list.innerHTML = cards.map((c, i) => `
+      <article class="saved-crd${c.default ? " is-default" : ""}">
+        <div class="saved-crd-top">
+          <div class="saved-crd-brand">${brandSVG(c.marca)}</div>
+          ${c.default ? '<span class="default-badge">Predeterminada</span>' : ""}
+        </div>
+        <p class="saved-crd-number">${c.numero || "•••• ----"}</p>
+        <div class="saved-crd-meta"><span>${c.titular || "Sin titular"}</span><span>${c.tipoFinanciamiento === "credito" ? "Crédito" : "Débito"} · ${c.vencimiento || "--/--"}</span></div>
+        <div class="saved-crd-actions">
+          <button class="ac-btn ac-btn--xs ac-btn--outline" data-card-default="${i}" ${c.default ? "disabled" : ""}>${c.default ? "✓ Actual" : "Predeterminada"}</button>
+          <button class="ac-btn ac-btn--xs ac-btn--danger" data-card-delete="${i}">Eliminar</button>
+        </div>
+      </article>`).join("");
+  }
+
+  $("btnSaveCard")?.addEventListener("click", async () => {
+    const s = initStripe(); if (!s || !_cardEl) { toast("Stripe no disponible", "error"); return; }
+    const titular = $("cardHolder")?.value.trim() || "";
+    if (!titular) { toast("Ingresa el titular", "warning"); return; }
+    const btn = $("btnSaveCard"); btn.disabled = true; btn.textContent = "Procesando…";
+    const { paymentMethod, error } = await s.createPaymentMethod({ type: "card", card: _cardEl, billing_details: { name: titular } });
+    if (error) { toast(error.message || "Error en tarjeta", "error"); btn.disabled = false; btn.textContent = "Agregar"; return; }
+    try {
+      const r = await fetch("/api/tarjetas", { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ paymentMethodId: paymentMethod.id, tipoFinanciamiento: $("cardFundingType")?.value || "debito" }) });
+      const d = await r.json().catch(() => ({}));
+      if (!r.ok || !d?.success) toast(d?.error || "Error", "error");
+      else { toast("Tarjeta guardada"); resetCard(); await loadCards(); }
+    } catch { toast("Error de conexión", "error"); }
+    btn.disabled = false; btn.textContent = "Agregar";
+  });
+
+  $("btnResetCard")?.addEventListener("click", resetCard);
+
+  $("cardsList")?.addEventListener("click", async (e) => {
+    const dfBtn = e.target?.closest("button[data-card-default]");
+    const delBtn = e.target?.closest("button[data-card-delete]");
+    if (dfBtn) {
+      const idx = Number(dfBtn.dataset.cardDefault); const id = cards[idx]?.id;
+      try {
+        const r = await fetch(`/api/tarjetas/${id}`, { method: "PATCH", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ predeterminada: true }) });
+        const d = await r.json().catch(() => ({}));
+        if (!r.ok || !d?.success) toast("Error", "error"); else { toast("Actualizada"); await loadCards(); }
+      } catch { toast("Error", "error"); }
+    }
+    if (delBtn) {
+      const idx = Number(delBtn.dataset.cardDelete); const id = cards[idx]?.id;
+      const ok = await askConfirm("¿Eliminar tarjeta?", "No se puede deshacer.", { confirmText: "Eliminar" });
+      if (!ok) return;
+      try {
+        const r = await fetch(`/api/tarjetas/${id}`, { method: "DELETE", credentials: "include" });
+        const d = await r.json().catch(() => ({}));
+        if (!r.ok || !d?.success) toast("Error", "error"); else { toast("Eliminada"); await loadCards(); }
+      } catch { toast("Error", "error"); }
+    }
+  });
+
+  /* ═══ ADDRESSES ═══ */
+  let addresses = [];
+
+  function addrOpts(sel, items, ph) { if (!sel) return; sel.innerHTML = `<option value="">${ph}</option>`; items.forEach((v) => { const o = document.createElement("option"); o.value = v; o.textContent = v; sel.appendChild(o); }); sel.disabled = false; }
+  function addrDisable(sel, ph) { if (!sel) return; sel.innerHTML = `<option value="">${ph}</option>`; sel.disabled = true; }
+
+  async function addrCountries() { try { const r = await fetch("/api/locations?action=countries"); const d = await r.json(); addrOpts($("addrPais"), d.data.map((c) => c.name), "Selecciona país"); } catch { addrDisable($("addrPais"), "Error"); } }
+  async function addrStates(c) { addrDisable($("addrProvincia"), "Cargando…"); addrDisable($("addrCiudad"), "Selecciona estado"); if (!c) { addrDisable($("addrProvincia"), "Selecciona país"); return; } try { const r = await fetch(`/api/locations?action=states&country=${encodeURIComponent(c)}`); const d = await r.json(); addrOpts($("addrProvincia"), d.data, "Selecciona estado"); } catch { addrDisable($("addrProvincia"), "Error"); } }
+  async function addrCities(c, s) { addrDisable($("addrCiudad"), "Cargando…"); if (!s) { addrDisable($("addrCiudad"), "Selecciona estado"); return; } try { const r = await fetch(`/api/locations?action=cities&country=${encodeURIComponent(c)}&state=${encodeURIComponent(s)}`); const d = await r.json(); addrOpts($("addrCiudad"), d.data, "Selecciona ciudad"); } catch { addrDisable($("addrCiudad"), "Error"); } }
+
+  async function addrRestore(pais, prov, ciu) {
+    if (!pais) return;
+    const p = $("addrPais"); if (p && !p.querySelector(`option[value="${pais}"]`)) { const o = document.createElement("option"); o.value = pais; o.textContent = pais; p.appendChild(o); } if (p) p.value = pais;
+    await addrStates(pais);
+    if (prov) { const pr = $("addrProvincia"); if (pr && !pr.querySelector(`option[value="${prov}"]`)) { const o = document.createElement("option"); o.value = prov; o.textContent = prov; pr.appendChild(o); } if (pr) { pr.value = prov; pr.disabled = false; } await addrCities(pais, prov); }
+    if (ciu) { const ci = $("addrCiudad"); if (ci && !ci.querySelector(`option[value="${ciu}"]`)) { const o = document.createElement("option"); o.value = ciu; o.textContent = ciu; ci.appendChild(o); } if (ci) { ci.value = ciu; ci.disabled = false; } }
+  }
+
+  function renderAddresses() {
+    const list = $("addressList"), empty = $("addressEmpty"); if (!list) return;
+    addresses.length > 0 ? hide(empty) : show(empty);
+    list.innerHTML = "";
+    const icons = { casa: "🏠", trabajo: "🏢", sucursal: "🏪", bodega: "📦", oficina: "💼" };
+    addresses.forEach((addr) => {
+      const ic = icons[String(addr.nombre || "").toLowerCase().split(/[^a-z]/)[0]] || "📍";
+      const el = document.createElement("article"); el.className = "addr-card";
+      el.innerHTML = `<div class="addr-card-label"><span>${ic}</span> <strong>${addr.nombre || "Dirección"}</strong></div><p class="addr-card-line">${addr.calle} #${addr.numeroCasa}, CP ${addr.codigoPostal}</p><p class="addr-card-dim">${[addr.ciudad, addr.provincia, addr.pais].filter(Boolean).join(", ")}</p><div class="addr-card-actions"><button class="ac-btn ac-btn--xs ac-btn--outline" data-addr-edit="${addr.id}">Editar</button><button class="ac-btn ac-btn--xs ac-btn--danger" data-addr-del="${addr.id}">Eliminar</button></div>`;
+      list.appendChild(el);
+    });
+  }
+
+  async function loadAddresses() {
+    try { const r = await fetch("/api/me/addresses", { credentials: "include" }); const d = await r.json().catch(() => ({})); addresses = (r.ok && d?.success && Array.isArray(d.direcciones)) ? d.direcciones : []; } catch { addresses = []; }
+    renderAddresses();
+  }
+
+  let addrReady = false;
+  async function ensureSelects() { if (addrReady) return; addrReady = true; await addrCountries(); $("addrPais")?.addEventListener("change", () => addrStates($("addrPais").value)); $("addrProvincia")?.addEventListener("change", () => addrCities($("addrPais").value, $("addrProvincia").value)); }
+
+  function closeAddrForm() { hide($("addrFormPanel")); ["addrEditId", "addrNombre", "addrNumeroCasa", "addrCalle", "addrCodigoPostal"].forEach((id) => { const el = $(id); if (el) el.value = ""; }); const p = $("addrPais"); if (p) p.value = ""; addrDisable($("addrProvincia"), "Selecciona país"); addrDisable($("addrCiudad"), "Selecciona estado"); }
+  function openAddrForm(mode) { const f = $("addrFormPanel"); if (!f) return; show(f); const t = $("addrFormTitle"); if (t) t.textContent = mode === "edit" ? "Editar dirección" : "Nueva dirección"; f.scrollIntoView({ behavior: "smooth", block: "nearest" }); }
+
+  $("btnNewAddress")?.addEventListener("click", async () => { closeAddrForm(); openAddrForm("new"); await ensureSelects(); });
+  $("btnCancelAddress")?.addEventListener("click", closeAddrForm);
+
+  $("btnSaveAddress")?.addEventListener("click", async () => {
+    const nombre = $("addrNombre")?.value.trim() || "";
+    const numeroCasa = Number($("addrNumeroCasa")?.value);
+    const calle = $("addrCalle")?.value.trim() || "";
+    const codigoPostal = Number($("addrCodigoPostal")?.value);
+    const pais = $("addrPais")?.value || "", prov = $("addrProvincia")?.value || "", ciu = $("addrCiudad")?.value || "";
+    if (!calle || !ciu || !prov || !pais || !(numeroCasa > 0) || !(codigoPostal > 0)) { toast("Completa todos los campos obligatorios", "warning"); return; }
+    const editId = Number($("addrEditId")?.value), isEdit = editId > 0;
+    try {
+      const r = await fetch(isEdit ? `/api/me/addresses/${editId}` : "/api/me/addresses", { method: isEdit ? "PUT" : "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ nombre, numeroCasa, calle, codigoPostal, ciudad: ciu, provincia: prov, pais }) });
+      const d = await r.json().catch(() => ({}));
+      if (!r.ok || !d?.success) toast(d?.error || "Error", "error");
+      else { toast(isEdit ? "Actualizada" : "Guardada"); closeAddrForm(); await loadAddresses(); }
+    } catch { toast("Error de conexión", "error"); }
+  });
+
+  $("addressList")?.addEventListener("click", async (e) => {
+    const editBtn = e.target?.closest("button[data-addr-edit]");
+    const delBtn = e.target?.closest("button[data-addr-del]");
+    if (editBtn) {
+      const id = Number(editBtn.dataset.addrEdit); const addr = addresses.find((a) => a.id === id); if (!addr) return;
+      const m = { addrEditId: String(id), addrNombre: addr.nombre || "", addrNumeroCasa: String(addr.numeroCasa || ""), addrCalle: addr.calle || "", addrCodigoPostal: String(addr.codigoPostal || "") };
+      Object.entries(m).forEach(([k, v]) => { const el = $(k); if (el) el.value = v; });
+      openAddrForm("edit"); await ensureSelects(); await addrRestore(addr.pais, addr.provincia, addr.ciudad);
+    }
+    if (delBtn) {
+      const id = Number(delBtn.dataset.addrDel);
+      const ok = await askConfirm("¿Eliminar dirección?", "No se puede deshacer.", { confirmText: "Eliminar" });
+      if (!ok) return;
+      try {
+        const r = await fetch(`/api/me/addresses/${id}`, { method: "DELETE", credentials: "include" });
+        const d = await r.json().catch(() => ({}));
+        if (!r.ok || !d?.success) toast("Error", "error"); else { toast("Eliminada"); await loadAddresses(); }
+      } catch { toast("Error", "error"); }
+    }
+  });
+
+  /* ═══ INIT ═══ */
+  if (mustChangePassword) {
+    loadProfile();
+    loadSecurityStatus();
+    switchTab("seguridad");
+  } else {
+    loadProfile(); loadCards(); loadOrders(); loadAddresses(); loadSecurityStatus();
+  }
+})();
+</script>
+</BaseLayout>

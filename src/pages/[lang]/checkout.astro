@@ -1,0 +1,1989 @@
+﻿---
+import BaseLayout from "../../layouts/BaseLayout.astro";
+
+export function getStaticPaths() {
+  return [{ params: { lang: "es" } }];
+}
+const currentLang = "es";
+const stripePublicKey = String(
+  import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY || import.meta.env.STRIPE_PUBLISHABLE_KEY || ""
+).trim();
+---
+
+<BaseLayout title={`Checkout | Envío y Pago`} currentLang={currentLang}>
+
+  <script is:inline>
+  (function(g){
+    if(document.getElementById('go-modal-styles'))return;
+    const s=document.createElement('style');
+    s.id='go-modal-styles';
+    s.textContent=`
+      .go-modal-backdrop{position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.55);backdrop-filter:blur(4px);display:flex;align-items:center;justify-content:center;padding:1rem;opacity:0;transition:opacity 220ms ease}
+      .go-modal-backdrop.go-visible{opacity:1}
+      .go-modal{background:#1f2937;border-radius:18px;box-shadow:0 24px 60px rgba(0,0,0,.4);padding:2rem 2rem 1.6rem;width:100%;max-width:420px;text-align:center;transform:scale(.88) translateY(20px);transition:transform 260ms cubic-bezier(.34,1.56,.64,1);position:relative}
+      .go-modal-backdrop.go-visible .go-modal{transform:scale(1) translateY(0)}
+      .go-modal-icon{width:72px;height:72px;border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 1.1rem}
+      .go-modal-icon.success{background:#ecfdf5;color:#0b7a31}.go-modal-icon.error{background:#fff1f1;color:#c62828}
+      .go-modal-icon.warning{background:#fffbeb;color:#b45309}.go-modal-icon.info{background:#eff6ff;color:#1d4ed8}
+      .go-modal-icon.confirm{background:#fff7ed;color:#6b202d}
+      .go-modal-title{font-size:1.35rem;font-weight:700;color:#f9fafb;margin:0 0 .5rem;font-family:Arial,sans-serif!important;letter-spacing:normal!important;text-transform:none!important}
+      .go-modal-text{font-size:.97rem;color:#9ca3af;margin:0 0 1.4rem;line-height:1.5;font-family:Arial,sans-serif!important;letter-spacing:normal!important}
+      .go-modal-actions{display:flex;gap:.7rem;justify-content:center;flex-wrap:wrap}
+      .go-modal-btn{padding:.65rem 1.6rem;border-radius:10px;font-size:.95rem;font-weight:600;cursor:pointer;border:none;transition:filter 160ms,transform 100ms;min-width:110px;font-family:Arial,sans-serif!important;letter-spacing:normal!important;text-transform:none!important}
+      .go-modal-btn:hover{filter:brightness(1.08)}.go-modal-btn:active{transform:scale(.97)}
+      .go-modal-btn.primary{background:#7a2532;color:#fff}.go-modal-btn.secondary{background:#374151;color:#e5e7eb}
+      .go-modal-btn.danger{background:#c62828;color:#fff}
+      .go-modal-progress{position:absolute;bottom:0;left:0;height:4px;border-radius:0 0 18px 18px;background:#7a2532;width:100%;transform-origin:left;animation:go-progress linear forwards}
+      @keyframes go-progress{from{transform:scaleX(1)}to{transform:scaleX(0)}}
+      .pay-loading-overlay{position:fixed;inset:0;z-index:19999;background:rgba(0,0,0,.75);backdrop-filter:blur(8px);display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity 280ms ease}
+      .pay-loading-overlay.visible{opacity:1;pointer-events:auto}
+      .pay-loading-box{background:#1a1d2e;border:1px solid rgba(255,255,255,.1);border-radius:24px;padding:2.5rem 3rem;text-align:center;box-shadow:0 32px 80px rgba(0,0,0,.6);min-width:280px;max-width:360px}
+      .pay-loading-ring{width:64px;height:64px;margin:0 auto 1.4rem;position:relative}
+      .pay-loading-ring svg{width:64px;height:64px;animation:pay-ring-rotate 1.4s linear infinite}
+      .pay-loading-ring circle{fill:none;stroke-width:5;stroke-linecap:round;stroke-dasharray:130;stroke-dashoffset:0;animation:pay-ring-dash 1.4s ease-in-out infinite}
+      .pay-loading-ring circle.track{stroke:rgba(255,255,255,.08);animation:none;stroke-dasharray:none}
+      .pay-loading-ring circle.arc{stroke:url(#pay-grad)}
+      @keyframes pay-ring-rotate{to{transform:rotate(360deg)}}
+      @keyframes pay-ring-dash{0%{stroke-dashoffset:130}50%{stroke-dashoffset:32}100%{stroke-dashoffset:130}}
+      .pay-loading-title{font-size:1.1rem;font-weight:800;color:#f9fafb;margin:0 0 .4rem;font-family:Arial,sans-serif!important;letter-spacing:normal!important;text-transform:none!important}
+      .pay-loading-sub{font-size:.82rem;color:#9ca3af;margin:0;font-family:Arial,sans-serif!important;letter-spacing:normal!important;min-height:1.2em;transition:opacity .25s ease}
+      .pay-loading-dots::after{content:'';animation:pay-dots 1.4s steps(4,end) infinite}
+      @keyframes pay-dots{0%,100%{content:''}25%{content:'.'}50%{content:'..'}75%{content:'...'}}
+      .pay-loading-lock{font-size:2rem;margin-bottom:.8rem;animation:pay-lock-pulse 2s ease-in-out infinite}
+      @keyframes pay-lock-pulse{0%,100%{transform:scale(1);opacity:1}50%{transform:scale(1.08);opacity:.85}}
+    `;
+    document.head.appendChild(s);
+    const IC={
+      success:`<svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>`,
+      error:`<svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>`,
+      warning:`<svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>`,
+      info:`<svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>`,
+      confirm:`<svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>`,
+    };
+    function show(o){
+      return new Promise(function(res){
+        var type=o.type||'info',title=o.title||'',text=o.text||'',
+            ct=o.confirmText||'Aceptar',cct=o.cancelText||'Cancelar',
+            sc=o.showCancel||false,ac=o.autoClose||0;
+        var bd=document.createElement('div');
+        bd.className='go-modal-backdrop';
+        bd.innerHTML='<div class="go-modal" role="dialog" aria-modal="true">'+
+          '<div class="go-modal-icon '+type+'">'+(IC[type]||IC.info)+'</div>'+
+          '<h2 class="go-modal-title">'+title+'</h2>'+
+          (text?'<p class="go-modal-text">'+text+'</p>':'')+
+          '<div class="go-modal-actions">'+
+          (sc?'<button class="go-modal-btn secondary" id="gmc">'+cct+'</button>':'')+
+          '<button class="go-modal-btn '+(type==='error'?'danger':'primary')+'" id="gmok">'+ct+'</button>'+
+          '</div>'+
+          (ac?'<div class="go-modal-progress" style="animation-duration:'+ac+'ms"></div>':'')+
+          '</div>';
+        document.body.appendChild(bd);
+        requestAnimationFrame(function(){bd.classList.add('go-visible');});
+        function close(r){bd.classList.remove('go-visible');setTimeout(function(){bd.remove();},260);res(r);}
+        bd.querySelector('#gmok').addEventListener('click',function(){close(true);});
+        var cc=bd.querySelector('#gmc');
+        if(cc)cc.addEventListener('click',function(){close(false);});
+        function onKey(e){if(e.key==='Escape'){close(false);document.removeEventListener('keydown',onKey);}}
+        document.addEventListener('keydown',onKey);
+        if(ac)setTimeout(function(){close(true);},ac);
+      });
+    }
+    var _payOverlay=null;
+    function showPayLoading(title,sub){
+      if(_payOverlay) return;
+      _payOverlay=document.createElement('div');
+      _payOverlay.className='pay-loading-overlay';
+      _payOverlay.innerHTML=
+        '<div class="pay-loading-box">'+
+          '<div class="pay-loading-lock">🔒</div>'+
+          '<svg style="position:absolute;width:0;height:0"><defs><linearGradient id="pay-grad" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#7a2532"/><stop offset="100%" stop-color="#3a56a0"/></linearGradient></defs></svg>'+
+          '<div class="pay-loading-ring">'+
+            '<svg viewBox="0 0 64 64"><circle class="track" cx="32" cy="32" r="27"/><circle class="arc" cx="32" cy="32" r="27"/></svg>'+
+          '</div>'+
+          '<p class="pay-loading-title">'+(title||'Procesando pago')+'</p>'+
+          '<p class="pay-loading-sub pay-loading-dots" id="pay-sub">'+(sub||'Por favor no cierres esta ventana')+'</p>'+
+        '</div>';
+      document.body.appendChild(_payOverlay);
+      requestAnimationFrame(function(){_payOverlay.classList.add('visible');});
+    }
+    function updatePayLoading(sub){
+      var el=document.getElementById('pay-sub');
+      if(el){el.style.opacity='0';setTimeout(function(){el.textContent=sub||'';el.style.opacity='1';},200);}
+    }
+    function hidePayLoading(){
+      if(!_payOverlay)return;
+      _payOverlay.classList.remove('visible');
+      setTimeout(function(){if(_payOverlay){_payOverlay.remove();_payOverlay=null;}},300);
+    }
+    g.Modal={
+      success:function(t,x,o){return show(Object.assign({type:'success',title:t,text:x},o||{}));},
+      error:  function(t,x,o){return show(Object.assign({type:'error',  title:t,text:x},o||{}));},
+      warning:function(t,x,o){return show(Object.assign({type:'warning',title:t,text:x},o||{}));},
+      info:   function(t,x,o){return show(Object.assign({type:'info',   title:t,text:x},o||{}));},
+      confirm:function(t,x,o){return show(Object.assign({type:'confirm',title:t,text:x,showCancel:true},o||{}));},
+      showPayLoading:showPayLoading,
+      updatePayLoading:updatePayLoading,
+      hidePayLoading:hidePayLoading,
+    };
+  })(window);
+  </script>
+
+<main class="checkout-page">
+
+  <!-- ════ AMBIENT GLOW ════ -->
+  <div class="ck-ambient-glow"></div>
+
+  <!-- ════ HEADER ════ -->
+  <div class="checkout-header">
+    <a href={`/${currentLang}/carrito`} class="back-link">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"/><path d="M12 19l-7-7 7-7"/></svg>
+      Volver al carrito
+    </a>
+    <div class="checkout-title-group">
+      <span class="checkout-label">CHECKOUT</span>
+      <h1 class="checkout-title">Finalizar Compra</h1>
+    </div>
+    <p class="checkout-subtitle">Selecciona tu dirección, elige el carrier y confirma tu pedido</p>
+
+    <!-- Progress Steps -->
+    <div class="checkout-progress">
+      <div class="progress-step active" data-step="1">
+        <div class="progress-dot">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
+        </div>
+        <span>Dirección</span>
+      </div>
+      <div class="progress-line"></div>
+      <div class="progress-step" data-step="2">
+        <div class="progress-dot">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
+        </div>
+        <span>Envío</span>
+      </div>
+      <div class="progress-line"></div>
+      <div class="progress-step" data-step="3">
+        <div class="progress-dot">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+        </div>
+        <span>Pago</span>
+      </div>
+      <div class="progress-line"></div>
+      <div class="progress-step" data-step="4">
+        <div class="progress-dot">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>
+        </div>
+        <span>Confirmar</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════ ALERT ════ -->
+  <section id="ck-alert" hidden></section>
+
+  <!-- ════ AUTH WALL ════ -->
+  <section id="ck-auth" class="ck-state-card" hidden>
+    <div class="state-icon">
+      <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
+    </div>
+    <h3>Inicia sesión para continuar</h3>
+    <p>Necesitas una cuenta para finalizar tu compra</p>
+    <a href={`/${currentLang}/login`} class="ck-action-btn">Iniciar sesión</a>
+  </section>
+
+  <!-- ════ EMPTY CART ════ -->
+  <section id="ck-empty" class="ck-state-card" hidden>
+    <div class="state-icon">
+      <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 002 1.61h9.72a2 2 0 002-1.61L23 6H6"/></svg>
+    </div>
+    <h3>Tu carrito está vacío</h3>
+    <p>Agrega productos para continuar con tu compra</p>
+    <a href={`/${currentLang}/productos`} class="ck-action-btn">Ver productos</a>
+  </section>
+
+  <!-- ════ LOADING ════ -->
+  <section id="ck-loading">
+    <div class="loading-state">
+      <div class="loading-rings">
+        <div class="ring ring-1"></div>
+        <div class="ring ring-2"></div>
+        <div class="ring ring-3"></div>
+        <svg class="loading-truck" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
+      </div>
+      <h3>Consultando tarifas de envío</h3>
+      <p>Conectando con FedEx, DHL, Estafeta…</p>
+      <div class="loading-bar"><div class="loading-bar-fill"></div></div>
+    </div>
+  </section>
+
+  <!-- ════ CHECKOUT CONTENT ════ -->
+  <section id="ck-content" hidden>
+    <div class="checkout-grid">
+
+      <!-- ──── COLUMNA IZQUIERDA ──── -->
+      <div class="checkout-left">
+
+        <!-- ── STEP 1: Dirección ── -->
+        <div class="ck-step" id="step-address">
+          <div class="step-header">
+            <div class="step-number-wrap">
+              <span class="step-number">1</span>
+              <div class="step-number-ring"></div>
+            </div>
+            <div class="step-title-group">
+              <h2>Dirección de Envío</h2>
+              <p class="step-desc">¿A dónde enviamos tu pedido?</p>
+            </div>
+          </div>
+          <div class="step-body">
+            <div id="address-list" class="address-cards"></div>
+          </div>
+        </div>
+
+        <!-- ── STEP 2: Opciones de Envío ── -->
+        <div class="ck-step" id="step-shipping">
+          <div class="step-header">
+            <div class="step-number-wrap">
+              <span class="step-number">2</span>
+              <div class="step-number-ring"></div>
+            </div>
+            <div class="step-title-group">
+              <h2>Método de Envío</h2>
+              <p class="step-desc">Elige la velocidad de entrega que prefieras</p>
+            </div>
+          </div>
+          <div class="step-body">
+            <div id="shipping-options" class="shipping-options"></div>
+            <div id="shipping-error" class="shipping-error" hidden></div>
+            <div class="powered-by">
+              <span class="powered-dot"></span>
+              Tarifas en tiempo real vía <strong>Envia.com</strong> — FedEx · DHL · Estafeta
+            </div>
+          </div>
+        </div>
+
+        <!-- ── STEP 3: Método de Pago ── -->
+        <div class="ck-step" id="step-payment">
+          <div class="step-header">
+            <div class="step-number-wrap">
+              <span class="step-number">3</span>
+              <div class="step-number-ring"></div>
+            </div>
+            <div class="step-title-group">
+              <h2>Método de Pago</h2>
+              <p class="step-desc">Selecciona tu tarjeta para pagar</p>
+            </div>
+          </div>
+          <div class="step-body">
+            <div id="cards-list" class="cards-list"></div>
+            <p id="cards-help" class="checkout-help" hidden></p>
+          </div>
+        </div>
+
+        <!-- ── Notas del cliente ── -->
+        <div class="ck-step ck-step-notes">
+          <div class="step-header">
+            <div class="step-number-wrap">
+              <span class="step-number">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+              </span>
+              <div class="step-number-ring"></div>
+            </div>
+            <div class="step-title-group">
+              <h2>Notas del pedido</h2>
+              <p class="step-desc">Instrucciones especiales <span class="optional-badge">Opcional</span></p>
+            </div>
+          </div>
+          <div class="step-body">
+            <textarea id="order-notes" rows="2" placeholder="Instrucciones de entrega, referencia del domicilio, etc."></textarea>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- ──── COLUMNA DERECHA: RESUMEN ──── -->
+      <div class="checkout-right">
+        <div class="order-summary-card">
+          <div class="summary-header">
+            <h2>Resumen del Pedido</h2>
+            <div class="summary-icon-wrap">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/></svg>
+            </div>
+          </div>
+
+          <div id="summary-items-list" class="summary-items"></div>
+
+          <div class="summary-divider"></div>
+
+          <div class="summary-line">
+            <span>Subtotal</span>
+            <strong id="sum-subtotal">$0.00</strong>
+          </div>
+          <div class="summary-line" id="sum-shipping-row">
+            <span>Envío <small id="sum-carrier-name"></small></span>
+            <strong id="sum-shipping">—</strong>
+          </div>
+
+          <div class="summary-divider glow"></div>
+
+          <div class="summary-line total">
+            <span>Total a pagar</span>
+            <strong id="sum-total">$0.00</strong>
+          </div>
+
+          <button id="btn-pay" type="button" class="btn-pay" disabled>
+            <span class="btn-pay-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
+            </span>
+            <span class="btn-pay-text">Confirmar y Pagar</span>
+            <span class="btn-pay-arrow">→</span>
+          </button>
+
+          <div class="security-badges">
+            <div class="badge">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+              Pago seguro SSL
+            </div>
+            <div class="badge">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
+              Envío rastreable
+            </div>
+            <div class="badge">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>
+              Garantía de entrega
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ════ ORDER SUCCESS ════ -->
+  <section id="ck-success" hidden>
+    <div class="success-state">
+      <div class="success-rings">
+        <div class="success-ring success-ring-1"></div>
+        <div class="success-ring success-ring-2"></div>
+        <div class="success-ring success-ring-3"></div>
+      </div>
+      <div class="success-icon-wrap">
+        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>
+      </div>
+      <h2>¡Pedido Confirmado!</h2>
+      <p id="success-order-number"></p>
+      <p id="success-total"></p>
+      <p id="success-shipping-info"></p>
+      <div class="success-actions">
+        <a href={`/${currentLang}/mi-cuenta`} class="ck-action-btn">Ver mis pedidos</a>
+        <a href={`/${currentLang}/productos`} class="btn-outline">Seguir comprando</a>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<!-- Stripe.js: SRI intentionally omitted.
+     Per Stripe's official security guidance, do NOT add SRI to js.stripe.com—
+     they update the script continuously to patch vulnerabilities.
+     CSP already restricts this to https://js.stripe.com only. -->
+<script src="https://js.stripe.com/v3/"></script>
+
+<script is:inline define:vars={{ currentLang, stripePublicKey }}>
+(function(){
+
+const $ = (id) => document.getElementById(id);
+const alertEl        = $("ck-alert");
+const authEl         = $("ck-auth");
+const emptyEl        = $("ck-empty");
+const loadingEl      = $("ck-loading");
+const contentEl      = $("ck-content");
+const successEl      = $("ck-success");
+const sumSubtotal    = $("sum-subtotal");
+const sumShipping    = $("sum-shipping");
+const sumCarrierName = $("sum-carrier-name");
+const sumTotal       = $("sum-total");
+const sumItemsList   = $("summary-items-list");
+const freeShipBanner = $("free-shipping-banner");
+const addressList    = $("address-list");
+const shippingOptions= $("shipping-options");
+const shippingError  = $("shipping-error");
+const cardsList      = $("cards-list");
+const cardsHelp      = $("cards-help");
+const btnChangeAddr  = $("btn-change-address");
+const btnPay         = $("btn-pay");
+const orderNotes     = $("order-notes");
+
+let checkoutData           = null;
+let cardsData              = [];
+let selectedAddr           = null;
+let selectedShip           = null;
+let selectedCardId         = null;
+let pendingPaymentIntentId = null;
+let pendingOrderNumber     = null;
+
+const STRIPE_PK = String(stripePublicKey || "").trim();
+let stripe = null;
+
+function getStripe() {
+  return new Promise((resolve, reject) => {
+    if (!STRIPE_PK) {
+      reject(new Error("Falta configurar PUBLIC_STRIPE_PUBLISHABLE_KEY"));
+      return;
+    }
+    if (stripe) { resolve(stripe); return; }
+    if (typeof Stripe !== "undefined") { stripe = Stripe(STRIPE_PK); resolve(stripe); return; }
+    const script = document.querySelector('script[src*="stripe"]');
+    if (!script) { reject(new Error("Script de Stripe no encontrado")); return; }
+    script.addEventListener("load",  () => { stripe = Stripe(STRIPE_PK); resolve(stripe); });
+    script.addEventListener("error", () => reject(new Error("Stripe no pudo cargar")));
+  });
+}
+
+const fmt = (v) => `$${Number(v||0).toLocaleString("es-MX",{minimumFractionDigits:2,maximumFractionDigits:2})} MXN`;
+
+function showStatus(message, ok=false) {
+  if(ok) Modal.success('¡Listo!', message, { autoClose: 2500 });
+  else   Modal.error('Error', message);
+}
+
+function showSection(section) {
+  [authEl, emptyEl, loadingEl, contentEl, successEl].forEach(s => { if (s) s.hidden = true; });
+  if (section) section.hidden = false;
+}
+
+// Progress bar update
+function updateProgress(step) {
+  document.querySelectorAll('.progress-step').forEach((el, i) => {
+    const s = parseInt(el.dataset.step);
+    el.classList.toggle('active', s <= step);
+    el.classList.toggle('completed', s < step);
+  });
+  document.querySelectorAll('.progress-line').forEach((el, i) => {
+    el.classList.toggle('active', i < step - 1);
+  });
+}
+
+async function checkAuth() {
+  const res = await fetch("/api/me", { credentials: "include" });
+  if (!res.ok) return false;
+  const d = await res.json().catch(() => ({}));
+  return Boolean(d.success && d.user);
+}
+
+async function loadCards() {
+  try {
+    const res = await fetch("/api/tarjetas", { credentials: "include" });
+    const d   = await res.json().catch(() => ({}));
+    cardsData = d.success && Array.isArray(d.tarjetas) ? d.tarjetas : [];
+  } catch { cardsData = []; }
+  renderCards();
+}
+
+async function fetchRates(direccionId) {
+  showSection(loadingEl);
+  try {
+    const body = direccionId ? { direccionId } : {};
+    const res  = await fetch("/api/envio/cotizar", {
+      method: "POST", credentials: "include",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+    if (res.status === 401) { showSection(authEl); return; }
+    const d = await res.json().catch(() => ({}));
+    if (!res.ok || !d.success) { showStatus(d.error || "Error al obtener cotización"); showSection(emptyEl); return; }
+    if (!d.items || !d.items.length) { showSection(emptyEl); return; }
+    checkoutData = d;
+    selectedAddr = d.direccionSeleccionada ? String(d.direccionSeleccionada) : null;
+    selectedShip = null;
+    showSection(contentEl);
+    renderAll();
+  } catch(err) {
+    console.error("[fetchRates]", err);
+    showStatus("Error de conexión al consultar tarifas");
+    showSection(emptyEl);
+  }
+}
+
+function renderAll() {
+  renderAddresses();
+  renderShipping();
+  renderSummaryItems();
+  updateSummaryTotals();
+  updatePayButton();
+  updateProgress(1);
+}
+
+function renderAddresses() {
+  if (!addressList || !checkoutData) return;
+  addressList.innerHTML = "";
+  const dirs = checkoutData.direcciones || [];
+  if (btnChangeAddr) btnChangeAddr.hidden = dirs.length <= 1;
+
+  if (!selectedAddr && dirs.length)
+    selectedAddr = String(checkoutData.direccionSeleccionada || dirs[0].id);
+
+  dirs.forEach(dir => {
+    const id   = String(dir.id);
+    const card = document.createElement("label");
+    card.className = `addr-card${id === selectedAddr ? " selected" : ""}`;
+    card.innerHTML = `
+      <input type="radio" name="address" value="${id}" ${id === selectedAddr ? "checked" : ""}>
+      <div class="addr-radio-custom"><div class="addr-radio-dot"></div></div>
+      <div class="addr-body">
+        ${dir.nombre ? `<div class="addr-name">${dir.nombre}</div>` : ""}
+        <div class="addr-line">${dir.calle} #${dir.numero}</div>
+        <div class="addr-line">${dir.ciudad}, ${dir.estado} CP ${dir.cp}</div>
+      </div>
+      ${id === selectedAddr ? '<span class="addr-badge"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg> Seleccionada</span>' : ""}
+    `;
+    addressList.appendChild(card);
+  });
+
+  if (selectedAddr) updateProgress(2);
+  updatePayButton();
+
+  addressList.addEventListener("change", (e) => {
+    if (e.target.name === "address") {
+      const newId = String(e.target.value);
+      if (newId !== selectedAddr) { selectedAddr = newId; fetchRates(newId); }
+    }
+  });
+}
+
+function renderShipping() {
+  if (!shippingOptions || !checkoutData) return;
+  shippingOptions.innerHTML = "";
+  const opciones   = checkoutData.envio?.opciones || [];
+  const envioError = checkoutData.envio?.error;
+  const envioWarning = checkoutData.envio?.warning;
+
+  if (envioError && !opciones.length) {
+    if (shippingError) { shippingError.hidden = false; shippingError.textContent = envioError; }
+    return;
+  }
+  if (shippingError) {
+    if (envioWarning && opciones.length) {
+      shippingError.hidden = false;
+      shippingError.textContent = `Aviso: ${envioWarning}`;
+    } else {
+      shippingError.hidden = true;
+      shippingError.textContent = "";
+    }
+  }
+  if (!opciones.length) {
+    shippingOptions.innerHTML = `<div class="no-options"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg><p>No se encontraron opciones de envío para esta dirección.</p></div>`;
+    return;
+  }
+
+  if (!selectedShip) selectedShip = String(opciones[0].id);
+
+  opciones.forEach((op, idx) => {
+    const card       = document.createElement("label");
+    const isSelected = String(op.id) === selectedShip;
+    const pesoReal = Number(op.pesoRealKg ?? 0);
+    const pesoVol = Number(op.pesoVolumetricoKg ?? 0);
+    const pesoCobrable = Number(op.pesoCobrableKg ?? 0);
+    const factorVol = Number(op.factorVolumetrico ?? 0);
+    const showWeightMeta = [pesoReal, pesoVol, pesoCobrable].some((n) => Number.isFinite(n) && n > 0);
+    const weightMetaHtml = showWeightMeta
+      ? `<div class="ship-weight-meta">Peso real: <b>${pesoReal.toFixed(2)} kg</b> · Volumétrico: <b>${pesoVol.toFixed(2)} kg</b> · Cobrable: <b>${pesoCobrable.toFixed(2)} kg</b>${factorVol > 0 ? ` · Factor: ${factorVol}` : ""}</div>`
+      : "";
+    card.className   = `ship-card${isSelected ? " selected" : ""}`;
+    card.innerHTML   = `
+      <input type="radio" name="shipping" value="${op.id}" ${isSelected ? "checked" : ""}>
+      <div class="ship-left">
+        <span class="ship-icon" style="background:${op.carrierColor}">${op.carrierIcon}</span>
+        <div class="ship-info">
+          <div class="ship-carrier-name">${op.carrierLabel}</div>
+          <div class="ship-service">${op.serviceDescription || op.service}</div>
+          <div class="ship-estimate-line">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            ${op.deliveryEstimate || (op.deliveryDays ? op.deliveryDays+" días" : "")}
+            ${op.deliveryDate ? ` · Llega ${formatDate(op.deliveryDate)}` : ""}
+          </div>
+          ${weightMetaHtml}
+        </div>
+      </div>
+      <div class="ship-right">
+        ${op.totalPrice === 0
+          ? '<span class="free-tag">GRATIS</span>'
+          : `<span class="ship-price-amount">${fmt(op.totalPrice)}</span>`}
+        ${idx === 0 && op.totalPrice > 0 ? '<span class="cheapest-tag">Más económico</span>' : ""}
+        ${op.totalPrice === 0 ? '<span class="cheapest-tag free">Envío gratis</span>' : ""}
+      </div>
+      <div class="ship-selected-indicator"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg></div>
+    `;
+    shippingOptions.appendChild(card);
+  });
+
+  if (selectedShip) updateProgress(2);
+  updateSummaryTotals();
+  updatePayButton();
+
+  shippingOptions.addEventListener("change", (e) => {
+    if (e.target.name === "shipping") {
+      selectedShip = String(e.target.value);
+      document.querySelectorAll(".ship-card").forEach(c => c.classList.remove("selected"));
+      e.target.closest(".ship-card")?.classList.add("selected");
+      updateSummaryTotals();
+      updatePayButton();
+    }
+  });
+}
+
+function formatDate(dateStr) {
+  try {
+    const d = new Date(dateStr + "T00:00:00");
+    return d.toLocaleDateString("es-MX", { weekday: "short", month: "short", day: "numeric" });
+  } catch { return dateStr; }
+}
+
+function renderCards() {
+  if (!cardsList) return;
+  cardsList.innerHTML = "";
+
+  if (!cardsData.length) {
+    if (cardsHelp) {
+      cardsHelp.hidden  = false;
+      cardsHelp.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg> No tienes tarjetas guardadas. <a href="/${currentLang}/mi-cuenta">Agrega una en Mi cuenta</a>.`;
+    }
+    updatePayButton();
+    return;
+  }
+  if (cardsHelp) cardsHelp.hidden = true;
+
+  if (!selectedCardId) {
+    const def      = cardsData.find(c => c.default);
+    selectedCardId = String(def ? def.id : cardsData[0].id);
+  }
+
+  cardsData.forEach(card => {
+    const isSelected = String(card.id) === selectedCardId;
+    const clean      = String(card.numero || "").replace(/\D/g, "");
+    const last4      = clean.slice(-4) || "----";
+    const brand      = String(card.marca || "Tarjeta").toUpperCase();
+    const brandIcon  = brand.includes('VISA') ? '💳' : brand.includes('MASTER') ? '💳' : brand.includes('AMEX') ? '💳' : '💳';
+    const el         = document.createElement("label");
+    el.className     = `card-option${isSelected ? " selected" : ""}`;
+    el.innerHTML     = `
+      <input type="radio" name="card" value="${card.id}" ${isSelected ? "checked" : ""}>
+      <div class="card-visual">
+        <div class="card-top-row">
+          <div class="card-chip">
+            <svg width="24" height="18" viewBox="0 0 24 18"><rect x="0" y="0" width="24" height="18" rx="3" fill="rgba(122,37,50,.3)"/><line x1="0" y1="6" x2="24" y2="6" stroke="rgba(122,37,50,.4)" stroke-width="1"/><line x1="0" y1="12" x2="24" y2="12" stroke="rgba(122,37,50,.4)" stroke-width="1"/><line x1="8" y1="0" x2="8" y2="18" stroke="rgba(122,37,50,.4)" stroke-width="1"/><line x1="16" y1="0" x2="16" y2="18" stroke="rgba(122,37,50,.4)" stroke-width="1"/></svg>
+          </div>
+          <div class="card-brand">${brand}</div>
+        </div>
+        <div class="card-number">•••• •••• •••• ${last4}</div>
+        <div class="card-bottom-row">
+          <div class="card-holder">${card.titular || "Titular"}</div>
+          ${card.default ? '<span class="card-default-badge">Predeterminada</span>' : ''}
+        </div>
+      </div>
+      <div class="card-selected-check">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>
+      </div>
+    `;
+    cardsList.appendChild(el);
+  });
+
+  if (selectedCardId) updateProgress(3);
+  updatePayButton();
+
+  cardsList.addEventListener("change", (e) => {
+    if (e.target.name === "card") {
+      selectedCardId = String(e.target.value);
+      document.querySelectorAll(".card-option").forEach(c => c.classList.remove("selected"));
+      e.target.closest(".card-option")?.classList.add("selected");
+      updatePayButton();
+      updateProgress(3);
+    }
+  });
+}
+
+function renderSummaryItems() {
+  if (!sumItemsList || !checkoutData) return;
+  sumItemsList.innerHTML = "";
+  (checkoutData.items || []).forEach(item => {
+    const el = document.createElement("div");
+    el.className  = "sum-item";
+    el.innerHTML  = `
+      <div class="sum-item-left">
+        <span class="sum-item-qty">${item.cantidad}×</span>
+        <span class="sum-item-name">${item.nombre}</span>
+      </div>
+      <span class="sum-item-price">${fmt(item.subtotal)}</span>
+    `;
+    sumItemsList.appendChild(el);
+  });
+}
+
+function updateSummaryTotals() {
+  if (!checkoutData) return;
+  const subtotal   = checkoutData.subtotal || 0;
+  const shipOption = getSelectedShipOption();
+  const shipCost   = shipOption ? shipOption.totalPrice : 0;
+  if (sumSubtotal)    sumSubtotal.textContent    = fmt(subtotal);
+  if (sumShipping)    sumShipping.textContent    = shipCost === 0 ? "GRATIS" : fmt(shipCost);
+  if (sumCarrierName && shipOption) sumCarrierName.textContent = `(${shipOption.carrierLabel})`;
+  if (sumTotal)       sumTotal.textContent       = fmt(subtotal + shipCost);
+  if (freeShipBanner) freeShipBanner.hidden      = subtotal < 2500;
+}
+
+function getSelectedShipOption() {
+  if (!checkoutData || !selectedShip) return null;
+  return (checkoutData.envio?.opciones || []).find(o => String(o.id) === selectedShip) || null;
+}
+
+function updatePayButton() {
+  if (!btnPay) return;
+  const ready = !!(selectedAddr && selectedShip && selectedCardId && cardsData.length > 0);
+  btnPay.disabled = !ready;
+  if (ready) updateProgress(4);
+}
+
+function getCsrfToken() {
+  var match = document.cookie.match(/go_csrf=([^;]+)/);
+  return match ? decodeURIComponent(match[1]) : '';
+}
+
+async function handlePay() {
+  if (!checkoutData) return;
+  const shipOption = getSelectedShipOption();
+  if (!shipOption)    { showStatus("Selecciona un método de envío"); return; }
+  if (!selectedCardId){ showStatus("Selecciona una tarjeta de pago"); return; }
+
+  const subtotal = checkoutData.subtotal || 0;
+  const shipCost = shipOption.totalPrice;
+  const total    = subtotal + shipCost;
+  const envioStr = shipCost === 0 ? "GRATIS" : fmt(shipCost);
+
+  const confirmed = await Modal.confirm(
+    "¿Confirmar compra?",
+    `Se cobrará <b>${fmt(total)}</b><br><small>Productos: ${fmt(subtotal)} + Envío ${shipOption.carrierLabel}: ${envioStr}</small>`,
+    { confirmText: "Sí, comprar", cancelText: "Cancelar" }
+  );
+
+  if (!confirmed) {
+    Modal.error("Compra cancelada", "No se realizó ningún cargo. Puedes intentarlo de nuevo cuando quieras.", { confirmText: "Cerrar" });
+    return;
+  }
+
+  Modal.showPayLoading("Procesando tu pago", "Iniciando conexión segura");
+  btnPay.disabled = true;
+
+  const envioData = {
+    costo:            shipOption.totalPrice,
+    carrierLabel:     shipOption.carrierLabel,
+    deliveryEstimate: shipOption.deliveryEstimate,
+    deliveryDate:     shipOption.deliveryDate,
+    carrier:          shipOption.carrier,
+    service:          shipOption.service,
+  };
+
+  try {
+    Modal.updatePayLoading("Validando tarjeta con el servidor");
+    const res  = await fetch("/api/pago/tarjeta", {
+      method: "POST", credentials: "include",
+      headers: { "Content-Type": "application/json", "x-csrf-token": getCsrfToken() },
+      body: JSON.stringify({ cardId: selectedCardId, direccionId: selectedAddr, envio: envioData, notas: orderNotes?.value || "" }),
+    });
+    const data = await res.json().catch(() => ({}));
+
+    if (!res.ok) {
+      Modal.hidePayLoading();
+      if (
+        data?.reason === "payment_method_missing" ||
+        data?.reason === "payment_method_customer_mismatch" ||
+        data?.reason === "payment_method_not_retrievable" ||
+        String(data?.stripeCode || "") === "resource_missing"
+      ) {
+        await Modal.error(
+          "Tarjeta no valida para cobro",
+          "La tarjeta seleccionada no se pudo validar en Stripe.<br>Ve a <b>Mi cuenta → Tarjetas</b>, elimina la tarjeta y agrégala otra vez.",
+          { confirmText: "Entendido" }
+        );
+      } else {
+        showStatus(data.error || "Error al iniciar el pago");
+      }
+      btnPay.disabled = false;
+      return;
+    }
+    if (!data.clientSecret) {
+      Modal.hidePayLoading();
+      showStatus("Respuesta inválida del servidor");
+      btnPay.disabled = false;
+      return;
+    }
+
+    pendingPaymentIntentId = data.paymentIntentId;
+    pendingOrderNumber     = data.orderNumber;
+
+    Modal.updatePayLoading("Conectando con Stripe de forma segura");
+
+    let stripeInstance;
+    try { stripeInstance = await getStripe(); }
+    catch {
+      Modal.hidePayLoading();
+      showStatus("No se pudo cargar Stripe. Recarga la página.");
+      btnPay.disabled = false;
+      return;
+    }
+
+    Modal.updatePayLoading("Autorizando pago con tu banco");
+
+    const { error, paymentIntent } = await stripeInstance.confirmCardPayment(data.clientSecret);
+    if (error) {
+      Modal.hidePayLoading();
+      showStatus(error.message || "El pago no pudo completarse.");
+      btnPay.disabled = false;
+      return;
+    }
+    if (paymentIntent.status !== "succeeded") {
+      Modal.hidePayLoading();
+      Modal.warning("Pago no completado", `Estado inesperado: ${paymentIntent.status}`);
+      btnPay.disabled = false;
+      return;
+    }
+
+    Modal.updatePayLoading("Creando tu pedido");
+
+    const confirmRes  = await fetch("/api/pago/confirmar", {
+      method: "POST", credentials: "include",
+      headers: { "Content-Type": "application/json", "x-csrf-token": getCsrfToken() },
+      body: JSON.stringify({ paymentIntentId: paymentIntent.id, orderNumber: pendingOrderNumber, addressId: selectedAddr, cardId: selectedCardId, envioData, notas: orderNotes?.value || "" }),
+    });
+    const confirmData = await confirmRes.json().catch(() => ({}));
+
+    Modal.hidePayLoading();
+
+    if (!confirmRes.ok) {
+      showStatus(confirmData.error || "Error al crear el pedido");
+      btnPay.disabled = false;
+      return;
+    }
+
+    await Modal.success(
+      "¡Compra exitosa! 🎉",
+      `Pedido #${confirmData.order.numero}.<br>Total cobrado: <b>${fmt(confirmData.order.total)}</b>.<br>Envío: ${confirmData.order.carrier} — ${confirmData.order.deliveryEstimate}`,
+      { confirmText: "Ver pedido" }
+    );
+    showSection(successEl);
+
+  } catch {
+    Modal.hidePayLoading();
+    showStatus("Error de red. Inténtalo de nuevo.");
+    btnPay.disabled = false;
+  }
+}
+
+btnPay?.addEventListener("click", handlePay);
+btnChangeAddr?.addEventListener("click", () => {
+  document.querySelectorAll(".addr-card").forEach(c => c.classList.toggle("show-all"));
+});
+
+(async () => {
+  const logged = await checkAuth();
+  if (!logged) { showSection(authEl); return; }
+  await Promise.all([fetchRates(), loadCards()]);
+  updatePayButton();
+  getStripe().catch(() => {});
+})();
+
+})();
+</script>
+
+<style is:global>
+/* ═══════════════════════════════════════════════════════════
+   CHECKOUT — PREMIUM DARK THEME (User = Brand)
+   Matches the go-platform dark glassmorphism design system
+   ═══════════════════════════════════════════════════════════ */
+
+.checkout-page {
+  --ck-bg: #0b0e14;
+  --ck-surface: #12161f;
+  --ck-surface2: #181d28;
+  --ck-surface3: #1e2433;
+  --ck-text: #f0f2f5;
+  --ck-text2: #8b95a5;
+  --ck-text3: #5a6478;
+  --ck-border: rgba(255,255,255,.07);
+  --ck-border-hover: rgba(255,255,255,.14);
+  --ck-accent: #7a2532;
+  --ck-accent-hover: #3a56a0;
+  --ck-accent-glow: rgba(122,37,50,.15);
+  --ck-accent-glow-strong: rgba(224,163,91,.3);
+  --ck-green: #22c55e;
+  --ck-green-bg: rgba(34,197,94,.1);
+  --ck-green-border: rgba(34,197,94,.25);
+  --ck-card-bg: rgba(18,22,31,.8);
+  --ck-card-bg-solid: #12161f;
+  --ck-card-hover: rgba(122,37,50,.04);
+  --ck-card-selected: rgba(122,37,50,.08);
+  --ck-card-border-sel: rgba(224,163,91,.5);
+  --ck-radius: 16px;
+  --ck-radius-sm: 10px;
+  --ck-shadow: 0 2px 8px rgba(0,0,0,.2), 0 0 0 1px rgba(255,255,255,.04);
+  --ck-shadow-lg: 0 8px 32px rgba(0,0,0,.35), 0 0 0 1px rgba(255,255,255,.05);
+  --ck-shadow-glow: 0 4px 24px rgba(122,37,50,.12), 0 0 0 1px rgba(224,163,91,.15);
+
+  width: min(1140px, 92vw);
+  margin: auto;
+  padding: 40px 0 80px;
+  font-family: var(--fuente-cuerpo, 'NeueMontreal', 'Inter', -apple-system, sans-serif);
+  color: var(--ck-text);
+  position: relative;
+}
+
+/* ── Ambient Background Glow ── */
+.ck-ambient-glow {
+  position: fixed;
+  top: -200px;
+  right: -200px;
+  width: 600px;
+  height: 600px;
+  background: radial-gradient(circle, rgba(122,37,50,.08) 0%, transparent 70%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* ═══════════ HEADER ═══════════ */
+.checkout-header {
+  text-align: center;
+  margin-bottom: 40px;
+  position: relative;
+  z-index: 1;
+}
+
+.back-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 20px;
+  color: var(--ck-text2);
+  text-decoration: none;
+  font-weight: 500;
+  font-size: 13px;
+  padding: 6px 14px;
+  border-radius: 20px;
+  background: var(--ck-surface);
+  border: 1px solid var(--ck-border);
+  transition: all .25s ease;
+}
+.back-link:hover {
+  color: var(--ck-accent);
+  border-color: rgba(122,37,50,.3);
+  background: var(--ck-accent-glow);
+  transform: translateX(-2px);
+}
+.back-link svg { transition: transform .25s ease; }
+.back-link:hover svg { transform: translateX(-3px); }
+
+.checkout-label {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .15em;
+  color: var(--ck-accent);
+  margin-bottom: 8px;
+  text-transform: uppercase;
+}
+
+.checkout-title {
+  margin: 0;
+  font-size: clamp(2rem, 4.5vw, 3rem);
+  font-family: var(--fuente-titulos, 'NeueMontreal', 'SF Pro Display', sans-serif);
+  font-weight: 800;
+  letter-spacing: -.02em;
+  line-height: 1;
+  background: linear-gradient(135deg, #fff 0%, #ccc 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.checkout-subtitle {
+  margin: 10px 0 0;
+  color: var(--ck-text2);
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+/* ── Progress Steps ── */
+.checkout-progress {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0;
+  margin-top: 28px;
+  padding: 16px 24px;
+  background: var(--ck-surface);
+  border: 1px solid var(--ck-border);
+  border-radius: 50px;
+  max-width: 560px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.progress-step {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 4px;
+}
+.progress-step span {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ck-text3);
+  transition: color .3s ease;
+  white-space: nowrap;
+}
+.progress-step.active span { color: var(--ck-text); }
+.progress-step.completed span { color: var(--ck-green); }
+
+.progress-dot {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--ck-surface2);
+  border: 2px solid var(--ck-border);
+  color: var(--ck-text3);
+  transition: all .3s ease;
+  flex-shrink: 0;
+}
+.progress-step.active .progress-dot {
+  background: var(--ck-accent-glow);
+  border-color: var(--ck-accent);
+  color: var(--ck-accent);
+  box-shadow: 0 0 12px rgba(122,37,50,.2);
+}
+.progress-step.completed .progress-dot {
+  background: var(--ck-green-bg);
+  border-color: var(--ck-green);
+  color: var(--ck-green);
+}
+
+.progress-line {
+  flex: 1;
+  height: 2px;
+  background: var(--ck-border);
+  margin: 0 4px;
+  border-radius: 1px;
+  transition: background .3s ease;
+  min-width: 20px;
+}
+.progress-line.active {
+  background: linear-gradient(90deg, var(--ck-accent), var(--ck-accent-hover));
+}
+
+/* ═══════════ STATE CARDS (Auth, Empty) ═══════════ */
+.ck-state-card {
+  text-align: center;
+  padding: 60px 24px;
+  background: var(--ck-surface);
+  border: 1px solid var(--ck-border);
+  border-radius: var(--ck-radius);
+  max-width: 480px;
+  margin: 40px auto;
+  backdrop-filter: blur(20px);
+}
+.ck-state-card .state-icon {
+  width: 80px;
+  height: 80px;
+  margin: 0 auto 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--ck-accent-glow);
+  border: 1px solid rgba(122,37,50,.2);
+  border-radius: 50%;
+  color: var(--ck-accent);
+}
+.ck-state-card h3 {
+  margin: 0 0 8px;
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--ck-text);
+}
+.ck-state-card p {
+  margin: 0 0 20px;
+  color: var(--ck-text2);
+  font-size: 14px;
+}
+
+.ck-action-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 28px;
+  background: linear-gradient(135deg, var(--ck-accent), #263a72);
+  color: #fff;
+  border-radius: 50px;
+  text-decoration: none;
+  font-weight: 700;
+  font-size: 14px;
+  border: none;
+  cursor: pointer;
+  transition: all .25s ease;
+  box-shadow: 0 4px 16px rgba(122,37,50,.3);
+}
+.ck-action-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 28px rgba(122,37,50,.4);
+}
+
+/* ═══════════ LOADING STATE ═══════════ */
+.loading-state {
+  text-align: center;
+  padding: 80px 24px;
+  max-width: 400px;
+  margin: 0 auto;
+}
+.loading-rings {
+  width: 80px;
+  height: 80px;
+  margin: 0 auto 24px;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.ring {
+  position: absolute;
+  border-radius: 50%;
+  border: 2px solid transparent;
+}
+.ring-1 {
+  width: 80px; height: 80px;
+  border-top-color: var(--ck-accent);
+  animation: ck-spin 1.2s linear infinite;
+}
+.ring-2 {
+  width: 60px; height: 60px;
+  border-right-color: #3a56a0;
+  animation: ck-spin 1.6s linear infinite reverse;
+}
+.ring-3 {
+  width: 40px; height: 40px;
+  border-bottom-color: rgba(122,37,50,.4);
+  animation: ck-spin 2s linear infinite;
+}
+.loading-truck {
+  color: var(--ck-accent);
+  z-index: 1;
+}
+@keyframes ck-spin { to { transform: rotate(360deg); } }
+
+.loading-state h3 {
+  margin: 0 0 6px;
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--ck-text);
+}
+.loading-state p {
+  margin: 0 0 20px;
+  color: var(--ck-text2);
+  font-size: 13px;
+}
+.loading-bar {
+  width: 200px;
+  height: 3px;
+  background: var(--ck-surface2);
+  border-radius: 2px;
+  margin: 0 auto;
+  overflow: hidden;
+}
+.loading-bar-fill {
+  width: 40%;
+  height: 100%;
+  background: linear-gradient(90deg, var(--ck-accent), #3a56a0);
+  border-radius: 2px;
+  animation: loading-slide 1.4s ease-in-out infinite;
+}
+@keyframes loading-slide {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(350%); }
+}
+
+/* ═══════════ CHECKOUT GRID ═══════════ */
+.checkout-grid {
+  display: grid;
+  grid-template-columns: 1fr 380px;
+  gap: 24px;
+  align-items: start;
+  position: relative;
+  z-index: 1;
+}
+
+/* ═══════════ STEP CARDS ═══════════ */
+.ck-step {
+  background: var(--ck-card-bg);
+  backdrop-filter: blur(20px);
+  border: 1px solid var(--ck-border);
+  border-radius: var(--ck-radius);
+  margin-bottom: 16px;
+  box-shadow: var(--ck-shadow);
+  overflow: hidden;
+  transition: border-color .3s ease, box-shadow .3s ease;
+}
+.ck-step:hover {
+  border-color: var(--ck-border-hover);
+}
+
+.step-header {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 18px 22px;
+  border-bottom: 1px solid var(--ck-border);
+  background: rgba(255,255,255,.02);
+}
+
+.step-number-wrap {
+  position: relative;
+  width: 36px;
+  height: 36px;
+  flex-shrink: 0;
+}
+.step-number {
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, var(--ck-accent), #263a72);
+  color: #fff;
+  border-radius: 50%;
+  font-weight: 800;
+  font-size: 14px;
+  position: relative;
+  z-index: 1;
+}
+.step-number svg { color: #fff; }
+.step-number-ring {
+  position: absolute;
+  inset: -3px;
+  border-radius: 50%;
+  border: 2px solid rgba(122,37,50,.2);
+  animation: step-ring-pulse 3s ease-in-out infinite;
+}
+@keyframes step-ring-pulse {
+  0%, 100% { opacity: .4; transform: scale(1); }
+  50% { opacity: .8; transform: scale(1.06); }
+}
+
+.step-title-group h2 {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--ck-text);
+  font-family: inherit;
+  letter-spacing: 0;
+  text-transform: none;
+}
+.step-desc {
+  margin: 2px 0 0;
+  font-size: 12px;
+  color: var(--ck-text2);
+}
+
+.optional-badge {
+  display: inline-block;
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--ck-text3);
+  background: var(--ck-surface2);
+  padding: 2px 8px;
+  border-radius: 10px;
+  margin-left: 4px;
+  vertical-align: middle;
+}
+
+.step-body {
+  padding: 18px 22px;
+}
+
+/* ═══════════ ADDRESS CARDS ═══════════ */
+.address-cards { display: grid; gap: 8px; }
+
+.addr-card {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 16px;
+  border: 1.5px solid var(--ck-border);
+  border-radius: var(--ck-radius-sm);
+  cursor: pointer;
+  transition: all .25s ease;
+  background: transparent;
+}
+.addr-card:hover {
+  border-color: rgba(122,37,50,.3);
+  background: var(--ck-card-hover);
+  transform: translateY(-1px);
+}
+.addr-card.selected {
+  border-color: var(--ck-card-border-sel) !important;
+  background: var(--ck-card-selected) !important;
+  box-shadow: var(--ck-shadow-glow);
+}
+.addr-card:not(.selected) {
+  border-color: var(--ck-border) !important;
+  background: transparent !important;
+}
+
+.addr-card input[type=radio] { display: none; }
+
+.addr-radio-custom {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: 2px solid var(--ck-text3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all .2s ease;
+  flex-shrink: 0;
+}
+.addr-card.selected .addr-radio-custom {
+  border-color: var(--ck-accent);
+  background: var(--ck-accent-glow);
+}
+.addr-radio-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--ck-accent);
+  transform: scale(0);
+  transition: transform .2s cubic-bezier(.34,1.56,.64,1);
+}
+.addr-card.selected .addr-radio-dot { transform: scale(1); }
+
+.addr-body { flex: 1; }
+.addr-name { font-weight: 700; font-size: 14px; margin-bottom: 3px; color: var(--ck-text); }
+.addr-line { font-size: 13px; color: var(--ck-text2); line-height: 1.4; }
+
+.addr-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--ck-green);
+  background: var(--ck-green-bg);
+  border: 1px solid var(--ck-green-border);
+  padding: 4px 10px;
+  border-radius: 20px;
+  white-space: nowrap;
+}
+
+/* ═══════════ SHIPPING CARDS ═══════════ */
+.shipping-options { display: grid; gap: 8px; }
+
+.ship-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 18px;
+  border: 1.5px solid var(--ck-border);
+  border-radius: var(--ck-radius-sm);
+  cursor: pointer;
+  transition: all .25s ease;
+  position: relative;
+  background: transparent;
+}
+.ship-card:hover {
+  border-color: rgba(122,37,50,.3);
+  background: var(--ck-card-hover);
+  transform: translateY(-1px);
+}
+.ship-card.selected {
+  border-color: var(--ck-card-border-sel) !important;
+  background: var(--ck-card-selected) !important;
+  box-shadow: var(--ck-shadow-glow);
+}
+.ship-card:not(.selected) {
+  border-color: var(--ck-border) !important;
+  background: transparent !important;
+}
+.ship-card input[type=radio] { display: none; }
+
+.ship-left { display: flex; align-items: center; gap: 12px; flex: 1; min-width: 0; }
+.ship-icon {
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 12px;
+  font-size: 22px;
+  flex-shrink: 0;
+  color: #fff;
+  box-shadow: 0 2px 8px rgba(0,0,0,.2);
+}
+.ship-info { min-width: 0; }
+.ship-carrier-name { font-weight: 700; font-size: 14px; color: var(--ck-text); }
+.ship-service { font-size: 12px; color: var(--ck-text2); margin-top: 1px; }
+.ship-estimate-line {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  color: var(--ck-text3);
+  margin-top: 4px;
+}
+
+.ship-weight-meta {
+  margin-top: 4px;
+  font-size: 10px;
+  color: var(--ck-text3);
+  line-height: 1.35;
+}
+
+.ship-weight-meta b {
+  color: var(--ck-text2);
+  font-weight: 700;
+}
+
+.ship-right {
+  text-align: right;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+}
+
+.ship-price-amount { font-weight: 700; font-size: 15px; color: var(--ck-text); }
+
+.free-tag {
+  font-weight: 800;
+  font-size: 14px;
+  color: var(--ck-green);
+  background: var(--ck-green-bg);
+  padding: 2px 10px;
+  border-radius: 8px;
+}
+
+.cheapest-tag {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--ck-accent);
+  background: var(--ck-accent-glow);
+  padding: 2px 8px;
+  border-radius: 8px;
+}
+.cheapest-tag.free {
+  color: var(--ck-green);
+  background: var(--ck-green-bg);
+}
+
+.ship-selected-indicator {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--ck-accent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  opacity: 0;
+  transform: scale(.5);
+  transition: all .25s cubic-bezier(.34,1.56,.64,1);
+}
+.ship-card.selected .ship-selected-indicator {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.no-options {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  color: var(--ck-text2);
+  font-size: 14px;
+  text-align: center;
+  padding: 20px 0;
+}
+.no-options p { margin: 0; }
+
+.powered-by {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  margin: 14px 0 0;
+  font-size: 11px;
+  color: var(--ck-text3);
+}
+.powered-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--ck-green);
+  animation: dot-pulse 2s ease-in-out infinite;
+}
+@keyframes dot-pulse {
+  0%, 100% { opacity: .5; } 50% { opacity: 1; }
+}
+
+.shipping-error {
+  padding: 12px 14px;
+  border-radius: var(--ck-radius-sm);
+  background: rgba(248,113,113,.06);
+  border: 1px solid rgba(248,113,113,.2);
+  color: #f87171;
+  font-size: 13px;
+  text-align: center;
+}
+
+/* ═══════════ PAYMENT CARDS ═══════════ */
+.cards-list { display: grid; gap: 8px; }
+
+.card-option {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 4px;
+  border: 1.5px solid var(--ck-border);
+  border-radius: var(--ck-radius-sm);
+  cursor: pointer;
+  transition: all .25s ease;
+  position: relative;
+}
+.card-option:hover {
+  border-color: rgba(122,37,50,.3);
+  transform: translateY(-1px);
+}
+.card-option.selected {
+  border-color: var(--ck-card-border-sel);
+  background: var(--ck-card-selected);
+  box-shadow: var(--ck-shadow-glow);
+}
+
+.card-option input[type=radio] { display: none; }
+
+.card-visual {
+  flex: 1;
+  background: linear-gradient(135deg, #1a1f2e 0%, #0f1219 100%);
+  border-radius: 8px;
+  padding: 16px 18px;
+  position: relative;
+  overflow: hidden;
+}
+.card-visual::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  right: -30%;
+  width: 120px;
+  height: 120px;
+  background: radial-gradient(circle, rgba(122,37,50,.12) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+.card-top-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+.card-chip { opacity: .8; }
+.card-brand {
+  font-weight: 800;
+  font-size: 12px;
+  letter-spacing: .1em;
+  color: var(--ck-accent);
+}
+.card-number {
+  font-size: 16px;
+  font-weight: 600;
+  letter-spacing: .12em;
+  color: var(--ck-text);
+  font-family: 'SF Mono', 'Menlo', monospace;
+  margin-bottom: 10px;
+}
+.card-bottom-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.card-holder {
+  font-size: 11px;
+  color: var(--ck-text2);
+  text-transform: uppercase;
+  letter-spacing: .05em;
+}
+.card-default-badge {
+  font-size: 9px;
+  font-weight: 700;
+  color: var(--ck-green);
+  background: var(--ck-green-bg);
+  border: 1px solid var(--ck-green-border);
+  padding: 2px 8px;
+  border-radius: 8px;
+}
+
+.card-selected-check {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--ck-accent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  opacity: 0;
+  transform: scale(.5);
+  transition: all .25s cubic-bezier(.34,1.56,.64,1);
+}
+.card-option.selected .card-selected-check {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.checkout-help {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--ck-text2);
+  padding: 8px 0;
+}
+.checkout-help a {
+  color: var(--ck-accent);
+  font-weight: 600;
+  text-decoration: none;
+}
+.checkout-help a:hover { text-decoration: underline; }
+
+/* ── Notes textarea ── */
+#order-notes {
+  width: 100%;
+  border: 1.5px solid var(--ck-border);
+  border-radius: var(--ck-radius-sm);
+  padding: 12px 14px;
+  font-size: 14px;
+  font-family: inherit;
+  background: rgba(255,255,255,.03);
+  color: var(--ck-text);
+  resize: vertical;
+  transition: border-color .2s ease, box-shadow .2s ease;
+  outline: none;
+}
+#order-notes:focus {
+  border-color: rgba(122,37,50,.4);
+  box-shadow: 0 0 0 3px rgba(122,37,50,.08);
+}
+#order-notes::placeholder { color: var(--ck-text3); }
+
+/* ═══════════ ORDER SUMMARY ═══════════ */
+.order-summary-card {
+  background: var(--ck-card-bg);
+  backdrop-filter: blur(20px);
+  border: 1px solid var(--ck-border);
+  border-radius: var(--ck-radius);
+  padding: 24px;
+  box-shadow: var(--ck-shadow-lg);
+  position: sticky;
+  top: 90px;
+}
+
+.summary-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 18px;
+}
+.summary-header h2 {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  color: var(--ck-text);
+}
+.summary-icon-wrap {
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--ck-accent-glow);
+  border-radius: 10px;
+  color: var(--ck-accent);
+}
+
+.summary-items {
+  max-height: 220px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--ck-surface2) transparent;
+}
+
+.sum-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 0;
+  gap: 12px;
+}
+.sum-item-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  min-width: 0;
+}
+.sum-item-qty {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--ck-accent);
+  background: var(--ck-accent-glow);
+  padding: 2px 6px;
+  border-radius: 6px;
+  flex-shrink: 0;
+}
+.sum-item-name {
+  font-size: 13px;
+  color: var(--ck-text2);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.sum-item-price {
+  font-weight: 600;
+  font-size: 13px;
+  white-space: nowrap;
+  color: var(--ck-text);
+}
+
+.summary-divider {
+  height: 1px;
+  background: var(--ck-border);
+  margin: 14px 0;
+}
+.summary-divider.glow {
+  background: linear-gradient(90deg, transparent, rgba(122,37,50,.3), transparent);
+}
+
+.summary-line {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 0;
+  font-size: 14px;
+  color: var(--ck-text);
+}
+.summary-line small {
+  font-size: 11px;
+  color: var(--ck-text3);
+  margin-left: 4px;
+}
+
+.summary-line.total {
+  font-size: 22px;
+  font-weight: 800;
+  padding: 8px 0;
+}
+.summary-line.total strong {
+  background: linear-gradient(135deg, #fff 0%, var(--ck-accent) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* ── Pay Button ── */
+.btn-pay {
+  width: 100%;
+  margin-top: 18px;
+  padding: 16px 24px;
+  background: linear-gradient(135deg, var(--ck-accent), #263a72);
+  color: #fff;
+  border: none;
+  border-radius: 14px;
+  font-size: 15px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  cursor: pointer;
+  transition: all .3s ease;
+  box-shadow: 0 4px 20px rgba(122,37,50,.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  position: relative;
+  overflow: hidden;
+}
+.btn-pay::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, rgba(255,255,255,.15) 0%, transparent 50%);
+  pointer-events: none;
+}
+.btn-pay:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 32px rgba(122,37,50,.45);
+}
+.btn-pay:active:not(:disabled) {
+  transform: translateY(0) scale(.98);
+}
+.btn-pay:disabled {
+  opacity: .35;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+.btn-pay-icon { display: flex; align-items: center; }
+.btn-pay-arrow {
+  font-size: 18px;
+  transition: transform .2s ease;
+}
+.btn-pay:hover:not(:disabled) .btn-pay-arrow {
+  transform: translateX(4px);
+}
+
+/* ── Security Badges ── */
+.security-badges {
+  display: flex;
+  justify-content: center;
+  gap: 16px;
+  margin-top: 18px;
+  flex-wrap: wrap;
+}
+.badge {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  color: var(--ck-text3);
+  font-weight: 500;
+}
+.badge svg { color: var(--ck-text3); opacity: .7; }
+
+/* ═══════════ SUCCESS STATE ═══════════ */
+.success-state {
+  text-align: center;
+  padding: 60px 24px;
+  background: var(--ck-card-bg);
+  backdrop-filter: blur(20px);
+  border: 1px solid var(--ck-border);
+  border-radius: var(--ck-radius);
+  max-width: 520px;
+  margin: 40px auto;
+  position: relative;
+  overflow: hidden;
+}
+.success-rings {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+.success-ring {
+  position: absolute;
+  border-radius: 50%;
+  border: 1px solid rgba(34,197,94,.1);
+}
+.success-ring-1 { width: 200px; height: 200px; animation: sring 3s ease-in-out infinite; }
+.success-ring-2 { width: 300px; height: 300px; animation: sring 3s ease-in-out .5s infinite; }
+.success-ring-3 { width: 400px; height: 400px; animation: sring 3s ease-in-out 1s infinite; }
+@keyframes sring {
+  0%, 100% { opacity: .2; transform: scale(.95); }
+  50% { opacity: .5; transform: scale(1.05); }
+}
+
+.success-icon-wrap {
+  width: 80px;
+  height: 80px;
+  margin: 0 auto 20px;
+  background: var(--ck-green-bg);
+  border: 2px solid var(--ck-green);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--ck-green);
+  position: relative;
+  z-index: 1;
+  box-shadow: 0 0 30px rgba(34,197,94,.2);
+}
+
+.success-state h2 {
+  margin: 0 0 10px;
+  font-size: 24px;
+  font-weight: 800;
+  position: relative;
+}
+.success-state p {
+  margin: 4px 0;
+  color: var(--ck-text2);
+  font-size: 14px;
+  position: relative;
+}
+.success-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  margin-top: 24px;
+  position: relative;
+}
+
+.btn-outline {
+  display: inline-flex;
+  align-items: center;
+  padding: 10px 20px;
+  border: 1.5px solid var(--ck-border);
+  border-radius: 50px;
+  background: transparent;
+  color: var(--ck-text);
+  font-weight: 600;
+  font-size: 13px;
+  cursor: pointer;
+  text-decoration: none;
+  text-align: center;
+  transition: all .2s ease;
+}
+.btn-outline:hover {
+  border-color: var(--ck-accent);
+  color: var(--ck-accent);
+  background: var(--ck-accent-glow);
+}
+
+/* ═══════════ RESPONSIVE ═══════════ */
+@media (max-width: 860px) {
+  .checkout-page { padding: 24px 0 60px; }
+  .checkout-grid { grid-template-columns: 1fr; gap: 16px; }
+  .order-summary-card { position: static; }
+  .ship-card { flex-wrap: wrap; }
+  .ship-right { text-align: left; width: 100%; flex-direction: row; align-items: center; gap: 8px; padding-left: 56px; }
+  .checkout-progress { padding: 12px 16px; }
+  .progress-step span { font-size: 10px; }
+  .success-actions { flex-direction: column; align-items: center; }
+}
+
+@media (max-width: 480px) {
+  .checkout-progress { gap: 0; padding: 10px 12px; }
+  .progress-step span { display: none; }
+  .progress-dot { width: 24px; height: 24px; }
+  .progress-dot svg { width: 10px; height: 10px; }
+}
+</style>
+
+</BaseLayout>
+
+

@@ -1,0 +1,605 @@
+---
+/**
+ * Footer.astro — Nexus Premium
+ *
+ * Arquitectura:
+ * · Self-contained: cero dependencias CSS externas.
+ * · <style is:global> con prefijo nx- para que los estilos alcancen
+ *   tanto al template de Astro como a cualquier elemento dinámico.
+ * · all:unset en cada elemento para bloquear overrides del layout global
+ *   (h3/h4 font-size, a color, ul padding, etc.).
+ * · Status badge conecta a /api/status — muestra estado real de sistemas.
+ * · Language switcher funcional con señal visual de control.
+ */
+
+interface Props {
+  currentLang?: string;
+}
+
+const { currentLang = "es" } = Astro.props;
+const year = new Date().getFullYear();
+
+const gl = (path: string) => `/${currentLang}/${path}`;
+
+const cols = [
+  {
+    title: "Comprar",
+    links: [
+      { label: "Inicio",       href: gl("") },
+      { label: "Productos",    href: gl("productos") },
+      { label: "Categorías",   href: gl("categorias") },
+      { label: "Descuentos",   href: gl("descuentos") },
+      { label: "Flash",        href: gl("flash") },
+    ],
+  },
+  {
+    title: "Empresa",
+    links: [
+      { label: "Nosotros",          href: gl("about") },
+      { label: "Impacto social",    href: gl("impacto-social") },
+      { label: "Publicidad",        href: gl("publicidad") },
+      { label: "Quejas y sugerencias", href: gl("quejas-sugerencias") },
+    ],
+  },
+  {
+    title: "Cuenta",
+    links: [
+      { label: "Iniciar sesión", href: gl("login") },
+      { label: "Crear cuenta",  href: gl("register") },
+      { label: "Mi cuenta",     href: gl("mi-cuenta") },
+      { label: "Carrito",       href: gl("carrito") },
+      { label: "Favoritos",     href: gl("favoritos") },
+    ],
+  },
+] as const;
+
+const legal = [
+  { label: "Privacidad", href: gl("privacidad") },
+  { label: "Términos",   href: gl("terminos") },
+  { label: "Cookies",    href: gl("cookies") },
+] as const;
+
+const langs = ["es", "en"] as const;
+---
+
+<footer class="nx-footer" aria-label="Pie de página Nexus">
+  <div class="nx-footer__inner">
+
+    <!-- ── Accent line ─────────────────────────────────────────────────
+         Borde superior con degradado del sistema de color.
+         Comunica identidad sin ser decoración vacía. -->
+    <div class="nx-footer__accent" aria-hidden="true"></div>
+
+    <!-- ── Top grid ────────────────────────────────────────────────── -->
+    <div class="nx-footer__grid">
+
+      <!-- Brand column -->
+      <div class="nx-footer__brand">
+        <a href={gl("")} class="nx-footer__logo" aria-label="Nexus — inicio">
+          NEXUS<span class="nx-footer__logo-dot" aria-hidden="true"></span>
+        </a>
+
+        <p class="nx-footer__tagline">
+          Plataforma B2B para equipos que necesitan velocidad operativa
+          y control total sobre su cadena comercial.
+        </p>
+
+        <!-- Status badge: indica confiabilidad operacional.
+             JS actualiza el estado en tiempo real vía /api/status.
+             Por defecto: "operativo" (optimista). -->
+        <div
+          class="nx-footer__status"
+          id="nx-status"
+          role="status"
+          aria-live="polite"
+          aria-label="Estado de sistemas"
+        >
+          <span class="nx-footer__status-dot" id="nx-status-dot" aria-hidden="true"></span>
+          <span id="nx-status-text">Todos los sistemas operativos</span>
+        </div>
+      </div>
+
+      <!-- Nav columns -->
+      {cols.map(col => (
+        <nav class="nx-footer__col" aria-label={col.title}>
+          <p class="nx-footer__col-title">{col.title}</p>
+          <ul class="nx-footer__links">
+            {col.links.map(link => (
+              <li>
+                <a href={link.href} class="nx-footer__link">
+                  {link.label}
+                </a>
+              </li>
+            ))}
+          </ul>
+        </nav>
+      ))}
+    </div>
+
+    <!-- ── Bottom bar ─────────────────────────────────────────────── -->
+    <div class="nx-footer__bottom">
+      <div class="nx-footer__bottom-left">
+        <span class="nx-footer__copy">© {year} Nexus</span>
+        <nav class="nx-footer__legal" aria-label="Legal">
+          {legal.map(l => (
+            <a href={l.href} class="nx-footer__legal-link">{l.label}</a>
+          ))}
+        </nav>
+      </div>
+
+      <!-- Language switcher — control real, no texto muerto -->
+      <div class="nx-footer__bottom-right">
+        <div class="nx-footer__lang-wrap" id="nx-lang-menu" role="navigation" aria-label="Selección de idioma">
+          <button
+            class="nx-footer__lang-btn"
+            id="nx-lang-trigger"
+            aria-haspopup="listbox"
+            aria-expanded="false"
+            aria-label={`Idioma: ${currentLang.toUpperCase()}`}
+          >
+            <!-- Globe icon -->
+            <svg width="13" height="13" viewBox="0 0 16 16" fill="none"
+                 stroke="currentColor" stroke-width="1.4" stroke-linecap="round"
+                 stroke-linejoin="round" aria-hidden="true">
+              <circle cx="8" cy="8" r="6.5"/>
+              <path d="M8 1.5C8 1.5 5.5 4 5.5 8s2.5 6.5 2.5 6.5M8 1.5C8 1.5 10.5 4 10.5 8S8 14.5 8 14.5M1.5 8h13"/>
+            </svg>
+            <span id="nx-lang-label">{currentLang.toUpperCase()}</span>
+            <!-- Chevron -->
+            <svg width="9" height="9" viewBox="0 0 10 10" fill="none"
+                 stroke="currentColor" stroke-width="1.6" stroke-linecap="round"
+                 aria-hidden="true" id="nx-lang-chevron">
+              <path d="M2 4l3 3 3-3"/>
+            </svg>
+          </button>
+
+          <ul
+            class="nx-footer__lang-dropdown"
+            id="nx-lang-list"
+            role="listbox"
+            aria-label="Idiomas disponibles"
+          >
+            {langs.map(lang => (
+              <li role="option" aria-selected={lang === currentLang}>
+                <a
+                  href={`/${lang}/`}
+                  class:list={["nx-footer__lang-opt", lang === currentLang && "is-active"]}
+                  hreflang={lang}
+                >
+                  {lang.toUpperCase()}
+                  {lang === currentLang && (
+                    <svg width="11" height="11" viewBox="0 0 12 12" fill="none"
+                         stroke="currentColor" stroke-width="1.8" stroke-linecap="round"
+                         aria-hidden="true">
+                      <path d="M2 6l3 3 5-5"/>
+                    </svg>
+                  )}
+                </a>
+              </li>
+            ))}
+          </ul>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</footer>
+
+<!-- ─────────────────────────────────────────────────────────────────────────
+     SCRIPT: status badge + language dropdown
+     · is:inline para que ejecute con el HTML (no diferido con módulos).
+     · Prefijo nx- en IDs para evitar colisiones.
+──────────────────────────────────────────────────────────────────────────── -->
+<script is:inline>
+(function () {
+  // ── Language dropdown ────────────────────────────────────────────────
+  var trigger  = document.getElementById('nx-lang-trigger');
+  var list     = document.getElementById('nx-lang-list');
+  var chevron  = document.getElementById('nx-lang-chevron');
+
+  if (trigger && list) {
+    trigger.addEventListener('click', function (e) {
+      e.stopPropagation();
+      var open = list.classList.toggle('is-open');
+      trigger.setAttribute('aria-expanded', String(open));
+      if (chevron) chevron.style.transform = open ? 'rotate(180deg)' : '';
+    });
+
+    document.addEventListener('click', function () {
+      list.classList.remove('is-open');
+      trigger.setAttribute('aria-expanded', 'false');
+      if (chevron) chevron.style.transform = '';
+    });
+
+    list.addEventListener('click', function (e) { e.stopPropagation(); });
+
+    // Cierre con Escape
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape') {
+        list.classList.remove('is-open');
+        trigger.setAttribute('aria-expanded', 'false');
+        trigger.focus();
+      }
+    });
+  }
+
+  // ── Status badge ─────────────────────────────────────────────────────
+  // Llama a /api/status si existe; si falla o no existe, mantiene estado por defecto.
+  var dot  = document.getElementById('nx-status-dot');
+  var text = document.getElementById('nx-status-text');
+
+  if (dot && text) {
+    fetch('/api/status', { method: 'GET', signal: AbortSignal.timeout ? AbortSignal.timeout(3000) : undefined })
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (data) {
+        if (!data) return;
+        var ok = data.status === 'operational' || data.ok === true;
+        dot.setAttribute('data-status', ok ? 'ok' : 'degraded');
+        text.textContent = ok ? 'Todos los sistemas operativos' : 'Degradación parcial';
+      })
+      .catch(function () { /* silencioso — mantiene estado por defecto */ });
+  }
+})();
+</script>
+
+<!--
+  ─────────────────────────────────────────────────────────────────────────
+  ESTILOS: is:global con prefijo nx-footer
+  · is:global necesario para que los estilos alcancen todo el árbol DOM,
+    incluyendo slots y elementos que Astro no procesa con su scoping.
+  · all:unset en cada elemento bloquea h3/h4/a/ul/li del layout global.
+  · Variables con prefijo --nxf- para cero riesgo de colisión.
+  ─────────────────────────────────────────────────────────────────────────
+-->
+<style is:global>
+  /* ── Tokens ──────────────────────────────────────────────────────────── */
+  :root {
+    --nxf-bg:       #09090b;
+    --nxf-s1:       #111115;
+    --nxf-s2:       #18181d;
+    --nxf-s3:       #1e1e24;
+    --nxf-bd:       rgba(255,255,255,.07);
+    --nxf-bdh:      rgba(255,255,255,.13);
+    --nxf-ac1:      #e05c3a;
+    --nxf-ac2:      #c8435f;
+    --nxf-t1:       #f4f4f5;
+    --nxf-t2:       #71717a;
+    --nxf-t3:       #3f3f46;
+    --nxf-ease:     cubic-bezier(.22,1,.36,1);
+    --nxf-green:    #22c55e;
+    --nxf-amber:    #f59e0b;
+    --nxf-red:      #f87171;
+  }
+
+  /* ── Shell ───────────────────────────────────────────────────────────── */
+  .nx-footer {
+    all: unset;
+    display: block;
+    background: var(--nxf-bg);
+    border-top: 1px solid var(--nxf-bd);
+  }
+
+  .nx-footer__inner {
+    all: unset;
+    display: block;
+    width: min(1120px, calc(100% - 48px));
+    margin: 0 auto;
+    padding-bottom: 32px;
+  }
+
+  /* ── Accent line ─────────────────────────────────────────────────────── */
+  .nx-footer__accent {
+    height: 1px;
+    background: linear-gradient(
+      90deg,
+      transparent 0%,
+      var(--nxf-ac1) 25%,
+      var(--nxf-ac2) 65%,
+      transparent 100%
+    );
+    opacity: .5;
+    margin-bottom: 52px;
+  }
+
+  /* ── Grid ────────────────────────────────────────────────────────────── */
+  .nx-footer__grid {
+    display: grid;
+    grid-template-columns: 1.8fr repeat(3, 1fr);
+    gap: 48px;
+    margin-bottom: 52px;
+  }
+
+  /* ── Brand column ────────────────────────────────────────────────────── */
+  .nx-footer__brand {
+    all: unset;
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+  }
+
+  .nx-footer__logo {
+    all: unset;
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    font-size: 14px;
+    font-weight: 700;
+    letter-spacing: .22em;
+    color: var(--nxf-t1);
+    cursor: pointer;
+    margin-bottom: 14px;
+    width: fit-content;
+    transition: opacity .2s;
+  }
+  .nx-footer__logo:hover { opacity: .75; }
+  .nx-footer__logo:focus-visible {
+    outline: 2px solid var(--nxf-ac1);
+    outline-offset: 4px;
+    border-radius: 3px;
+  }
+
+  .nx-footer__logo-dot {
+    display: inline-block;
+    width: 5px;
+    height: 5px;
+    background: var(--nxf-ac1);
+    border-radius: 50%;
+    margin-bottom: 3px;
+    flex-shrink: 0;
+  }
+
+  .nx-footer__tagline {
+    all: unset;
+    display: block;
+    font-size: 12px;
+    color: var(--nxf-t2);
+    line-height: 1.7;
+    margin-bottom: 20px;
+    max-width: 230px;
+  }
+
+  /* Status badge */
+  .nx-footer__status {
+    all: unset;
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    background: rgba(255,255,255,.04);
+    border: 1px solid var(--nxf-bd);
+    border-radius: 999px;
+    padding: 5px 13px;
+    font-size: 11px;
+    color: var(--nxf-t2);
+    width: fit-content;
+    transition: border-color .2s;
+  }
+  .nx-footer__status:hover { border-color: var(--nxf-bdh); }
+
+  .nx-footer__status-dot {
+    display: block;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    background: var(--nxf-green);
+    box-shadow: 0 0 0 2px rgba(34,197,94,.18);
+    transition: background .3s, box-shadow .3s;
+  }
+  /* Estado degradado */
+  .nx-footer__status-dot[data-status="degraded"] {
+    background: var(--nxf-amber);
+    box-shadow: 0 0 0 2px rgba(245,158,11,.18);
+  }
+  /* Estado down */
+  .nx-footer__status-dot[data-status="down"] {
+    background: var(--nxf-red);
+    box-shadow: 0 0 0 2px rgba(248,113,113,.18);
+  }
+
+  /* ── Nav column ──────────────────────────────────────────────────────── */
+  .nx-footer__col {
+    all: unset;
+    display: block;
+  }
+
+  .nx-footer__col-title {
+    all: unset;
+    display: block;
+    font-size: 10.5px;
+    font-weight: 600;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: var(--nxf-t3);
+    margin-bottom: 16px;
+  }
+
+  .nx-footer__links {
+    all: unset;
+    display: flex;
+    flex-direction: column;
+    gap: 9px;
+  }
+
+  .nx-footer__link {
+    all: unset;
+    display: inline-flex;
+    align-items: center;
+    font-size: 12.5px;
+    color: var(--nxf-t2);
+    cursor: pointer;
+    transition: color .16s var(--nxf-ease), transform .16s var(--nxf-ease);
+    width: fit-content;
+    /* Microinteracción: shift sutil hacia la derecha */
+    transform: translateX(0);
+  }
+  .nx-footer__link:hover {
+    color: var(--nxf-t1);
+    transform: translateX(3px);
+  }
+  .nx-footer__link:focus-visible {
+    outline: 2px solid var(--nxf-ac1);
+    outline-offset: 3px;
+    border-radius: 3px;
+    color: var(--nxf-t1);
+  }
+
+  /* ── Bottom bar ──────────────────────────────────────────────────────── */
+  .nx-footer__bottom {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-top: 1px solid var(--nxf-bd);
+    padding-top: 24px;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+
+  .nx-footer__bottom-left {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    flex-wrap: wrap;
+  }
+
+  .nx-footer__copy {
+    all: unset;
+    font-size: 11.5px;
+    color: var(--nxf-t3);
+  }
+
+  .nx-footer__legal {
+    all: unset;
+    display: flex;
+    gap: 16px;
+  }
+
+  .nx-footer__legal-link {
+    all: unset;
+    font-size: 11.5px;
+    color: var(--nxf-t3);
+    cursor: pointer;
+    transition: color .15s;
+  }
+  .nx-footer__legal-link:hover { color: var(--nxf-t2); }
+  .nx-footer__legal-link:focus-visible {
+    outline: 2px solid var(--nxf-ac1);
+    outline-offset: 3px;
+    border-radius: 2px;
+  }
+
+  /* ── Language switcher ───────────────────────────────────────────────── */
+  .nx-footer__bottom-right { position: relative; }
+
+  .nx-footer__lang-wrap { position: relative; }
+
+  .nx-footer__lang-btn {
+    all: unset;
+    box-sizing: border-box;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--nxf-t3);
+    background: rgba(255,255,255,.04);
+    border: 1px solid var(--nxf-bd);
+    border-radius: 7px;
+    padding: 5px 10px;
+    cursor: pointer;
+    transition: border-color .15s, color .15s, background .15s;
+    white-space: nowrap;
+  }
+  .nx-footer__lang-btn:hover {
+    border-color: var(--nxf-bdh);
+    color: var(--nxf-t2);
+    background: rgba(255,255,255,.06);
+  }
+  .nx-footer__lang-btn:focus-visible {
+    outline: 2px solid var(--nxf-ac1);
+    outline-offset: 3px;
+  }
+  #nx-lang-chevron {
+    transition: transform .2s var(--nxf-ease);
+    color: var(--nxf-t3);
+  }
+
+  .nx-footer__lang-dropdown {
+    all: unset;
+    position: absolute;
+    bottom: calc(100% + 8px);
+    right: 0;
+    background: var(--nxf-s3);
+    border: 1px solid var(--nxf-bdh);
+    border-radius: 10px;
+    overflow: hidden;
+    min-width: 88px;
+    display: none;
+    flex-direction: column;
+    box-shadow: 0 8px 24px rgba(0,0,0,.5);
+    z-index: 100;
+  }
+  .nx-footer__lang-dropdown.is-open { display: flex; }
+
+  .nx-footer__lang-opt {
+    all: unset;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 9px 14px;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--nxf-t2);
+    cursor: pointer;
+    transition: background .12s, color .12s;
+    border-bottom: 1px solid var(--nxf-bd);
+  }
+  .nx-footer__lang-opt:last-child { border-bottom: none; }
+  .nx-footer__lang-opt:hover { background: rgba(255,255,255,.05); color: var(--nxf-t1); }
+  .nx-footer__lang-opt.is-active { color: var(--nxf-t1); }
+  .nx-footer__lang-opt:focus-visible {
+    outline: 2px solid var(--nxf-ac1);
+    outline-offset: -2px;
+  }
+
+  /* ── Responsive ──────────────────────────────────────────────────────── */
+  @media (max-width: 860px) {
+    .nx-footer__grid {
+      grid-template-columns: 1fr 1fr;
+      gap: 36px 32px;
+    }
+    .nx-footer__brand { grid-column: 1 / -1; }
+    .nx-footer__tagline { max-width: 100%; }
+  }
+
+  @media (max-width: 560px) {
+    .nx-footer__inner {
+      width: calc(100% - 32px);
+    }
+    .nx-footer__grid {
+      grid-template-columns: 1fr 1fr;
+      gap: 28px 24px;
+    }
+    .nx-footer__accent { margin-bottom: 36px; }
+    .nx-footer__bottom {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 14px;
+    }
+    .nx-footer__legal { gap: 12px; }
+  }
+
+  @media (max-width: 360px) {
+    .nx-footer__grid { grid-template-columns: 1fr; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .nx-footer__link,
+    .nx-footer__lang-btn,
+    .nx-footer__status,
+    #nx-lang-chevron {
+      transition: none !important;
+    }
+    .nx-footer__link:hover { transform: none; }
+  }
+</style>

@@ -1,0 +1,8 @@
+---
+export function getStaticPaths() {
+  return [{ params: { lang: "es" } }];
+}
+
+const { lang = "es" } = Astro.params;
+return Astro.redirect(`/${lang}/flash-descuentos`, 302);
+---

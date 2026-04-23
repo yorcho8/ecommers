@@ -1,0 +1,95 @@
+﻿/* =============================================
+   FONDOS Y COLORES - ConfiguraciÃ³n Global
+   ============================================= */
+
+@import "./brand-colors.css";
+
+/* --- VARIABLES DE COLOR --- */
+:root {
+  /* Color Corporativo */
+ --tech-orange: var(--brand-accent);
+  
+  /* =========================================
+     MODO CLARO (LIGHT MODE)
+     ========================================= */
+  --body-bg: #ffffff;
+  --text-color: #000000;
+  --text-muted: #555555;
+  --slide-gradient: #ffffff;
+  
+  /* Variables de Compatibilidad */
+  --productos-text: #000000;
+  --productos-text-muted: #555555;
+  --productos-hover: var(--tech-orange);
+  --color-gray-light: #f4f4f4;
+}
+
+/* --- MODO OSCURO --- */
+html.dark {
+  /* =========================================
+     MODO OSCURO (DARK MODE)
+     ========================================= */
+  /* AquÃ­ estÃ¡ el color solicitado */
+  --body-bg: #262626; 
+  --slide-gradient: #262626;
+  --text-color: #ffffff;
+  --text-muted: #cccccc;
+  
+  /* Variables Actualizadas */
+  --productos-text: #ffffff;
+  --productos-text-muted: #cccccc;
+  --productos-hover: var(--tech-orange);
+  --color-gray-light: #333333;
+}
+
+/* --- FONDO CON TEXTURA --- */
+html,
+body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  min-height: 100vh;
+  overflow-x: hidden;
+  
+  /* Pinta el color base sÃ³lido primero */
+  background-color: var(--body-bg);
+  
+  /* Textura de ruido */
+
+  background-attachment: fixed;
+  /* Overlay funciona bien para mezclar ruido y color */
+  background-blend-mode: overlay; 
+  
+  transition: background-color 0.4s ease, color 0.4s ease;
+}
+
+/* Ajuste especÃ­fico para Dark Mode */
+html.dark body {
+  /* soft-light hace que el ruido sea mÃ¡s sutil sobre el gris oscuro */
+  background-blend-mode: soft-light;
+}
+
+/* --- SCROLLBAR PERSONALIZADO --- */
+::-webkit-scrollbar {
+  width: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--body-bg);
+}
+
+::-webkit-scrollbar-thumb {
+  background: #888;
+  border-radius: 5px;
+  border: 2px solid var(--body-bg);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--tech-orange);
+}
+
+/* --- COLOR DE SELECCIÃ“N --- */
+::selection {
+  background: var(--tech-orange);
+  color: #ffffff;
+}

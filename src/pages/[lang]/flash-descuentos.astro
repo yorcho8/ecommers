@@ -1,0 +1,292 @@
+---
+import "../../styles/global.css";
+import "../../styles/flash-descuentos.css";
+
+import { createClient } from "@libsql/client";
+import "dotenv/config";
+
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import Footer from "../../components/Footer.astro";
+
+interface FlashDiscountItem {
+  id: number;
+  nombre: string;
+  precio: number;
+  precioFinal: number;
+  porcentaje: number;
+  imagen: string | null;
+  fechaFin: string;
+  tiempoRestante: string;
+  horasRestantes: number;
+}
+
+export function getStaticPaths() {
+  return [{ params: { lang: "es" } }];
+}
+const currentLang = "es";
+
+const db = createClient({
+  url: process.env.ECOMERS_DATABASE_URL || import.meta.env.ECOMERS_DATABASE_URL,
+  authToken: process.env.ECOMERS_AUTH_TOKEN || import.meta.env.ECOMERS_AUTH_TOKEN,
+});
+
+const FLASH_WINDOW_HOURS = 24;
+const now = Date.now();
+
+const parseDateToMs = (value: unknown) => {
+  if (!value) return NaN;
+  const normalized = String(value).trim().replace(" ", "T");
+  const ms = Date.parse(normalized);
+  return Number.isFinite(ms) ? ms : NaN;
+};
+
+let flashDeals: FlashDiscountItem[] = [];
+
+const formatTimeLeft = (diffMs: number) => {
+  const totalHours = Math.max(0, Math.floor(diffMs / (1000 * 60 * 60)));
+  const days = Math.floor(totalHours / 24);
+  const hours = totalHours % 24;
+
+  if (days <= 0) return `${hours}h restantes`;
+  return `${days}d ${hours}h restantes`;
+};
+
+try {
+  const result = await db.execute(`
+    SELECT
+      p.Id_Producto,
+      p.Nombre,
+      p.Precio,
+      (
+        SELECT ip.Url
+        FROM Imagen_Producto ip
+        WHERE ip.Id_Producto = p.Id_Producto
+        ORDER BY ip.Id_Imagen ASC
+        LIMIT 1
+      ) AS Imagen,
+      d.Tipo,
+      d.Valor,
+      d.Fecha_Fin,
+      d.Fecha_Inicio,
+      d.Activo
+    FROM Producto p
+    JOIN DescuentoProducto dp ON dp.Id_Producto = p.Id_Producto
+    JOIN Descuento d ON d.Id_Descuento = dp.Id_Descuento
+    WHERE COALESCE(p.Activo, 1) = 1
+      AND COALESCE(d.Activo, 1) = 1
+    ORDER BY d.Fecha_Fin ASC
+  `);
+
+  flashDeals = result.rows
+    .map((r) => {
+      const precio = Number(r.Precio ?? 0);
+      const tipo = String(r.Tipo || "porcentaje").toLowerCase();
+      const valor = Number(r.Valor ?? 0);
+      const fechaFin = r.Fecha_Fin ? String(r.Fecha_Fin) : "";
+      const fechaInicio = r.Fecha_Inicio ? String(r.Fecha_Inicio) : "";
+      const descuentoActivo = Number(r.Activo ?? 0) === 1;
+
+      const inicioMs = parseDateToMs(fechaInicio);
+      const finMs = parseDateToMs(fechaFin);
+
+      if (!descuentoActivo || Number.isNaN(inicioMs) || Number.isNaN(finMs)) return null;
+      if (now < inicioMs || now > finMs) return null;
+
+      const diffMs = finMs - now;
+      const hoursLeft = Math.floor(diffMs / (1000 * 60 * 60));
+      if (hoursLeft < 0 || hoursLeft > FLASH_WINDOW_HOURS) return null;
+
+      let precioFinal = precio;
+      let porcentaje = 0;
+
+      if (tipo === "monto") {
+        precioFinal = Math.max(0, +(precio - valor).toFixed(2));
+        porcentaje = precio > 0 ? Math.min(99, Math.max(1, Math.round((valor / precio) * 100))) : 0;
+      } else {
+        porcentaje = Math.min(99, Math.max(1, Math.round(valor)));
+        precioFinal = +(precio * (1 - porcentaje / 100)).toFixed(2);
+      }
+
+      return {
+        id: Number(r.Id_Producto),
+        nombre: String(r.Nombre || "Producto"),
+        precio,
+        precioFinal,
+        porcentaje,
+        imagen: r.Imagen ? String(r.Imagen) : null,
+        fechaFin,
+        tiempoRestante: formatTimeLeft(diffMs),
+        horasRestantes: hoursLeft,
+      } as FlashDiscountItem;
+    })
+    .filter(Boolean)
+    .sort((a, b) => (a as FlashDiscountItem).horasRestantes - (b as FlashDiscountItem).horasRestantes) as FlashDiscountItem[];
+} catch (error) {
+  console.error("[flash-descuentos] error cargando descuentos flash:", error);
+}
+
+const resolveImageSrc = (src: string | null) => {
+  if (!src) return "/images/logo/logo.png";
+  if (src.startsWith("http") || src.startsWith("/")) return src;
+  return `/images/${src}`;
+};
+
+const heroCount = flashDeals.length;
+---
+
+<BaseLayout title={`Flash Descuentos | Productos | NEXUS`} currentLang={currentLang}>
+  <main class="flash-main">
+    <section class="flash-hero">
+      <div class="flash-hero-copy">
+        <p class="flash-kicker">ULTIMA OPORTUNIDAD</p>
+        <h1>Flash Descuentos</h1>
+        <p>
+          Ofertas activas que estan por terminar. Aprovecha precio preferencial antes de que el contador llegue a cero.
+        </p>
+        <div class="flash-hero-stats">
+          <div class="flash-stat-card">
+            <span class="flash-stat-value">{heroCount}</span>
+            <span class="flash-stat-label">Ofertas por cerrar</span>
+          </div>
+          <div class="flash-stat-card">
+            <span class="flash-stat-value">24h</span>
+            <span class="flash-stat-label">Ventana maxima</span>
+          </div>
+        </div>
+      </div>
+      <div class="flash-hero-orb" aria-hidden="true"></div>
+    </section>
+
+    {
+      flashDeals.length === 0 ? (
+        <section class="flash-empty">
+          <h2>No hay descuentos flash activos ahora</h2>
+          <p>Estamos preparando nuevas ofertas de cierre. Mientras tanto, explora todos los productos disponibles.</p>
+          <a href={`/${currentLang}/productos/todos`} class="flash-cta">Ir a productos</a>
+        </section>
+      ) : (
+        <section class="flash-grid" aria-label="Descuentos flash por terminar">
+          {flashDeals.map((item) => (
+            <article class="flash-card" data-deadline={item.fechaFin} style={`--urgency:${Math.max(8, 100 - Math.floor((item.horasRestantes / FLASH_WINDOW_HOURS) * 100))};`}>
+              <div class="flash-badge">-{item.porcentaje}%</div>
+              <img src={resolveImageSrc(item.imagen)} alt={item.nombre} loading="lazy" />
+
+              <div class="flash-card-body">
+                <!-- Countdown widget -->
+                <div class="flash-countdown" aria-live="polite">
+                  <div class="flash-cd-block"><span class="flash-cd-num" data-cd="h">--</span><span class="flash-cd-lbl">h</span></div>
+                  <div class="flash-cd-sep">:</div>
+                  <div class="flash-cd-block"><span class="flash-cd-num" data-cd="m">--</span><span class="flash-cd-lbl">m</span></div>
+                  <div class="flash-cd-sep">:</div>
+                  <div class="flash-cd-block"><span class="flash-cd-num" data-cd="s">--</span><span class="flash-cd-lbl">s</span></div>
+                </div>
+                <h2>{item.nombre}</h2>
+
+                <div class="flash-price-row">
+                  <span class="flash-price-before">${item.precio.toFixed(2)}</span>
+                  <span class="flash-price-now">${item.precioFinal.toFixed(2)}</span>
+                </div>
+
+                <div class="flash-progress" role="presentation">
+                  <span></span>
+                </div>
+
+                <a href={`/${currentLang}/productos/detalle/${item.id}`} class="flash-link">
+                  Ver producto
+                </a>
+              </div>
+            </article>
+          ))}
+        </section>
+      )
+    }
+  </main>
+
+  <Footer currentLang={currentLang} />
+
+  <script is:inline>
+  (function() {
+    function pad(n) { return String(n).padStart(2, '0'); }
+
+    function tick(card) {
+      const deadline = card.dataset.deadline;
+      if (!deadline) return;
+      const diff = Math.max(0, new Date(deadline).getTime() - Date.now());
+      const totalSec = Math.floor(diff / 1000);
+      const h = Math.floor(totalSec / 3600);
+      const m = Math.floor((totalSec % 3600) / 60);
+      const s = totalSec % 60;
+      card.querySelector('[data-cd="h"]').textContent = pad(h);
+      card.querySelector('[data-cd="m"]').textContent = pad(m);
+      card.querySelector('[data-cd="s"]').textContent = pad(s);
+      if (diff === 0) {
+        card.style.opacity = '0.4';
+        card.style.pointerEvents = 'none';
+      }
+      // urgency pulse when < 1 hour
+      if (h === 0) card.classList.add('flash-card--urgent');
+      else         card.classList.remove('flash-card--urgent');
+    }
+
+    function initCountdowns() {
+      const cards = document.querySelectorAll('.flash-card[data-deadline]');
+      if (!cards.length) return;
+      cards.forEach(tick);
+      setInterval(() => cards.forEach(tick), 1000);
+    }
+
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', initCountdowns);
+    else initCountdowns();
+    document.addEventListener('astro:page-load', initCountdowns);
+  })();
+  </script>
+
+  <style>
+    .flash-countdown {
+      display: flex;
+      align-items: center;
+      gap: 2px;
+      margin-bottom: 10px;
+    }
+    .flash-cd-block {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      background: rgba(0,0,0,.35);
+      border: 1px solid rgba(255,255,255,.12);
+      border-radius: 8px;
+      padding: 5px 10px;
+      min-width: 44px;
+    }
+    .flash-cd-num {
+      font-size: 1.3rem;
+      font-weight: 900;
+      font-variant-numeric: tabular-nums;
+      color: #f9fafb;
+      line-height: 1;
+      letter-spacing: 0.04em;
+    }
+    .flash-cd-lbl {
+      font-size: 0.55rem;
+      font-weight: 800;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+      color: rgba(255,255,255,.38);
+      margin-top: 2px;
+    }
+    .flash-cd-sep {
+      font-size: 1.1rem;
+      font-weight: 900;
+      color: rgba(255,255,255,.3);
+      margin: 0 1px;
+      padding-bottom: 8px;
+    }
+    .flash-card--urgent .flash-cd-num { color: #f87171; }
+    .flash-card--urgent .flash-cd-block { border-color: rgba(248,113,113,.35); background: rgba(239,68,68,.12); }
+    @keyframes flash-urgency-pulse {
+      0%, 100% { opacity: 1; }
+      50%       { opacity: .7; }
+    }
+    .flash-card--urgent .flash-countdown { animation: flash-urgency-pulse 1s ease-in-out infinite; }
+  </style>
+</BaseLayout>

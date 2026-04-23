@@ -1,0 +1,690 @@
+﻿---
+import BaseLayout from "../../../layouts/BaseLayout.astro";
+export function getStaticPaths() {
+  return [{ params: { lang: "es" } }];
+}
+
+const currentLang = "es";
+const cspNonce = Astro.locals?.cspNonce || "";
+
+const role = String(Astro.locals?.user?.rol || "").trim().toLowerCase().replace(/[\s_-]/g, "")
+  .replace(/^superadmin$|^superuser$|^superusuario$/, "superusuario");
+
+if (!role) return Astro.redirect(`/${currentLang}/login`);
+if (role !== "superusuario") return Astro.redirect(`/${currentLang}/admin/productos`);
+
+const isSuperusuario = role === "superusuario";
+---
+
+<BaseLayout title="GestiÃ³n de usuarios" currentLang={currentLang}>
+
+  <script nonce={cspNonce} is:inline>
+  (function(g){
+    if(document.getElementById('go-modal-styles'))return;
+    const s=document.createElement('style');
+    s.id='go-modal-styles';
+    s.textContent=`
+      .go-modal-backdrop{position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.55);backdrop-filter:blur(4px);display:flex;align-items:center;justify-content:center;padding:1rem;opacity:0;transition:opacity 220ms ease}
+      .go-modal-backdrop.go-visible{opacity:1}
+      .go-modal{background:#1a1d28;border:1px solid rgba(168,85,247,.15);border-radius:20px;box-shadow:0 24px 60px rgba(0,0,0,.5);padding:2rem 2rem 1.6rem;width:100%;max-width:420px;text-align:center;transform:scale(.88) translateY(20px);transition:transform 260ms cubic-bezier(.34,1.56,.64,1);position:relative}
+      .go-modal-backdrop.go-visible .go-modal{transform:scale(1) translateY(0)}
+      .go-modal-icon{width:72px;height:72px;border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 1.1rem}
+      .go-modal-icon.success{background:rgba(34,197,94,.1);color:#22c55e}.go-modal-icon.error{background:rgba(239,68,68,.1);color:#ef4444}
+      .go-modal-icon.warning{background:rgba(245,158,11,.1);color:#f59e0b}.go-modal-icon.info{background:rgba(96,165,250,.1);color:#60a5fa}
+      .go-modal-icon.confirm{background:rgba(168,85,247,.1);color:#a855f7}
+      .go-modal-title{font-size:1.35rem;font-weight:700;color:#f9fafb;margin:0 0 .5rem;font-family:Arial,sans-serif!important;letter-spacing:normal!important;text-transform:none!important}
+      .go-modal-text{font-size:.97rem;color:#9ca3af;margin:0 0 1.4rem;line-height:1.5;font-family:Arial,sans-serif!important;letter-spacing:normal!important}
+      .go-modal-actions{display:flex;gap:.7rem;justify-content:center;flex-wrap:wrap}
+      .go-modal-btn{padding:.65rem 1.6rem;border-radius:10px;font-size:.95rem;font-weight:600;cursor:pointer;border:none;transition:filter 160ms,transform 100ms;min-width:110px;font-family:Arial,sans-serif!important;letter-spacing:normal!important;text-transform:none!important}
+      .go-modal-btn:hover{filter:brightness(1.08)}.go-modal-btn:active{transform:scale(.97)}
+      .go-modal-btn.primary{background:linear-gradient(135deg,#a855f7,#7c3aed);color:#fff}.go-modal-btn.secondary{background:#374151;color:#e5e7eb}
+      .go-modal-btn.danger{background:#c62828;color:#fff}
+      .go-modal-progress{position:absolute;bottom:0;left:0;height:4px;border-radius:0 0 18px 18px;background:linear-gradient(90deg,#a855f7,#7c3aed);width:100%;transform-origin:left;animation:go-progress linear forwards}
+      @keyframes go-progress{from{transform:scaleX(1)}to{transform:scaleX(0)}}
+      .go-loading-backdrop{position:fixed;inset:0;z-index:10500;background:rgba(0,0,0,.6);backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity 200ms ease}
+      .go-loading-backdrop.go-visible{opacity:1;pointer-events:auto}
+      .go-loading-box{background:#1a1d28;border:1px solid rgba(168,85,247,.12);border-radius:20px;padding:2rem 2.5rem;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,.5);border:1px solid rgba(255,255,255,0.08);min-width:220px}
+      .go-loading-spinner{width:52px;height:52px;border-radius:50%;border:4px solid rgba(168,85,247,0.2);border-top-color:#a855f7;animation:go-spin 0.8s linear infinite;margin:0 auto 1rem}
+      @keyframes go-spin{to{transform:rotate(360deg)}}
+      .go-loading-title{font-size:1rem;font-weight:700;color:#f9fafb;margin:0 0 .25rem;font-family:Arial,sans-serif!important}
+      .go-loading-sub{font-size:0.8rem;color:#6b7280;margin:0;font-family:Arial,sans-serif!important}
+    `;
+    document.head.appendChild(s);
+    const IC={
+      success:`<svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>`,
+      error:`<svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>`,
+      warning:`<svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>`,
+      info:`<svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>`,
+      confirm:`<svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>`,
+    };
+    function show(o){
+      return new Promise(function(res){
+        var type=o.type||'info',title=o.title||'',text=o.text||'',
+            ct=o.confirmText||'Aceptar',cct=o.cancelText||'Cancelar',
+            sc=o.showCancel||false,ac=o.autoClose||0;
+        var bd=document.createElement('div');
+        bd.className='go-modal-backdrop';
+        bd.innerHTML='<div class="go-modal" role="dialog" aria-modal="true">'+
+          '<div class="go-modal-icon '+type+'">'+(IC[type]||IC.info)+'</div>'+
+          '<h2 class="go-modal-title">'+title+'</h2>'+
+          (text?'<p class="go-modal-text">'+text+'</p>':'')+
+          '<div class="go-modal-actions">'+
+          (sc?'<button class="go-modal-btn secondary" id="gmc">'+cct+'</button>':'')+
+          '<button class="go-modal-btn '+(type==='error'?'danger':'primary')+'" id="gmok">'+ct+'</button>'+
+          '</div>'+
+          (ac?'<div class="go-modal-progress" style="animation-duration:'+ac+'ms"></div>':'')+
+          '</div>';
+        document.body.appendChild(bd);
+        requestAnimationFrame(function(){bd.classList.add('go-visible');});
+        function close(r){bd.classList.remove('go-visible');setTimeout(function(){bd.remove();},260);res(r);}
+        bd.querySelector('#gmok').addEventListener('click',function(){close(true);});
+        var cc=bd.querySelector('#gmc');
+        if(cc)cc.addEventListener('click',function(){close(false);});
+        function onKey(e){if(e.key==='Escape'){close(false);document.removeEventListener('keydown',onKey);}}
+        document.addEventListener('keydown',onKey);
+        if(ac)setTimeout(function(){close(true);},ac);
+      });
+    }
+    var _loadEl=null;
+    function showLoading(title,sub){
+      if(_loadEl)return;
+      _loadEl=document.createElement('div');_loadEl.className='go-loading-backdrop';
+      _loadEl.innerHTML='<div class="go-loading-box"><div class="go-loading-spinner"></div><p class="go-loading-title">'+(title||'Procesando...')+'</p><p class="go-loading-sub">'+(sub||'Por favor espera')+'</p></div>';
+      document.body.appendChild(_loadEl);requestAnimationFrame(function(){_loadEl.classList.add('go-visible');});
+    }
+    function hideLoading(){
+      if(!_loadEl)return;_loadEl.classList.remove('go-visible');
+      setTimeout(function(){if(_loadEl){_loadEl.remove();_loadEl=null;}},220);
+    }
+    g.Modal={
+      success:function(t,x,o){return show(Object.assign({type:'success',title:t,text:x},o||{}));},
+      error:  function(t,x,o){return show(Object.assign({type:'error',  title:t,text:x},o||{}));},
+      warning:function(t,x,o){return show(Object.assign({type:'warning',title:t,text:x},o||{}));},
+      info:   function(t,x,o){return show(Object.assign({type:'info',   title:t,text:x},o||{}));},
+      confirm:function(t,x,o){return show(Object.assign({type:'confirm',title:t,text:x,showCancel:true},o||{}));},
+      loading:showLoading,hideLoading:hideLoading,
+    };
+  })(window);
+  </script>
+
+  <main class="users-admin-page">
+    <section class="users-admin-shell">
+
+      <header class="users-admin-header">
+        <div>
+          <p class="users-admin-kicker">Panel Admin</p>
+          <h1>GestiÃ³n de usuarios</h1>
+          <p class="users-admin-subtitle">CRUD completo con roles y direcciÃ³n.</p>
+        </div>
+        <div class="users-admin-top-actions">
+          <button id="btnAddUser" class="users-add-btn" type="button">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+            AÃ±adir usuario
+          </button>
+          <a class="users-admin-back" href={`/${currentLang}`}>â† Volver al sitio</a>
+        </div>
+      </header>
+
+      <!-- Form Panel -->
+      <section id="usersFormPanel" class="users-form-panel" hidden>
+        <article class="users-card users-card-form">
+          <div class="users-form-header">
+            <h2 id="formTitle">Nuevo usuario</h2>
+            <button id="btnCancelEdit" class="btn-cancel" type="button">âœ• Cerrar</button>
+          </div>
+          <p class="users-note">Al crear usuario, si dejas contrasena vacia se genera una temporal y se envia por correo. En edicion, vacia mantiene la actual.</p>
+          <input id="currentUserId" type="hidden" />
+
+          <div class="form-section">
+            <div class="form-section-title"><span class="form-section-icon">ðŸ‘¤</span> InformaciÃ³n personal</div>
+            <div class="users-form-grid">
+              <div class="users-field"><label for="nombre">Nombre *</label><input id="nombre" type="text" placeholder="Nombre" /></div>
+              <div class="users-field"><label for="apellidoPaterno">Apellido paterno *</label><input id="apellidoPaterno" type="text" placeholder="Apellido paterno" /></div>
+              <div class="users-field"><label for="apellidoMaterno">Apellido materno</label><input id="apellidoMaterno" type="text" placeholder="Apellido materno" /></div>
+              <div class="users-field"><label for="telefono">TelÃ©fono</label><input id="telefono" type="text" placeholder="TelÃ©fono" /></div>
+              <div class="users-field"><label for="correo">Correo electrÃ³nico *</label><input id="correo" type="email" placeholder="correo@ejemplo.com" /></div>
+              <div class="users-field">
+                <label for="rol">Rol</label>
+                <select id="rol">
+                  <option value="usuario">Usuario</option>
+                  <option value="admin">Admin</option>
+                  <option value="superusuario">Superusuario</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <div class="form-section">
+            <div class="form-section-title"><span class="form-section-icon">ðŸ </span> DirecciÃ³n</div>
+            <div class="users-form-grid">
+              <div class="users-field"><label for="numeroCasa">NÃºmero de casa *</label><input id="numeroCasa" type="number" min="1" placeholder="0" /></div>
+              <div class="users-field"><label for="calle">Calle *</label><input id="calle" type="text" placeholder="Calle" /></div>
+              <div class="users-field"><label for="codigoPostal">CÃ³digo postal *</label><input id="codigoPostal" type="number" min="1" placeholder="00000" /></div>
+              <div class="users-field"><label for="pais">PaÃ­s *</label><select id="pais"><option value="">Cargando paÃ­sesâ€¦</option></select></div>
+              <div class="users-field"><label for="provincia">Estado / Provincia *</label><select id="provincia" disabled><option value="">Primero selecciona un paÃ­s</option></select></div>
+              <div class="users-field"><label for="ciudad">Ciudad *</label><select id="ciudad" disabled><option value="">Primero selecciona un estado</option></select></div>
+            </div>
+          </div>
+
+          <div class="form-section">
+            <div class="form-section-title"><span class="form-section-icon">ðŸ”’</span> Seguridad</div>
+            <div class="users-form-grid" style="grid-template-columns:1fr 1fr;">
+              <div class="users-field">
+                <label for="contrasena">ContraseÃ±a</label>
+                <input id="contrasena" type="password" placeholder="Dejar vacÃ­o para mantener la actual" />
+              </div>
+            </div>
+          </div>
+
+          <div class="users-actions">
+            <button id="btnCreate" class="btn-save-main green" type="button">
+              <svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
+              Guardar nuevo
+            </button>
+            <button id="btnUpdate" class="btn-save-main" type="button">
+              <svg viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"/></svg>
+              Guardar cambios
+            </button>
+            <button id="btnFormReset" class="btn" type="button">Limpiar</button>
+          </div>
+        </article>
+      </section>
+
+      <!-- Lista -->
+      <section class="users-list-section">
+        <article class="users-card">
+          <div class="users-toolbar">
+            <div class="users-toolbar-left">
+              <label for="rowsPerPage">Mostrar</label>
+              <select id="rowsPerPage" class="toolbar-select">
+                <option value="10">10</option>
+                <option value="25">25</option>
+                <option value="50">50</option>
+              </select>
+              <span>por pÃ¡gina</span>
+            </div>
+            <div class="users-toolbar-center">
+              <button id="btnCopy"  class="mini-btn" type="button">Copiar</button>
+              <button id="btnExcel" class="mini-btn success" type="button">Excel</button>
+              <button id="btnPdf"   class="mini-btn danger"  type="button">PDF</button>
+              <button id="btnCsv"   class="mini-btn info"    type="button">CSV</button>
+            </div>
+            <div class="users-toolbar-right">
+              <label for="searchUsers">Buscar:</label>
+              <input id="searchUsers" class="toolbar-search" type="text" placeholder="Nombre, correo o rol..." />
+            </div>
+          </div>
+
+          <div class="users-list-header">
+            <h2>Lista de usuarios</h2>
+            <div id="usersStatsBar" class="stats-bar"></div>
+          </div>
+
+          {!isSuperusuario && (
+            <p class="users-note warning-note">
+              Solo superusuario puede eliminar usuarios.
+            </p>
+          )}
+
+          <div class="users-table-wrap">
+            <table class="users-table">
+              <thead>
+                <tr>
+                  <th>ID</th><th>Nombre</th><th>Correo</th><th>Rol</th><th>TelÃ©fono</th>
+                  <th class="users-th-actions">Acciones</th>
+                </tr>
+              </thead>
+              <tbody id="usersRows"></tbody>
+            </table>
+          </div>
+
+          <div class="pagination-bar">
+            <span id="usersResultsInfo" class="pagination-info"></span>
+            <div class="pagination-controls" id="paginationControls"></div>
+          </div>
+        </article>
+      </section>
+
+    </section>
+  </main>
+
+  <script nonce={cspNonce} is:inline define:vars={{ isSuperusuario }}>
+    /* â”€â”€â”€ refs â”€â”€â”€ */
+    const formPanelEl      = document.getElementById('usersFormPanel');
+    const formTitleEl      = document.getElementById('formTitle');
+    const currentUserIdEl  = document.getElementById('currentUserId');
+    const rowsEl           = document.getElementById('usersRows');
+    const btnAddUser       = document.getElementById('btnAddUser');
+    const searchUsersEl    = document.getElementById('searchUsers');
+    const rowsPerPageEl    = document.getElementById('rowsPerPage');
+    const resultsInfoEl    = document.getElementById('usersResultsInfo');
+    const statsBarEl       = document.getElementById('usersStatsBar');
+    const paginationControlsEl = document.getElementById('paginationControls');
+    const btnCopy  = document.getElementById('btnCopy');
+    const btnExcel = document.getElementById('btnExcel');
+    const btnPdf   = document.getElementById('btnPdf');
+    const btnCsv   = document.getElementById('btnCsv');
+    const nombreEl          = document.getElementById('nombre');
+    const apellidoPaternoEl = document.getElementById('apellidoPaterno');
+    const apellidoMaternoEl = document.getElementById('apellidoMaterno');
+    const telefonoEl        = document.getElementById('telefono');
+    const correoEl          = document.getElementById('correo');
+    const rolEl             = document.getElementById('rol');
+    const contrasenaEl      = document.getElementById('contrasena');
+    const numeroCasaEl      = document.getElementById('numeroCasa');
+    const calleEl           = document.getElementById('calle');
+    const codigoPostalEl    = document.getElementById('codigoPostal');
+    const ciudadEl          = document.getElementById('ciudad');
+    const provinciaEl       = document.getElementById('provincia');
+    const paisEl            = document.getElementById('pais');
+    const btnCreate         = document.getElementById('btnCreate');
+    const btnUpdate         = document.getElementById('btnUpdate');
+    const btnCancelEdit     = document.getElementById('btnCancelEdit');
+    const btnFormReset      = document.getElementById('btnFormReset');
+
+    /* â”€â”€â”€ state â”€â”€â”€ */
+    let users=[], filteredUsers=[], currentPage=1;
+
+    /* â”€â”€â”€ SVG helper â€” creates proper namespace SVG via DOM â”€â”€â”€ */
+    function makeSVG(pathsArray) {
+      const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+      svg.setAttribute('viewBox', '0 0 24 24');
+      svg.setAttribute('width', '14');
+      svg.setAttribute('height', '14');
+      svg.setAttribute('fill', 'none');
+      svg.setAttribute('stroke', 'currentColor');
+      svg.setAttribute('stroke-width', '2');
+      svg.setAttribute('stroke-linecap', 'round');
+      svg.setAttribute('stroke-linejoin', 'round');
+      pathsArray.forEach(function(d) {
+        const p = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        p.setAttribute('d', d);
+        svg.appendChild(p);
+      });
+      return svg;
+    }
+
+    const ICON_EDIT = ['M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7','M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z'];
+    const ICON_DELETE = ['M3 6h18','M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2','M10 11v6','M14 11v6'];
+
+    /* â”€â”€â”€ location helpers â”€â”€â”€ */
+    function setSelectOptions(select,items,placeholder){
+      select.innerHTML='';
+      const ph=document.createElement('option');ph.value='';ph.textContent=placeholder;select.appendChild(ph);
+      items.forEach(item=>{const opt=document.createElement('option');opt.value=item;opt.textContent=item;select.appendChild(opt);});
+    }
+    function disableLocationSelect(select,placeholder){select.innerHTML=`<option value="">${placeholder}</option>`;select.disabled=true;}
+
+    async function loadCountries(){
+      try{
+        const res=await fetch('/api/locations?action=countries');const data=await res.json();
+        if(!data.success)throw new Error(data.error);
+        setSelectOptions(paisEl,data.data.map(c=>c.name),'Selecciona un paÃ­s');paisEl.disabled=false;
+      }catch{disableLocationSelect(paisEl,'Error cargando paÃ­ses');}
+    }
+    async function loadStates(country){
+      disableLocationSelect(provinciaEl,'Cargando estadosâ€¦');disableLocationSelect(ciudadEl,'Primero selecciona un estado');
+      if(!country){disableLocationSelect(provinciaEl,'Primero selecciona un paÃ­s');return;}
+      try{
+        const res=await fetch(`/api/locations?action=states&country=${encodeURIComponent(country)}`);const data=await res.json();
+        if(!data.success)throw new Error(data.error);
+        setSelectOptions(provinciaEl,data.data,'Selecciona un estado');provinciaEl.disabled=false;
+      }catch{disableLocationSelect(provinciaEl,'Error cargando estados');}
+    }
+    async function loadCities(country,state){
+      disableLocationSelect(ciudadEl,'Cargando municipiosâ€¦');
+      if(!state){disableLocationSelect(ciudadEl,'Primero selecciona un estado');return;}
+      try{
+        const res=await fetch(`/api/locations?action=cities&country=${encodeURIComponent(country)}&state=${encodeURIComponent(state)}`);const data=await res.json();
+        if(!data.success)throw new Error(data.error);
+        setSelectOptions(ciudadEl,data.data,'Selecciona un municipio');ciudadEl.disabled=false;
+      }catch{disableLocationSelect(ciudadEl,'Error cargando municipios');}
+    }
+    async function setLocationValues(pais,provincia,ciudad){
+      if(!pais)return;
+      if(!paisEl.querySelector(`option[value="${CSS.escape(pais)}"]`)){const opt=document.createElement('option');opt.value=pais;opt.textContent=pais;paisEl.appendChild(opt);}
+      paisEl.value=pais;await loadStates(pais);
+      if(provincia){
+        if(!provinciaEl.querySelector(`option[value="${CSS.escape(provincia)}"]`)){const opt=document.createElement('option');opt.value=provincia;opt.textContent=provincia;provinciaEl.appendChild(opt);}
+        provinciaEl.value=provincia;provinciaEl.disabled=false;await loadCities(pais,provincia);
+        if(ciudad){
+          if(!ciudadEl.querySelector(`option[value="${CSS.escape(ciudad)}"]`)){const opt=document.createElement('option');opt.value=ciudad;opt.textContent=ciudad;ciudadEl.appendChild(opt);}
+          ciudadEl.value=ciudad;ciudadEl.disabled=false;
+        }
+      }
+    }
+    async function initLocationSelectors(){
+      await loadCountries();
+      paisEl.addEventListener('change',()=>loadStates(paisEl.value));
+      provinciaEl.addEventListener('change',()=>loadCities(paisEl.value,provinciaEl.value));
+    }
+
+    /* â”€â”€â”€ form helpers â”€â”€â”€ */
+    function setMode(mode,label){
+      if(!formTitleEl||!currentUserIdEl)return;
+      if(mode==='edit')formTitleEl.innerHTML=`Editando: <span style="color:#c084fc;font-weight:700">${label||''}</span>`;
+      else{formTitleEl.textContent='Nuevo usuario';currentUserIdEl.value='';}
+    }
+    function resetForm(){
+      nombreEl.value='';apellidoPaternoEl.value='';apellidoMaternoEl.value='';
+      telefonoEl.value='';correoEl.value='';rolEl.value='usuario';contrasenaEl.value='';
+      numeroCasaEl.value='';calleEl.value='';codigoPostalEl.value='';
+      if(paisEl)paisEl.value='';
+      disableLocationSelect(provinciaEl,'Primero selecciona un paÃ­s');
+      disableLocationSelect(ciudadEl,'Primero selecciona un estado');
+      setMode('create');
+    }
+    function openForm(mode='create',label){
+      if(!formPanelEl)return;formPanelEl.hidden=false;setMode(mode,label);
+      formPanelEl.scrollIntoView({behavior:'smooth',block:'start'});
+    }
+    function closeForm(){if(!formPanelEl)return;formPanelEl.hidden=true;resetForm();}
+    function fillForm(user){
+      currentUserIdEl.value=String(user.id);
+      nombreEl.value=user.nombre||'';apellidoPaternoEl.value=user.apellidoPaterno||'';
+      apellidoMaternoEl.value=user.apellidoMaterno||'';telefonoEl.value=user.telefono||'';
+      correoEl.value=user.correo||'';rolEl.value=String(user.rol||'usuario').toLowerCase();
+      contrasenaEl.value='';numeroCasaEl.value=user.numeroCasa||'';
+      calleEl.value=user.calle||'';codigoPostalEl.value=user.codigoPostal||'';
+      setLocationValues(user.pais||'Mexico',user.provincia||'',user.ciudad||'');
+      openForm('edit',`${user.nombre||''} ${user.apellidoPaterno||''}`.trim());
+    }
+    function buildPayload(){
+      return{nombre:nombreEl?.value?.trim()||'',apellidoPaterno:apellidoPaternoEl?.value?.trim()||'',apellidoMaterno:apellidoMaternoEl?.value?.trim()||'',telefono:telefonoEl?.value?.trim()||'',correo:correoEl?.value?.trim()||'',rol:rolEl?.value||'usuario',contrasena:contrasenaEl?.value||'',numeroCasa:numeroCasaEl?.value||'',calle:calleEl?.value?.trim()||'',codigoPostal:codigoPostalEl?.value||'',ciudad:ciudadEl?.value?.trim()||'',provincia:provinciaEl?.value?.trim()||'',pais:paisEl?.value?.trim()||''};
+    }
+
+    /* â”€â”€â”€ paginate â”€â”€â”€ */
+    function applyFilters(){
+      const q=String(searchUsersEl?.value||'').trim().toLowerCase();
+      filteredUsers=users.filter(u=>{
+        if(!q)return true;
+        const name=`${u.nombre||''} ${u.apellidoPaterno||''} ${u.apellidoMaterno||''}`.toLowerCase();
+        return name.includes(q)||String(u.correo||'').toLowerCase().includes(q)||String(u.rol||'').toLowerCase().includes(q);
+      });
+    }
+    function getPageData(){
+      applyFilters();
+      const perPage=Number(rowsPerPageEl?.value||10);
+      const totalPages=Math.max(1,Math.ceil(filteredUsers.length/perPage));
+      if(currentPage>totalPages)currentPage=totalPages;
+      const start=(currentPage-1)*perPage;
+      return{items:filteredUsers.slice(start,start+perPage),total:filteredUsers.length,totalPages,start};
+    }
+    function renderPagination({total,totalPages,start,items}){
+      if(resultsInfoEl)resultsInfoEl.textContent=total===0?'Sin resultados':`Mostrando ${start+1}â€“${start+items.length} de ${total} resultados`;
+      if(!paginationControlsEl)return;
+      paginationControlsEl.innerHTML='';
+      if(totalPages<=1)return;
+      const mkBtn=(label,page,active,disabled)=>{
+        const b=document.createElement('button');
+        b.className='page-btn'+(active?' active':'')+(disabled?' disabled':'');
+        b.textContent=label;b.disabled=disabled;
+        if(!disabled&&!active)b.addEventListener('click',()=>{currentPage=page;renderUsers();});
+        return b;
+      };
+      paginationControlsEl.appendChild(mkBtn('â€¹',currentPage-1,false,currentPage===1));
+      let prev=0;const pages=new Set([1,totalPages]);
+      for(let i=Math.max(2,currentPage-2);i<=Math.min(totalPages-1,currentPage+2);i++)pages.add(i);
+      [...pages].sort((a,b)=>a-b).forEach(p=>{
+        if(prev&&p-prev>1)paginationControlsEl.appendChild(Object.assign(document.createElement('span'),{className:'page-ellipsis',textContent:'â€¦'}));
+        paginationControlsEl.appendChild(mkBtn(String(p),p,p===currentPage,false));prev=p;
+      });
+      paginationControlsEl.appendChild(mkBtn('â€º',currentPage+1,false,currentPage===totalPages));
+    }
+
+    /* â”€â”€â”€ stats â”€â”€â”€ */
+    function renderStats(){
+      if(!statsBarEl)return;
+      const total=users.length;
+      const admins=users.filter(u=>u.rol==='admin'||u.rol==='superusuario').length;
+      const regulares=users.filter(u=>u.rol==='usuario').length;
+      statsBarEl.innerHTML=`<span class="stat-chip">${total} total</span><span class="stat-chip stat-chip--blue">${admins} admins</span><span class="stat-chip stat-chip--green">${regulares} usuarios</span>`;
+    }
+
+    /* â”€â”€â”€ rol badge â”€â”€â”€ */
+    function rolBadge(rol){
+      const r=String(rol||'').toLowerCase();
+      if(r==='superusuario')return`<span class="rol-badge rol-super">${r}</span>`;
+      if(r==='admin')return`<span class="rol-badge rol-admin">${r}</span>`;
+      return`<span class="rol-badge rol-user">${r}</span>`;
+    }
+
+    /* â”€â”€â”€ render â”€â”€â”€ */
+    function renderUsers(){
+      if(!rowsEl)return;
+      rowsEl.innerHTML='';
+      const pageData=getPageData();
+      pageData.items.forEach(user=>{
+        const tr=document.createElement('tr');
+        const canDelete=isSuperusuario;
+
+        // Build row HTML WITHOUT SVGs
+        tr.innerHTML=`
+          <td class="td-id">${user.id}</td>
+          <td><strong class="user-nombre">${user.nombre||''} ${user.apellidoPaterno||''}</strong></td>
+          <td class="td-correo">${user.correo||''}</td>
+          <td>${rolBadge(user.rol)}</td>
+          <td class="td-tel">${user.telefono||'<span class="no-data">â€”</span>'}</td>
+          <td>
+            <div class="users-row-actions">
+              <button class="row-icon-btn edit" data-action="edit" data-id="${user.id}" type="button" title="Editar"></button>
+              <button class="row-icon-btn delete" data-action="delete" data-id="${user.id}" type="button" title="Eliminar" ${canDelete?'':'disabled'}></button>
+            </div>
+          </td>`;
+
+        // Inject SVGs via DOM API (proper SVG namespace)
+        const editBtn = tr.querySelector('.row-icon-btn.edit');
+        const delBtn = tr.querySelector('.row-icon-btn.delete');
+        if(editBtn) editBtn.appendChild(makeSVG(ICON_EDIT));
+        if(delBtn) delBtn.appendChild(makeSVG(ICON_DELETE));
+
+        rowsEl.appendChild(tr);
+      });
+      renderPagination(pageData);
+      renderStats();
+    }
+
+    /* â”€â”€â”€ fetch â”€â”€â”€ */
+    async function fetchUsers(){
+      const r=await fetch('/api/admin/usuarios',{credentials:'include'});
+      const d=await r.json().catch(()=>({}));
+      if(!r.ok||!d?.success)throw new Error(d?.error||'No se pudieron cargar usuarios');
+      users=Array.isArray(d.usuarios)?d.usuarios:[];renderUsers();
+    }
+
+    /* â”€â”€â”€ export â”€â”€â”€ */
+    function usersToRowsText(list){return list.map(u=>`${u.id}\t${u.nombre||''} ${u.apellidoPaterno||''}\t${u.correo||''}\t${String(u.rol||'').toLowerCase()}\t${u.telefono||''}`).join('\n');}
+    function usersToCsv(list){const h='id,nombre,correo,rol,telefono';const b=list.map(u=>`${u.id},"${(`${u.nombre||''} ${u.apellidoPaterno||''}`.trim()).replaceAll('"','""')}","${String(u.correo||'').replaceAll('"','""')}","${String(u.rol||'').toLowerCase()}","${String(u.telefono||'')}"`).join('\n');return`${h}\n${b}`;}
+    function triggerDownload(content,fileName,mimeType){const blob=new Blob([content],{type:mimeType});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=fileName;document.body.appendChild(a);a.click();a.remove();URL.revokeObjectURL(url);}
+
+    /* â”€â”€â”€ events â”€â”€â”€ */
+    btnAddUser?.addEventListener('click',()=>{resetForm();openForm('create');});
+    searchUsersEl?.addEventListener('input',()=>{currentPage=1;renderUsers();});
+    rowsPerPageEl?.addEventListener('change',()=>{currentPage=1;renderUsers();});
+    btnCancelEdit?.addEventListener('click',closeForm);
+    btnFormReset?.addEventListener('click',resetForm);
+
+    btnCopy?.addEventListener('click',async()=>{try{await navigator.clipboard.writeText(`ID\tNOMBRE\tCORREO\tROL\tTELEFONO\n${usersToRowsText(filteredUsers)}`);Modal.success('Copiado','Datos copiados al portapapeles',{autoClose:1800});}catch{Modal.error('Error','No se pudo copiar');}});
+    btnCsv?.addEventListener('click',()=>{triggerDownload(usersToCsv(filteredUsers),'usuarios.csv','text/csv;charset=utf-8;');Modal.success('CSV','Archivo descargado',{autoClose:1800});});
+    btnExcel?.addEventListener('click',()=>{
+      const rows=filteredUsers.map(u=>`<tr><td>${u.id}</td><td>${u.nombre||''} ${u.apellidoPaterno||''}</td><td>${u.correo||''}</td><td>${String(u.rol||'').toLowerCase()}</td><td>${u.telefono||''}</td></tr>`).join('');
+      triggerDownload(`<table><thead><tr><th>ID</th><th>Nombre</th><th>Correo</th><th>Rol</th><th>Telefono</th></tr></thead><tbody>${rows}</tbody></table>`,'usuarios.xls','application/vnd.ms-excel;charset=utf-8;');
+      Modal.success('Excel','Archivo descargado',{autoClose:1800});
+    });
+    btnPdf?.addEventListener('click',()=>{
+      const rows=filteredUsers.map(u=>`<tr><td>${u.id}</td><td>${u.nombre||''} ${u.apellidoPaterno||''}</td><td>${u.correo||''}</td><td>${String(u.rol||'').toLowerCase()}</td><td>${u.telefono||''}</td></tr>`).join('');
+      const w=window.open('','_blank','width=980,height=720');
+      if(!w){Modal.error('Error','No se pudo abrir la ventana');return;}
+      w.document.write(`<html><head><title>Usuarios</title><style>body{font-family:Arial;padding:24px;color:#111}table{width:100%;border-collapse:collapse}th,td{border:1px solid #ccc;padding:8px;font-size:12px}th{background:#f0f0f0}</style></head><body><h1>Usuarios</h1><table><thead><tr><th>ID</th><th>Nombre</th><th>Correo</th><th>Rol</th><th>Telefono</th></tr></thead><tbody>${rows}</tbody></table></body></html>`);
+      w.document.close();w.focus();w.print();Modal.success('PDF','Ventana de impresiÃ³n abierta',{autoClose:1800});
+    });
+
+    btnCreate?.addEventListener('click',async()=>{
+      const p=buildPayload();
+      if(!p.nombre||!p.apellidoPaterno||!p.correo||!p.numeroCasa||!p.calle||!p.codigoPostal||!p.pais||!p.provincia||!p.ciudad){
+        Modal.error('Campos incompletos','Nombre, apellido, correo y direccion completa son obligatorios');return;
+      }
+      try{
+        Modal.loading('Creando usuario','Por favor espera...');
+        const r=await fetch('/api/admin/usuarios',{method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify(p)});
+        const d=await r.json().catch(()=>({}));
+        Modal.hideLoading();
+        if(!r.ok||!d?.success)throw new Error(d?.error||'No se pudo crear el usuario');
+        Modal.success('Â¡Usuario creado!','Las credenciales se enviaron al correo del usuario',{autoClose:2500});
+        closeForm();await fetchUsers();
+      }catch(err){Modal.hideLoading();Modal.error('Error',err.message||'Error creando usuario');}
+    });
+
+    btnUpdate?.addEventListener('click',async()=>{
+      const userId=currentUserIdEl?.value;
+      if(!userId){Modal.error('Error','Primero selecciona un usuario desde la tabla para editar');return;}
+      const p=buildPayload();
+      if(!p.nombre||!p.apellidoPaterno||!p.correo||!p.numeroCasa||!p.calle||!p.codigoPostal||!p.pais||!p.provincia||!p.ciudad){
+        Modal.error('Campos incompletos','Nombre, apellido, correo y direcciÃ³n completa son obligatorios');return;
+      }
+      try{
+        Modal.loading('Actualizando usuario','Guardando cambios...');
+        const r=await fetch(`/api/admin/usuarios/${userId}`,{method:'PUT',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify(p)});
+        const d=await r.json().catch(()=>({}));
+        Modal.hideLoading();
+        if(!r.ok||!d?.success)throw new Error(d?.error||'No se pudo actualizar el usuario');
+        Modal.success('Â¡Listo!','Usuario actualizado correctamente',{autoClose:2500});
+        closeForm();await fetchUsers();
+      }catch(err){Modal.hideLoading();Modal.error('Error',err.message||'Error actualizando usuario');}
+    });
+
+    rowsEl?.addEventListener('click',async event=>{
+      const btn=event.target?.closest('button[data-action]');
+      if(!(btn instanceof HTMLButtonElement))return;
+      const action=btn.dataset.action,userId=btn.dataset.id;
+      if(!userId)return;
+      if(action==='edit'){const user=users.find(u=>String(u.id)===String(userId));if(user)fillForm(user);return;}
+      if(action==='delete'){
+        if(!isSuperusuario){Modal.error('Sin permiso','Solo superusuario puede eliminar usuarios');return;}
+        const ok=await Modal.confirm('Â¿Eliminar usuario?','Esta acciÃ³n es permanente y no se puede deshacer.',{confirmText:'SÃ­, eliminar',cancelText:'Cancelar'});
+        if(!ok)return;
+        try{
+          Modal.loading('Eliminando usuario','Por favor espera...');
+          const r=await fetch(`/api/admin/usuarios/${userId}`,{method:'DELETE',credentials:'include'});
+          const d=await r.json().catch(()=>({}));
+          Modal.hideLoading();
+          if(!r.ok||!d?.success)throw new Error(d?.error||'No se pudo eliminar el usuario');
+          Modal.success('Eliminado','El usuario fue eliminado correctamente',{autoClose:2000});
+          closeForm();await fetchUsers();
+        }catch(err){Modal.hideLoading();Modal.error('Error',err.message||'Error eliminando usuario');}
+      }
+    });
+
+    initLocationSelectors();
+    fetchUsers().catch(err=>Modal.error('Error',err.message||'No se pudieron cargar usuarios'));
+  </script>
+
+  <script>
+    (function(){
+      try{const t=localStorage.getItem('theme');if(t==='dark')document.documentElement.classList.add('dark');else document.documentElement.classList.remove('dark');}catch(e){}
+      window.addEventListener('storage',(e)=>{if(e.key==='theme')document.documentElement.classList.toggle('dark',e.newValue==='dark');});
+    })();
+  </script>
+
+  <style is:global>
+    /* â•â• BASE DARK â€” PURPLE ADMIN THEME â•â• */
+    .users-admin-page{min-height:100vh;padding:108px 20px 40px;background:#0b0e14;}
+    .users-admin-shell{width:100%;max-width:1400px;margin:0 auto;border:1px solid rgba(168,85,247,0.12);border-radius:16px;background:#111318;box-shadow:0 24px 60px rgba(0,0,0,0.5);padding:20px;}
+    .users-admin-header{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;border-bottom:1px solid rgba(255,255,255,0.1);padding-bottom:16px;margin-bottom:16px;}
+    .users-admin-kicker{margin:0;font-size:0.7rem;text-transform:uppercase;letter-spacing:0.12em;color:#c084fc;font-weight:700;}
+    .users-admin-header h1{margin:4px 0 2px;font-size:2rem;color:#f7f7f7;line-height:1.1;}
+    .users-admin-subtitle{margin:0;color:rgba(255,255,255,0.5);font-size:0.82rem;}
+    .users-admin-top-actions{display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+    .users-add-btn{border:none;background:linear-gradient(135deg,#a855f7,#7c3aed);color:#fff;border-radius:10px;padding:10px 16px;font-size:0.82rem;font-weight:700;display:inline-flex;align-items:center;gap:7px;cursor:pointer;box-shadow:0 4px 16px rgba(168,85,247,0.35);transition:transform 0.15s,box-shadow 0.15s;}
+    .users-add-btn:hover{transform:translateY(-1px);box-shadow:0 6px 20px rgba(168,85,247,0.45);}
+    .users-add-btn svg{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:2.5;}
+    .users-admin-back{text-decoration:none;color:rgba(255,255,255,0.7);border:1px solid rgba(255,255,255,0.2);background:rgba(255,255,255,0.04);border-radius:10px;padding:9px 14px;font-size:0.8rem;font-weight:600;transition:all 0.15s;}
+    .users-admin-back:hover{background:rgba(168,85,247,0.12);color:#c084fc;border-color:rgba(168,85,247,0.4);}
+    /* stats */
+    .stats-bar{display:flex;gap:8px;flex-wrap:wrap;}
+    .stat-chip{font-size:0.72rem;font-weight:700;padding:3px 10px;border-radius:20px;background:rgba(255,255,255,0.07);color:rgba(255,255,255,0.7);border:1px solid rgba(255,255,255,0.1);}
+    .stat-chip--green{background:rgba(22,163,74,0.15);color:#86efac;border-color:rgba(22,163,74,0.3);}
+    .stat-chip--blue{background:rgba(168,85,247,0.15);color:#c4b5fd;border-color:rgba(168,85,247,0.3);}
+    /* form */
+    .users-form-panel{margin-bottom:16px;}
+    .users-card{border:1px solid rgba(255,255,255,0.1);border-radius:12px;background:#0f1114;padding:16px;}
+    .users-card-form{border-left:3px solid #a855f7;}
+    .users-form-header{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:6px;}
+    .users-form-header h2{margin:0;color:#f0f2f8;}
+    .users-note{margin:0 0 14px;font-size:0.73rem;color:rgba(255,255,255,0.5);background:rgba(168,85,247,0.08);border:1px solid rgba(168,85,247,0.2);border-radius:8px;padding:8px 12px;}
+    .warning-note{background:rgba(239,68,68,0.08)!important;border-color:rgba(239,68,68,0.25)!important;color:#fca5a5!important;margin-bottom:10px!important;}
+    .form-section{margin-bottom:18px;border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:14px;background:rgba(255,255,255,0.02);}
+    .form-section-title{display:flex;align-items:center;gap:8px;font-size:0.78rem;font-weight:700;color:rgba(255,255,255,0.6);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:12px;}
+    .form-section-icon{font-size:1rem;}
+    .users-form-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;}
+    .users-field{display:flex;flex-direction:column;gap:4px;}
+    .users-field label{font-size:0.68rem;font-weight:700;color:rgba(255,255,255,0.45);text-transform:uppercase;letter-spacing:0.07em;}
+    /* inputs */
+    .users-admin-page input:not([type=hidden]),.users-admin-page select{width:100%;border:1px solid rgba(255,255,255,0.15);border-radius:8px;padding:9px 10px;background:#16181d;color:#f0f0f0;font-size:0.8rem;margin-bottom:0;transition:border-color 0.15s;box-sizing:border-box;}
+    .users-admin-page input:focus,.users-admin-page select:focus{outline:none;border-color:rgba(168,85,247,0.5);background:#1a1c22;}
+    /* actions */
+    .users-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:8px;}
+    .btn-save-main{display:inline-flex;align-items:center;gap:7px;border:none;background:linear-gradient(135deg,#a855f7,#7c3aed);color:#fff;border-radius:10px;padding:10px 20px;font-size:0.84rem;font-weight:700;cursor:pointer;box-shadow:0 4px 14px rgba(168,85,247,0.35);transition:transform 0.15s;}
+    .btn-save-main:hover{transform:translateY(-1px);}
+    .btn-save-main.green{background:linear-gradient(135deg,#16a34a,#22c55e);box-shadow:0 4px 14px rgba(22,163,74,0.35);}
+    .btn-save-main svg{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round;}
+    .btn,.btn-cancel{border:1px solid rgba(255,255,255,0.2);border-radius:10px;padding:9px 14px;font-size:0.8rem;background:rgba(255,255,255,0.04);color:#e0e0e0;cursor:pointer;font-weight:600;transition:all 0.15s;}
+    .btn:hover,.btn-cancel:hover{background:rgba(255,255,255,0.08);}
+    /* toolbar */
+    .users-list-section{margin-top:12px;}
+    .users-list-header{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:12px;flex-wrap:wrap;}
+    .users-list-header h2{margin:0;font-size:1.2rem;color:#f3f3f3;}
+    .users-toolbar{display:grid;grid-template-columns:1fr auto 1fr;gap:8px;align-items:center;border:1px solid rgba(255,255,255,0.1);background:#14161a;border-radius:10px;padding:10px 12px;margin-bottom:12px;}
+    .users-toolbar-left,.users-toolbar-right{display:inline-flex;align-items:center;gap:6px;font-size:0.74rem;color:rgba(255,255,255,0.6);}
+    .users-toolbar-right{justify-self:end;}
+    .users-toolbar-center{display:inline-flex;gap:5px;justify-self:center;flex-wrap:wrap;}
+    .toolbar-select,.toolbar-search{margin:0;padding:6px 8px;font-size:0.74rem;border-radius:6px;border:1px solid rgba(255,255,255,0.15);min-width:64px;background:#16181d;color:#f0f0f0;}
+    .toolbar-search{width:220px;}
+    .mini-btn{border:1px solid rgba(255,255,255,0.2);background:rgba(255,255,255,0.05);color:#ddd;border-radius:6px;padding:5px 10px;font-size:0.7rem;font-weight:700;cursor:pointer;transition:all 0.15s;}
+    .mini-btn:hover{background:rgba(255,255,255,0.1);}
+    .mini-btn.success{color:#86efac;border-color:rgba(22,163,74,0.4);}
+    .mini-btn.danger{color:#fca5a5;border-color:rgba(239,68,68,0.4);}
+    .mini-btn.info{color:#93c5fd;border-color:rgba(59,130,246,0.4);}
+    /* table */
+    .users-table-wrap{overflow:auto;max-height:62vh;border:1px solid rgba(255,255,255,0.1);border-radius:10px;}
+    .users-table{width:100%;border-collapse:collapse;min-width:820px;font-size:0.78rem;background:#0f1114;}
+    .users-table th,.users-table td{border-bottom:1px solid rgba(255,255,255,0.07);padding:9px 10px;text-align:left;color:#f0f2f8;}
+    .users-table th{position:sticky;top:0;background:#171a21;font-size:0.67rem;text-transform:uppercase;letter-spacing:0.07em;font-weight:700;z-index:1;color:rgba(255,255,255,0.55);}
+    .users-table tr:hover td{background:rgba(168,85,247,0.04);}
+    .users-th-actions{width:110px;text-align:center;}
+    .users-row-actions{display:flex;align-items:center;gap:6px;justify-content:center;}
+    .td-id{color:rgba(255,255,255,0.5);font-size:0.72rem;}
+    .user-nombre{color:#fff;}
+    .td-correo{color:rgba(255,255,255,0.75);}
+    .td-tel{color:rgba(255,255,255,0.6);}
+    .no-data{color:rgba(255,255,255,0.35);font-size:0.72rem;}
+    /* rol badges â€” PURPLE for admin roles */
+    .rol-badge{display:inline-block;font-size:0.67rem;font-weight:700;padding:2px 10px;border-radius:20px;white-space:nowrap;}
+    .rol-super{background:rgba(168,85,247,0.2);color:#c4b5fd;border:1px solid rgba(168,85,247,0.4);}
+    .rol-admin{background:rgba(168,85,247,0.12);color:#c4b5fd;border:1px solid rgba(168,85,247,0.25);}
+    .rol-user{background:rgba(22,163,74,0.15);color:#86efac;border:1px solid rgba(22,163,74,0.3);}
+    /* row buttons â€” PURPLE for edit */
+    .row-icon-btn{width:32px;height:32px;border-radius:8px;border:1px solid rgba(255,255,255,0.15);background:rgba(255,255,255,0.04);display:inline-flex;align-items:center;justify-content:center;cursor:pointer;transition:all 0.15s;padding:0;}
+    .row-icon-btn:hover:not(:disabled){transform:translateY(-1px);}
+    .row-icon-btn:disabled{opacity:0.3;cursor:not-allowed;}
+    .row-icon-btn svg{width:14px;height:14px;display:block;}
+    .row-icon-btn.edit{color:#c4b5fd;border-color:rgba(168,85,247,0.4);}
+    .row-icon-btn.edit:hover:not(:disabled){background:rgba(168,85,247,0.15);}
+    .row-icon-btn.delete{color:#fda4af;border-color:rgba(253,164,175,0.4);}
+    .row-icon-btn.delete:hover:not(:disabled){background:rgba(239,68,68,0.1);}
+    /* pagination â€” PURPLE active */
+    .pagination-bar{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;padding:12px 4px 4px;}
+    .pagination-info{font-size:0.72rem;color:rgba(255,255,255,0.45);}
+    .pagination-controls{display:flex;align-items:center;gap:4px;}
+    .page-btn{min-width:32px;height:32px;border-radius:8px;border:1px solid rgba(255,255,255,0.12);background:rgba(255,255,255,0.04);color:rgba(255,255,255,0.7);font-size:0.78rem;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;transition:all 0.15s;padding:0 6px;}
+    .page-btn:hover:not(.disabled):not(.active){background:rgba(255,255,255,0.1);color:#fff;}
+    .page-btn.active{background:linear-gradient(135deg,#a855f7,#7c3aed);border-color:transparent;color:#fff;box-shadow:0 2px 8px rgba(168,85,247,0.4);}
+    .page-btn.disabled{opacity:0.3;cursor:not-allowed;}
+    .page-ellipsis{color:rgba(255,255,255,0.3);font-size:0.78rem;padding:0 4px;user-select:none;}
+
+    @media(max-width:1100px){.users-admin-header{flex-direction:column}.users-admin-top-actions{width:100%}.users-toolbar{grid-template-columns:1fr}.users-toolbar-center,.users-toolbar-right{justify-self:start}}
+    @media(max-width:820px){.users-form-grid{grid-template-columns:1fr}.toolbar-search{width:100%}.pagination-bar{flex-direction:column;align-items:flex-start}}
+  </style>
+</BaseLayout>
+
+

@@ -1,0 +1,21 @@
+/* src/components/OrangeTitle.css */
+.orange-title-custom {
+    font-family: var(--font-title, 'NeueMontreal', 'SF Pro', sans-serif);
+    font-size: clamp(5rem, 10vw, 9rem);
+    color: #FF4D00;
+    margin: 0;
+    text-transform: uppercase;
+    line-height: 0.9;
+    text-shadow: 0 0 30px rgba(255, 77, 0, 0.25);
+    
+    /* Para centrar la animación flexible */
+    justify-content: center;
+    width: 100%;
+}
+
+/* Ajuste para móviles si es necesario */
+@media (max-width: 768px) {
+    .orange-title-custom {
+        font-size: clamp(3.5rem, 12vw, 6rem);
+    }
+}

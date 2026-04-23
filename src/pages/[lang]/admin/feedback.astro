@@ -1,0 +1,459 @@
+﻿---
+import BaseLayout from "../../../layouts/BaseLayout.astro";
+export function getStaticPaths() {
+  return [{ params: { lang: "es" } }];
+}
+
+const currentLang = "es";
+const cspNonce = Astro.locals?.cspNonce || "";
+
+const role = String(Astro.locals?.user?.rol || "").trim().toLowerCase().replace(/[\s_-]/g, "")
+  .replace(/^superadmin$|^superuser$|^superusuario$/, "superusuario");
+
+if (!role) return Astro.redirect(`/${currentLang}/login`);
+if (role !== "superusuario") return Astro.redirect(`/${currentLang}`);
+---
+
+<BaseLayout title="Quejas y sugerencias (Admin)" currentLang={currentLang}>
+  <div class="afb-root" data-app-view>
+    <main class="afb">
+
+      <header class="afb-hero">
+        <div class="afb-hero__glow" aria-hidden="true"></div>
+        <div class="afb-hero__content">
+          <span class="afb-hero__badge">SuperAdmin</span>
+          <h1 class="afb-hero__title">Quejas y sugerencias</h1>
+          <p class="afb-hero__sub">Vista global de mensajes enviados por usuarios desde el formulario pÃºblico.</p>
+        </div>
+      </header>
+
+      <div class="afb-toolbar">
+        <div class="afb-search-bar">
+          <svg class="afb-search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+          <input id="qSearch" class="afb-search-input" type="search" placeholder="Buscar por folio, asunto, nombre o correoâ€¦" />
+        </div>
+        <select id="qType" class="afb-select" aria-label="Filtrar por tipo">
+          <option value="all">Todos los tipos</option>
+          <option value="queja">Quejas</option>
+          <option value="sugerencia">Sugerencias</option>
+        </select>
+        <span id="qStats" class="afb-count">Cargandoâ€¦</span>
+      </div>
+
+      <section id="qList" class="afb-list"></section>
+
+      <section id="qEmpty" class="afb-empty" hidden>
+        <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" opacity="0.25"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+        <p>Sin resultados</p>
+        <span>No hay registros con los filtros actuales.</span>
+      </section>
+
+    </main>
+  </div>
+
+  <style is:global>
+    .afb-root {
+      --afb-bg: #060a14;
+      --afb-s1: #0c1322;
+      --afb-s2: #111a2e;
+      --afb-s3: #172237;
+      --afb-line: rgba(148,163,184,0.14);
+      --afb-line-h: rgba(148,163,184,0.24);
+      --afb-t1: #eef2fa;
+      --afb-t2: #94a3b8;
+      --afb-t3: #64748b;
+      --afb-brand: #7a2532;
+      --afb-brand-soft: rgba(122,37,50,0.1);
+      --afb-brand-glow: rgba(122,37,50,0.2);
+      --afb-cyan: #22d3ee;
+      --afb-cyan-soft: rgba(34,211,238,0.08);
+      --afb-red: #fb7185;
+      --afb-red-soft: rgba(251,113,133,0.08);
+      --afb-r: 20px;
+      --afb-r-sm: 12px;
+
+      background: var(--afb-bg) !important;
+      min-height: 100vh;
+      position: relative;
+      z-index: 1;
+    }
+
+    .afb-root .afb {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 120px 24px 56px;
+      display: grid;
+      gap: 14px;
+      color: var(--afb-t1);
+      font-family: 'Inter', -apple-system, 'SF Pro Display', system-ui, sans-serif;
+    }
+
+    /* â”€â”€ Hero â”€â”€ */
+    .afb-root .afb-hero {
+      position: relative;
+      border: 1px solid var(--afb-line);
+      border-radius: var(--afb-r);
+      padding: 28px;
+      overflow: hidden;
+      background: linear-gradient(155deg, var(--afb-s2), var(--afb-s1));
+      box-shadow: 0 20px 48px rgba(0,0,0,0.3);
+    }
+
+    .afb-root .afb-hero__glow {
+      position: absolute; inset: 0;
+      background:
+        radial-gradient(ellipse at 10% -10%, rgba(122,37,50,0.18), transparent 48%),
+        radial-gradient(ellipse at 88% 0%, rgba(34,211,238,0.1), transparent 42%);
+      pointer-events: none;
+    }
+
+    .afb-root .afb-hero__content { position: relative; }
+
+    .afb-root .afb-hero__badge {
+      display: inline-block;
+      padding: 4px 12px;
+      border-radius: 999px;
+      background: linear-gradient(135deg, rgba(168,85,247,0.12), rgba(139,92,246,0.08));
+      border: 1px solid rgba(168,85,247,0.25);
+      color: #c4b5fd;
+      font-size: 0.7rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      margin-bottom: 10px;
+    }
+
+    .afb-root .afb-hero__title {
+      font-size: clamp(1.4rem, 2.8vw, 2rem);
+      font-weight: 800;
+      line-height: 1.1;
+      color: var(--afb-t1);
+      margin: 0;
+      letter-spacing: -0.02em;
+    }
+
+    .afb-root .afb-hero__sub {
+      margin: 6px 0 0;
+      color: var(--afb-t2);
+      font-size: 0.88rem;
+      max-width: 56ch;
+    }
+
+    /* â”€â”€ Toolbar â”€â”€ */
+    .afb-root .afb-toolbar {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .afb-root .afb-search-bar {
+      flex: 1;
+      min-width: 240px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 0 16px;
+      height: 48px;
+      background: var(--afb-s1);
+      border: 1.5px solid var(--afb-line-h);
+      border-radius: 14px;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+
+    .afb-root .afb-search-bar:focus-within {
+      border-color: var(--afb-brand);
+      box-shadow: 0 0 0 3px var(--afb-brand-soft), 0 8px 20px rgba(0,0,0,0.1);
+    }
+
+    .afb-root .afb-search-icon { color: var(--afb-t3); flex-shrink: 0; }
+    .afb-root .afb-search-bar:focus-within .afb-search-icon { color: var(--afb-brand); }
+
+    .afb-root .afb-search-input {
+      flex: 1;
+      border: none;
+      background: transparent;
+      color: var(--afb-t1);
+      font-size: 0.88rem;
+      font-weight: 500;
+      outline: none;
+      font-family: inherit;
+    }
+
+    .afb-root .afb-search-input::placeholder { color: var(--afb-t3); }
+
+    .afb-root .afb-select {
+      height: 48px;
+      padding: 0 14px;
+      background: var(--afb-s1);
+      border: 1.5px solid var(--afb-line-h);
+      border-radius: 14px;
+      color: var(--afb-t1);
+      font-size: 0.82rem;
+      font-weight: 600;
+      outline: none;
+      cursor: pointer;
+      font-family: inherit;
+      transition: border-color 0.15s;
+    }
+
+    .afb-root .afb-select:focus { border-color: var(--afb-brand); }
+
+    .afb-root .afb-count {
+      font-size: 0.78rem;
+      font-weight: 700;
+      color: var(--afb-brand);
+      background: var(--afb-brand-soft);
+      padding: 6px 14px;
+      border-radius: 999px;
+      white-space: nowrap;
+    }
+
+    /* â”€â”€ List â”€â”€ */
+    .afb-root .afb-list {
+      display: grid;
+      gap: 12px;
+    }
+
+    /* â”€â”€ Item card â”€â”€ */
+    .afb-root .admfb-item {
+      border: 1px solid var(--afb-line);
+      border-radius: var(--afb-r-sm);
+      padding: 18px;
+      background: linear-gradient(155deg, var(--afb-s2), var(--afb-s1));
+      box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+      transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .afb-root .admfb-item:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 12px 36px rgba(0,0,0,0.22);
+      border-color: var(--afb-line-h);
+    }
+
+    .afb-root .admfb-item::before {
+      content: "";
+      position: absolute;
+      left: 0; top: 0; bottom: 0;
+      width: 4px;
+    }
+
+    .afb-root .admfb-item.is-complaint::before { background: var(--afb-red); }
+    .afb-root .admfb-item.is-suggestion::before { background: var(--afb-cyan); }
+
+    .afb-root .admfb-item-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 12px;
+      margin-bottom: 8px;
+    }
+
+    .afb-root .admfb-folio {
+      margin: 0;
+      font-size: 0.75rem;
+      font-weight: 800;
+      color: var(--afb-brand);
+      letter-spacing: 0.03em;
+    }
+
+    .afb-root .admfb-item h3 {
+      font-size: 0.98rem;
+      font-weight: 700;
+      color: var(--afb-t1);
+      margin: 4px 0 0;
+      line-height: 1.3;
+    }
+
+    .afb-root .admfb-type {
+      padding: 4px 12px;
+      border-radius: 999px;
+      font-size: 0.72rem;
+      font-weight: 700;
+      text-transform: capitalize;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+
+    .afb-root .admfb-item.is-complaint .admfb-type {
+      background: var(--afb-red-soft);
+      border: 1px solid rgba(251,113,133,0.25);
+      color: var(--afb-red);
+    }
+
+    .afb-root .admfb-item.is-suggestion .admfb-type {
+      background: var(--afb-cyan-soft);
+      border: 1px solid rgba(34,211,238,0.2);
+      color: var(--afb-cyan);
+    }
+
+    .afb-root .admfb-msg {
+      margin: 0 0 12px;
+      color: var(--afb-t2);
+      font-size: 0.88rem;
+      line-height: 1.5;
+    }
+
+    .afb-root .admfb-meta-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+    }
+
+    .afb-root .admfb-meta-grid p {
+      margin: 0;
+      padding: 9px 12px;
+      border: 1px solid var(--afb-line);
+      border-radius: 8px;
+      background: rgba(255,255,255,0.02);
+      font-size: 0.8rem;
+      color: var(--afb-t2);
+      line-height: 1.35;
+    }
+
+    .afb-root .admfb-meta-grid strong {
+      color: var(--afb-t1);
+      font-weight: 700;
+    }
+
+    /* â”€â”€ Empty â”€â”€ */
+    .afb-root .afb-empty {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+      text-align: center;
+      padding: 40px 20px;
+      border: 1px dashed var(--afb-line);
+      border-radius: var(--afb-r-sm);
+    }
+
+    .afb-root .afb-empty[hidden] { display: none; }
+    .afb-root .afb-empty p { margin: 0; font-size: 0.95rem; font-weight: 700; color: var(--afb-t2); }
+    .afb-root .afb-empty span { font-size: 0.82rem; color: var(--afb-t3); }
+
+    /* â”€â”€ Light mode â”€â”€ */
+    html:not(.dark) .afb-root {
+      --afb-bg: #f1f5f9;
+      --afb-s1: #ffffff;
+      --afb-s2: #f8fafc;
+      --afb-s3: #f1f5f9;
+      --afb-line: rgba(15,23,42,0.1);
+      --afb-line-h: rgba(15,23,42,0.18);
+      --afb-t1: #0f172a;
+      --afb-t2: #475569;
+      --afb-t3: #94a3b8;
+    }
+
+    html:not(.dark) .afb-root .afb-hero__glow {
+      background:
+        radial-gradient(ellipse at 10% -10%, rgba(122,37,50,0.08), transparent 48%),
+        radial-gradient(ellipse at 88% 0%, rgba(34,211,238,0.04), transparent 42%);
+    }
+
+    html:not(.dark) .afb-root .afb-hero__badge { color: #7c3aed; }
+    html:not(.dark) .afb-root .afb-search-input { color: var(--afb-t1); }
+    html:not(.dark) .afb-root .afb-select { color: var(--afb-t1); background: #fff; }
+
+    /* â”€â”€ Responsive â”€â”€ */
+    @media (max-width: 900px) {
+      .afb-root .afb { padding: 100px 16px 40px; }
+      .afb-root .afb-toolbar { flex-direction: column; }
+      .afb-root .afb-search-bar { min-width: unset; width: 100%; }
+      .afb-root .afb-select { width: 100%; }
+      .afb-root .admfb-meta-grid { grid-template-columns: 1fr; }
+    }
+
+    @media (max-width: 480px) {
+      .afb-root .afb { padding: 92px 12px 32px; }
+      .afb-root .afb-hero { padding: 20px; }
+    }
+  </style>
+
+  <script nonce={cspNonce} is:inline>
+    var $ = function (id) { return document.getElementById(id); };
+    var qList = $("qList");
+    var qEmpty = $("qEmpty");
+    var qStats = $("qStats");
+    var qSearch = $("qSearch");
+    var qType = $("qType");
+    var allItems = [];
+
+    var normalize = function (v) { return String(v || "").toLowerCase().trim(); };
+
+    function fmtDate(iso) {
+      if (!iso) return "-";
+      var d = new Date(iso);
+      if (Number.isNaN(d.getTime())) return String(iso);
+      return d.toLocaleString("es-MX", { year:"numeric", month:"short", day:"2-digit", hour:"2-digit", minute:"2-digit" });
+    }
+
+    function render() {
+      if (!qList || !qEmpty || !qStats) return;
+      var query = normalize(qSearch?.value || "");
+      var type = String(qType?.value || "all");
+
+      var filtered = allItems.filter(function (item) {
+        if (type !== "all" && item.tipo !== type) return false;
+        if (!query) return true;
+        var haystack = normalize([item.folio, item.tipo, item.asunto, item.mensaje, item.nombreContacto, item.correoContacto, item.telefonoContacto, item.estado].join(" "));
+        return haystack.includes(query);
+      });
+
+      qStats.textContent = filtered.length + " registro" + (filtered.length !== 1 ? "s" : "");
+
+      if (filtered.length === 0) {
+        qList.innerHTML = "";
+        qEmpty.hidden = false;
+        return;
+      }
+
+      qEmpty.hidden = true;
+      qList.innerHTML = filtered.map(function (item) {
+        var cls = item.tipo === "queja" ? "is-complaint" : "is-suggestion";
+        return '<article class="admfb-item ' + cls + '">' +
+          '<header class="admfb-item-head"><div><p class="admfb-folio">' + (item.folio || "") + '</p>' +
+          '<h3>' + (item.asunto || "") + '</h3></div>' +
+          '<span class="admfb-type">' + (item.tipo || "") + '</span></header>' +
+          '<p class="admfb-msg">' + (item.mensaje || "") + '</p>' +
+          '<div class="admfb-meta-grid">' +
+          '<p><strong>Contacto:</strong> ' + (item.nombreContacto || "-") + '</p>' +
+          '<p><strong>Correo:</strong> ' + (item.correoContacto || "-") + '</p>' +
+          '<p><strong>TelÃ©fono:</strong> ' + (item.telefonoContacto || "-") + '</p>' +
+          '<p><strong>Estado:</strong> ' + (item.estado || "-") + '</p>' +
+          '<p><strong>Origen:</strong> ' + (item.origen || "-") + '</p>' +
+          '<p><strong>Fecha:</strong> ' + fmtDate(item.fechaCreacion) + '</p>' +
+          '</div></article>';
+      }).join("");
+    }
+
+    async function loadAll() {
+      if (!qList || !qStats) return;
+      qStats.textContent = "Cargandoâ€¦";
+      try {
+        var r = await fetch("/api/admin/feedback?limit=250", { credentials: "include" });
+        var d = await r.json().catch(function () { return {}; });
+        if (!r.ok || !d?.success || !Array.isArray(d.items)) {
+          qStats.textContent = d?.error || "Error al cargar";
+          allItems = [];
+          render();
+          return;
+        }
+        allItems = d.items;
+        render();
+      } catch (e) {
+        qStats.textContent = "Error de red";
+        allItems = [];
+        render();
+      }
+    }
+
+    qSearch?.addEventListener("input", render);
+    qType?.addEventListener("change", render);
+    loadAll();
+  </script>
+</BaseLayout>
+
+

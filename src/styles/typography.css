@@ -1,0 +1,655 @@
+/* ============================================================================
+   TYPOGRAPHY.CSS — Sistema tipográfico global
+   BaseLayout lo importa en todas las páginas ANTES que cualquier otro CSS.
+
+   ESTE ARCHIVO ES LA ÚNICA FUENTE DE VERDAD para:
+     · @font-face
+     · Familias tipográficas  (--font-*)
+     · Tamaños               (--fs-*)
+     · Pesos                 (--fw-*)
+     · Line-heights          (--lh-*)
+     · Letter-spacing        (--ls-*)      ← TRACKING DEFINITIVO AQUÍ
+     · Espaciado de sección  (--section-gap + clases base de gap)
+     · Gaps de página producto (--pd-*)    ← GAPS INTERNOS PRODUCTO
+     · Clases base
+
+   SISTEMA DE TRACKING — resumen rápido
+   ──────────────────────────────────────────────────────────────────────────
+   Los títulos MorganitePro son una fuente condensada de display.
+   A tamaños muy grandes (≥ 6rem) el tracking negativo agresivo (-2px)
+   aplasta las letras. La regla general que aplicamos aquí:
+
+     · Hero XL  (≥ 10rem)   → -0.02em   sutil, respira sin separarse
+     · Display LG (6-10rem) → -0.01em   casi neutro, muy limpio
+     · Display MD (3-6rem)  → 0em        neutro
+     · Display SM / XS      → 0.01em    levemente abierto (legibilidad)
+     · Subtítulos           → 0.05em    abierto (contraste con títulos)
+     · Labels / eyebrows    → 0.15em    amplio (estilo editorial)
+     · Eyebrows loose       → 0.35em    máximo (antes 3-4px hardcoded)
+
+   Usando `em` en lugar de `px` el tracking escala con el tamaño de fuente,
+   así la proporción se mantiene igual en todos los breakpoints sin
+   necesidad de overrides adicionales.
+   ============================================================================ */
+
+
+/* ============================================================================
+   @FONT-FACE
+   ============================================================================ */
+
+@font-face {
+  font-family : 'MorganitePro';
+  src         : url('../fonts/MorganitePro-ExtraBold.ttf') format('truetype');
+  font-weight : 800;
+  font-style  : normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family : 'MorganitePro';
+  src         : url('../fonts/MorganitePro-BoldOblique.ttf') format('truetype');
+  font-weight : 700;
+  font-style  : oblique;
+  font-display: swap;
+}
+
+@font-face {
+  font-family : 'Morganite';
+  src         : url('../fonts/Morganite-ExtraBold.ttf') format('truetype');
+  font-weight : 800;
+  font-style  : normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family : 'Helony';
+  src         : url('../fonts/Helony.otf') format('opentype');
+  font-weight : normal;
+  font-style  : normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family : 'Rolide';
+  src         : url('../fonts/Rolide-Regular.otf') format('opentype');
+  font-weight : normal;
+  font-style  : normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family : 'MyriadPro';
+  src         : url('../fonts/MyriadPro-Regular.otf') format('opentype');
+  font-weight : 400;
+  font-style  : normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family : 'NeueMontreal';
+  src         : url('../fonts/NeueMontreal-Medium.otf') format('opentype');
+  font-weight : 500;
+  font-style  : normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family : 'Moisette';
+  src         : url('../fonts/Moisette-Regular.otf') format('opentype');
+  font-weight : normal;
+  font-style  : normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family : 'Moisette';
+  src         : url('../fonts/Moisette-Italic.otf') format('opentype');
+  font-weight : normal;
+  font-style  : italic;
+  font-display: swap;
+}
+
+@font-face {
+  font-family : 'SF Pro';
+  src         : url('../fonts/SF-Pro.ttf') format('truetype');
+  font-weight : normal;
+  font-style  : normal;
+  font-display: swap;
+}
+
+
+/* ============================================================================
+   VARIABLES GLOBALES
+   ============================================================================ */
+
+:root {
+
+  /* ── Familias ── */
+  --font-display    : 'NeueMontreal', 'SF Pro', 'Segoe UI', 'Inter', Helvetica, Arial, sans-serif;
+  --font-title      : 'NeueMontreal', 'SF Pro', 'Segoe UI', 'Inter', Helvetica, Arial, sans-serif;
+  --font-titles     : 'NeueMontreal', 'SF Pro', 'Segoe UI', 'Inter', Helvetica, Arial, sans-serif;
+  --font-body       : 'SF Pro', 'NeueMontreal', 'Segoe UI', 'Inter', Helvetica, Arial, sans-serif;
+  --font-decorative : 'Moisette', serif;
+  --font-ui         : 'SF Pro', system-ui, sans-serif;
+  --font-subtitle   : 'NeueMontreal', 'SF Pro', 'Segoe UI', 'Inter', Helvetica, Arial, sans-serif;
+  /* Compatibilidad para vistas legacy que aún usan estas vars */
+  --fuente-titulos  : var(--font-title);
+  --fuente-cuerpo   : var(--font-body);
+
+  /* ── Pesos ── */
+  --fw-display  : 700;
+  --fw-subtitle : 300;
+  --fw-body     : 500;
+  --fw-label    : 600;
+
+  /* ── Escala Display ── */
+  --fs-display-xl : clamp(6rem,  14vw,  12rem);
+  --fs-display-lg : clamp(4.5rem,  10vw,  9rem);
+  --fs-display-md : clamp(3rem,   6vw,  6rem);
+  --fs-display-sm : clamp(2.2rem,  4vw,  4rem);
+  --fs-display-xs : clamp(1.6rem,  2.5vw,  2.5rem);
+
+  /* ── Escala Subtítulo ── */
+  --fs-subtitle-lg : clamp(1.4rem,  2.2vw, 2rem);
+  --fs-subtitle-md : clamp(1.15rem, 1.7vw, 1.5rem);
+  --fs-subtitle-sm : clamp(0.95rem, 1.2vw, 1.15rem);
+
+  /* ── Escala Body ── */
+  --fs-body-xl : clamp(1.35rem, 2vw, 1.68rem);
+  --fs-body-lg : clamp(1.2rem, 1.6vw, 1.42rem);
+  --fs-body-md : clamp(1.08rem, 1.26vw, 1.24rem);
+  --fs-body-sm : clamp(1rem, 1.06vw, 1.08rem);
+  --fs-body-xs : clamp(0.95rem, 1vw, 1rem);
+
+  /* ── Line-heights ── */
+  --lh-display    : 0.9;
+  --lh-display-md : 0.95;
+  --lh-subtitle   : 1.2;
+  --lh-body       : 1.74;
+  --lh-body-tight : 1.45;
+  --lh-label      : 1.2;
+
+  /* ══════════════════════════════════════════════════════════════════════
+     LETTER-SPACING — SISTEMA UNIFICADO (fuente única de verdad)
+     ──────────────────────────────────────────────────────────────────────
+     Todos los valores en `em` para que el tracking escale
+     proporcionalmente con el tamaño de fuente en cada breakpoint.
+
+     NIVEL           VARIABLE             VALOR   DÓNDE SE USA
+     ─────────────────────────────────────────────────────────
+     Hero XL         --ls-display-hero    -0.02em  h1 hero (≥ 10rem) — respira
+     Display LG      --ls-display         -0.01em  h2 sección, .block-title
+     Display MD      --ls-display-md       0em     h3 cards, .block-title cards
+     Display SM/XS   --ls-display-sm       0.01em  features, h4-h6, specs-title
+     Subtítulo       --ls-subtitle         0.05em  .block-subtitle (contraste)
+     Label normal    --ls-label            0.15em  labels, eyebrows de sección
+     Label sm        --ls-label-sm         0.10em  labels secundarios
+     Label xs        --ls-label-xs         0.08em  botones, tags
+     Eyebrow loose   --ls-loose            0.35em  hero eyebrow, division-label
+     ══════════════════════════════════════════════════════════════════════ */
+
+  --ls-display-hero :  0em;
+  --ls-display      :  0.01em;
+  --ls-display-md   :  0.01em;
+  --ls-display-sm   :  0.01em;   /* H4-H6, features, specs-title      */
+  --ls-subtitle     :  0.05em;   /* Subtítulos — contraste visual      */
+  --ls-label        :  0.09em;   /* Labels / eyebrows de sección       */
+  --ls-label-sm     :  0.10em;   /* Labels secundarios                 */
+  --ls-label-xs     :  0.08em;   /* Botones, tags inline               */
+  --ls-loose        :  0.35em;   /* Eyebrow hero / division-label      */
+
+  /* ── Espaciado de sección ── */
+  --section-gap     : 80px;
+  --block-title-gap : 5px;
+
+  /* ══════════════════════════════════════════════════════════════════════
+     GAPS DE PÁGINA DE PRODUCTO  (--pd-*)
+     ──────────────────────────────────────────────────────────────────────
+     Márgenes internos del layout de producto. Centralizar aquí permite
+     ajustar el ritmo vertical sin tocar product.css.
+
+     TOKEN                  VALOR                  USO
+     ──────────────────────────────────────────────────────────────────────
+     --pd-h1-gap            h1 → párrafo desc.     aire bajo el título
+     --pd-p-gap             párrafo → specs         acerca specs al texto
+     --pd-specs-title-gap   specs-title → grid      aprieta encabezado+cards
+     --pd-specs-bottom      specs-grid → thumbnails separa zona inferior
+     ══════════════════════════════════════════════════════════════════════ */
+  --pd-h1-gap          : clamp(0.8rem,  1.8vh, 1.6rem);
+  --pd-p-gap           : clamp(0.5rem,  1.0vh, 1.0rem);
+  --pd-specs-title-gap : clamp(0.4rem,  0.8vh, 0.8rem);
+  --pd-specs-bottom    : clamp(0.5rem,  1.0vh, 1.2rem);
+  /* Tracking del título de producto — positivo para que respire en desktop
+     (el h1 global usa --ls-display-hero: -0.02em que aplasta la fuente
+     condensada MorganitePro a tamaños grandes de display)
+     Móvil: se neutraliza a 0em en ≤1024px para no tocar el comportamiento original */
+  --pd-h1-ls           : 0.01em;
+}
+
+
+
+/* ── Breakpoints tipográficos ── */
+@media (min-width: 1600px) {
+  :root {
+    --fs-display-xl  : clamp(6rem,   11vw, 11rem);
+    --fs-display-lg  : clamp(4rem,    7vw,  9rem);
+    --fs-display-md  : clamp(2.4rem, 3.5vw,  4rem);
+    --fs-subtitle-lg : clamp(1.6rem, 2.5vw, 2.4rem);
+    --fs-subtitle-md : clamp(1.3rem, 1.9vw, 1.75rem);
+    --section-gap    : 90px;
+  }
+}
+@media (max-width: 1280px) {
+  :root {
+    --section-gap: 70px;
+  }
+}
+@media (max-width: 1024px) {
+  :root {
+    --fs-display-xl : clamp(4rem,   9vw, 7rem);
+    --fs-display-lg : clamp(3rem,   7vw, 6rem);
+    --fs-display-md : clamp(1.8rem, 3vw, 3rem);
+    --section-gap   : 60px;
+    /* A tamaños menores el tracking negativo ya no aprieta tanto,
+       pero lo suavizamos igual para consistencia */
+    --ls-display-hero : -0.015em;
+    --ls-display      : -0.005em;
+    /* Gaps producto en tablet — ligeramente más compactos */
+    --pd-h1-gap          : clamp(0.6rem, 1.4vh, 1.2rem);
+    --pd-p-gap           : clamp(0.4rem, 0.8vh, 0.8rem);
+    --pd-specs-title-gap : clamp(0.3rem, 0.6vh, 0.6rem);
+    --pd-specs-bottom    : clamp(0.4rem, 0.8vh, 1.0rem);
+    /* Móvil: sin tracking extra en el h1, se comporta igual que antes */
+    --pd-h1-ls           : 0em;
+  }
+}
+@media (max-width: 768px) {
+  :root {
+    --fs-display-xl  : clamp(3.5rem,  13vw,  6rem);
+    --fs-display-lg  : clamp(2.8rem,  10vw,  5rem);
+    --fs-display-md  : clamp(1.8rem,   7vw,  2.8rem);
+    --fs-display-sm  : clamp(1.5rem,   6vw,  2.2rem);
+    --fs-display-xs  : clamp(1.1rem,  4.5vw, 1.6rem);
+    --fs-subtitle-lg : clamp(1.2rem,   4vw,  1.6rem);
+    --fs-subtitle-md : clamp(1rem,    3.5vw,  1.35rem);
+    --fs-subtitle-sm : clamp(0.875rem, 3vw,  1.1rem);
+    --fs-body-xl     : clamp(0.95rem,  3vw,  1.1rem);
+    --fs-body-lg     : clamp(0.9rem,  2.5vw,  1rem);
+    --section-gap    : 40px;
+    /* En móvil el tracking neutro/ligeramente positivo da más legibilidad */
+    --ls-display-hero : 0em;
+    --ls-display      : 0em;
+    --ls-display-md   : 0.005em;
+  }
+}
+@media (max-width: 480px) {
+  :root {
+    --fs-display-xl  : clamp(3rem,    14vw, 5rem);
+    --fs-display-lg  : clamp(2.4rem,  11vw, 4rem);
+    --fs-display-md  : clamp(1.6rem,   8vw, 2.4rem);
+    --fs-display-sm  : clamp(1.3rem,  6.5vw, 2rem);
+    --fs-subtitle-lg : clamp(1.1rem,  5.5vw, 1.4rem);
+    --fs-subtitle-md : clamp(0.95rem, 4.5vw, 1.2rem);
+    --section-gap    : 36px;
+  }
+}
+
+
+/* ============================================================================
+   BASE GLOBAL
+   ============================================================================ */
+
+body {
+  font-family             : var(--font-body);
+  font-weight             : var(--fw-body);
+  font-size               : var(--fs-body-md);
+  line-height             : var(--lh-body);
+  -webkit-font-smoothing  : antialiased;
+  -moz-osx-font-smoothing : grayscale;
+  text-rendering          : optimizeLegibility;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   HEADINGS GLOBALES
+   h1 → tracking hero (-0.02em), escala XL
+   h2 → tracking display (-0.01em), escala LG
+   h3 → tracking display-md (0em), escala MD
+   h4-h6 → tracking display-sm (0.01em), escala SM/XS
+   ───────────────────────────────────────────────────────────────────────────── */
+h1, h2, h3, h4, h5, h6 {
+  font-family    : var(--font-display);
+  font-weight    : var(--fw-display);
+  font-synthesis : none;
+  margin         : 0;
+}
+
+h1 {
+  font-size      : var(--fs-display-xl);
+  line-height    : var(--lh-display);
+  letter-spacing : var(--ls-display-hero);  /* -0.02em — respira en tamaños grandes */
+  text-transform : uppercase;
+}
+
+h2 {
+  font-size      : var(--fs-display-lg);
+  line-height    : var(--lh-display);
+  letter-spacing : var(--ls-display);       /* -0.01em — limpio y simétrico */
+  text-transform : uppercase;
+}
+
+h3 {
+  font-size      : var(--fs-display-md);
+  line-height    : var(--lh-display-md);
+  letter-spacing : var(--ls-display-md);    /* 0em — neutro para cards */
+  text-transform : uppercase;
+}
+
+h4, h5, h6 {
+  font-size      : var(--fs-display-sm);
+  line-height    : var(--lh-display-md);
+  letter-spacing : var(--ls-display-sm);    /* 0.01em — levemente abierto */
+  text-transform : uppercase;
+}
+
+
+/* ============================================================================
+   CLASES TIPOGRÁFICAS BASE
+   ============================================================================ */
+
+/* ── Título de sección ── */
+.block-title {
+  font-family    : var(--font-display);
+  font-weight    : var(--fw-display);
+  font-size      : var(--fs-display-lg);
+  line-height    : var(--lh-display);
+  letter-spacing : var(--ls-display);       /* -0.01em */
+  text-transform : uppercase;
+  font-synthesis : none;
+  margin         : 0;
+}
+
+/* ── Subtítulo de sección ── */
+.block-subtitle {
+  font-family    : var(--font-subtitle);
+  font-weight    : var(--fw-subtitle);
+  font-size      : var(--fs-display-sm);
+  line-height    : var(--lh-subtitle);
+  letter-spacing : var(--ls-subtitle);      /* 0.05em — contraste con título */
+  text-transform : uppercase;
+  font-synthesis : weight;
+  margin         : 0;
+  display        : block;
+}
+
+/* ── Subtítulos utilitarios ── */
+.subtitle-lg,
+.subtitle-md,
+.subtitle-sm {
+  font-family    : var(--font-subtitle);
+  font-weight    : var(--fw-subtitle);
+  line-height    : var(--lh-subtitle);
+  letter-spacing : var(--ls-subtitle);      /* 0.05em */
+  text-transform : uppercase;
+  font-synthesis : weight;
+  margin         : 0;
+}
+
+.subtitle-lg { font-size: var(--fs-subtitle-lg); }
+.subtitle-md { font-size: var(--fs-subtitle-md); }
+.subtitle-sm { font-size: var(--fs-subtitle-sm); }
+
+/* ── Label compacto ── */
+.label-text {
+  font-family    : var(--font-body);
+  font-weight    : var(--fw-label);
+  font-size      : var(--fs-body-sm);
+  letter-spacing : var(--ls-label);         /* 0.15em */
+  text-transform : uppercase;
+  line-height    : var(--lh-label);
+  margin         : 0;
+}
+
+/* ── Eyebrow (tracking abierto 0.35em) ── */
+.eyebrow {
+  font-family    : var(--font-body);
+  font-weight    : var(--fw-label);
+  font-size      : var(--fs-body-sm);
+  letter-spacing : var(--ls-loose);         /* 0.35em */
+  text-transform : uppercase;
+  line-height    : var(--lh-label);
+  margin         : 0;
+}
+
+/* ── Utilidades de cuerpo ── */
+.body-xl { font-family: var(--font-body); font-size: var(--fs-body-xl); line-height: var(--lh-body); }
+.body-lg { font-family: var(--font-body); font-size: var(--fs-body-lg); line-height: var(--lh-body); }
+.body-md { font-family: var(--font-body); font-size: var(--fs-body-md); line-height: var(--lh-body); }
+.body-sm { font-family: var(--font-body); font-size: var(--fs-body-sm); line-height: var(--lh-label); }
+
+/* ── Texto decorativo (Moisette) ── */
+.text-decorative {
+  font-family : var(--font-decorative);
+  font-weight : normal;
+  font-style  : italic;
+}
+
+
+/* ============================================================================
+   SISTEMA DE GAP DE SECCIÓN
+   ============================================================================ */
+
+.section-header {
+  text-align   : center;
+  margin-bottom: 0;
+}
+
+.block-title {
+  margin-bottom: var(--block-title-gap);
+}
+
+.block-subtitle {
+  margin-bottom: var(--section-gap) !important;
+}
+
+.block-title--no-subtitle {
+  margin-bottom: var(--section-gap) !important;
+}
+
+.eyebrow {
+  margin-bottom: var(--block-title-gap);
+}
+
+.section-header > .block-subtitle:last-child,
+.section-header > .subtitle-lg:last-child,
+.section-header > .subtitle-md:last-child,
+.section-header > .subtitle-sm:last-child {
+  margin-bottom: var(--section-gap) !important;
+}
+/* ============================================================================
+   ▼ AGREGAR AL FINAL DE typography.css
+   ============================================================================ */
+
+
+/* ============================================================================
+   VARIABLES DE COLOR, LAYOUT Y EASING
+   ============================================================================ */
+:root {
+  /* ── Colores ── */
+  --clr-bg          : #f8f7f4;
+  --clr-surface     : #ffffff;
+  --clr-text        : #111111;
+  --clr-muted       : #666666;
+  --clr-border      : #e8e5e0;
+  --clr-accent      : #FB670B;
+  --clr-accent-dark : #d45500;
+  --clr-dark        : #111111;
+  --clr-dark-2      : #1c1c1c;
+
+  /* ── Layout ── */
+  --max-w    : 1400px;
+  --pad      : clamp(20px, 4vw, 60px);
+  /* --section-gap ya definido arriba en typography.css */
+
+  /* ── Forma ── */
+  --radius    : 4px;
+  --radius-lg : 12px;
+
+  /* ── Animación ── */
+  --ease-out : cubic-bezier(0.16, 1, 0.3, 1);
+  --dur      : 0.4s;
+
+  /* ── Flechas ── */
+  --arrow-bg         : var(--clr-accent);
+  --arrow-icon       : #ffffff;
+  --arrow-hover-bg   : #000000;
+  --arrow-hover-icon : #ffffff;
+}
+
+html.dark {
+  --clr-bg      : #262626;
+  --clr-surface : #262626;
+  --clr-text    : #f0ede8;
+  --clr-muted   : #999999;
+  --clr-border  : #3a3a3a;
+  --clr-dark    : #262626;
+  --clr-dark-2  : #262626;
+
+  --arrow-bg         : #ffffff;
+  --arrow-icon       : #000000;
+  --arrow-hover-bg   : var(--clr-accent);
+  --arrow-hover-icon : #ffffff;
+}
+
+
+/* ============================================================================
+   RESET BASE
+   ============================================================================ */
+
+img { display: block; max-width: 100%; }
+a   { text-decoration: none; }
+
+
+/* ============================================================================
+   SECTION-TAG
+   Eyebrow de sección con línea decorativa naranja a la izquierda.
+
+   <p class="section-tag">Divisiones</p>
+   <p class="section-tag section-tag--light">Global</p>
+   ============================================================================ */
+.section-tag {
+  display        : inline-flex;
+  align-items    : center;
+  gap            : 10px;
+  font-size      : var(--fs-body-sm);
+  font-weight    : 600;
+  text-transform : uppercase;
+  letter-spacing : var(--ls-label);
+  color          : var(--clr-accent);
+  margin-bottom  : 20px;
+}
+.section-tag::before {
+  content    : '';
+  display    : block;
+  width      : 28px;
+  height     : 2px;
+  background : var(--clr-accent);
+  flex-shrink: 0;
+}
+.section-tag--light { color: rgba(255, 255, 255, 0.6); }
+.section-tag--light::before { background: rgba(255, 255, 255, 0.4); }
+
+
+/* ============================================================================
+   SECTION-HEADING
+   H2 de sección. El <em> es color acento (no cursiva).
+
+   <h2 class="section-heading">Nuestras <em>Divisiones</em></h2>
+   <h2 class="section-heading section-heading--light">Global <em>Reach</em></h2>
+   ============================================================================ */
+.section-heading {
+  font-family    : var(--font-display);
+  font-size      : var(--fs-display-lg);
+  line-height    : var(--lh-display);
+  font-weight    : 800;
+  text-transform : uppercase;
+  letter-spacing : var(--ls-display);
+  color          : var(--clr-text);
+}
+.section-heading em {
+  font-style     : normal;
+  font-size      : inherit;
+  font-weight    : inherit;
+  line-height    : inherit;
+  letter-spacing : inherit;
+  color          : var(--clr-accent);
+}
+.section-heading--light { color: #ffffff; }
+
+
+/* ============================================================================
+   BOTONES
+   .btn            → base
+   .btn--solid     → naranja sólido
+   .btn--ghost     → transparente borde blanco (fondos oscuros)
+   .btn--dark-ghost→ transparente borde oscuro (fondos claros)
+   .btn--xl        → tamaño grande
+
+   <a class="btn btn--solid">Ver productos</a>
+   <a class="btn btn--ghost">Nosotros</a>
+   ============================================================================ */
+.btn {
+  display        : inline-flex;
+  align-items    : center;
+  gap            : 10px;
+  font-family    : var(--font-body);
+  font-size      : var(--fs-body-sm);
+  font-weight    : 600;
+  letter-spacing : var(--ls-label-xs);
+  text-transform : uppercase;
+  padding        : 16px 32px;
+  border         : 2px solid transparent;
+  border-radius  : var(--radius);
+  cursor         : pointer;
+  transition     : all var(--dur) var(--ease-out);
+}
+.btn svg { transition: transform 0.3s var(--ease-out); flex-shrink: 0; }
+.btn:hover svg { transform: translateX(4px); }
+
+.btn--solid { background: var(--clr-accent); color: #fff; border-color: var(--clr-accent); }
+.btn--solid:hover {
+  background: transparent; color: var(--clr-accent);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(251, 103, 11, 0.25);
+}
+
+.btn--ghost { background: transparent; color: #fff; border-color: rgba(255, 255, 255, 0.5); }
+.btn--ghost:hover {
+  background: rgba(255, 255, 255, 0.1); border-color: #fff;
+  transform: translateY(-2px);
+}
+
+.btn--dark-ghost { background: transparent; color: var(--clr-text); border-color: var(--clr-text); }
+.btn--dark-ghost:hover {
+  background: var(--clr-text); color: var(--clr-bg);
+  transform: translateY(-2px);
+}
+
+.btn--xl { padding: 20px 48px; font-size: var(--fs-body-lg); }
+
+@media (max-width: 768px) {
+  .btn { justify-content: center; width: 100%; padding: 14px 24px; }
+}
+
+
+/* ============================================================================
+   UTILIDADES DE SPACING
+   ============================================================================ */
+.mt-xl { margin-top: var(--section-gap); }
+.mt-lg { margin-top: clamp(1.5rem, 3vw, 2.5rem); }
+.mt-md { margin-top: clamp(1rem,   2vw, 1.5rem);  }
+.mt-sm { margin-top: clamp(0.5rem, 1vw, 0.8rem);  }
+
+.mb-xl { margin-bottom: var(--section-gap); }
+.mb-lg { margin-bottom: clamp(1.5rem, 3vw, 2.5rem); }
+.mb-md { margin-bottom: clamp(1rem,   2vw, 1.5rem);  }
+.mb-sm { margin-bottom: clamp(0.5rem, 1vw, 0.8rem);  }

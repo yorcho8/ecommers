@@ -1,0 +1,866 @@
+﻿---
+import "../../styles/global.css";
+
+import { createClient } from "@libsql/client";
+import "dotenv/config";
+
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import Footer from "../../components/Footer.astro";
+
+interface DiscountItem {
+  id: number;
+  nombre: string;
+  precio: number;
+  precioFinal: number;
+  porcentaje: number;
+  ahorro: number;
+  imagen: string | null;
+}
+
+export function getStaticPaths() {
+  return [{ params: { lang: "es" } }];
+}
+const currentLang = "es";
+
+const db = createClient({
+  url: process.env.ECOMERS_DATABASE_URL || import.meta.env.ECOMERS_DATABASE_URL,
+  authToken: process.env.ECOMERS_AUTH_TOKEN || import.meta.env.ECOMERS_AUTH_TOKEN,
+});
+
+const nowMs = Date.now();
+
+const parseDateToMs = (value: unknown) => {
+  if (!value) return NaN;
+  const normalized = String(value).trim().replace(" ", "T");
+  const ms = Date.parse(normalized);
+  return Number.isFinite(ms) ? ms : NaN;
+};
+
+let descuentos: DiscountItem[] = [];
+
+try {
+  const result = await db.execute(`
+    SELECT
+      p.Id_Producto,
+      p.Nombre,
+      p.Precio,
+      (SELECT ip.Url
+         FROM Imagen_Producto ip
+        WHERE ip.Id_Producto = p.Id_Producto
+        ORDER BY ip.Id_Imagen LIMIT 1) AS Imagen,
+      d.Tipo,
+      d.Valor,
+      d.Fecha_Inicio,
+      d.Fecha_Fin
+    FROM Producto p
+    INNER JOIN DescuentoProducto dp ON dp.Id_Producto = p.Id_Producto
+    INNER JOIN Descuento d ON d.Id_Descuento = dp.Id_Descuento
+    WHERE COALESCE(p.Activo, 1) = 1
+      AND COALESCE(d.Activo, 1) = 1
+    ORDER BY d.Fecha_Fin ASC, d.Id_Descuento DESC
+  `);
+
+  const seen = new Set<number>();
+
+  descuentos = result.rows
+    .map((r) => {
+      const idProducto = Number(r.Id_Producto || 0);
+      if (!idProducto || seen.has(idProducto)) return null;
+
+      const inicioMs = parseDateToMs(r.Fecha_Inicio);
+      const finMs = parseDateToMs(r.Fecha_Fin);
+      if (Number.isNaN(inicioMs) || Number.isNaN(finMs)) return null;
+      if (nowMs < inicioMs || nowMs > finMs) return null;
+
+      const tipo = String(r.Tipo || "porcentaje").toLowerCase();
+      const valor = Number(r.Valor ?? 0);
+      const precio = Number(r.Precio ?? 0);
+
+      if (!Number.isFinite(valor) || valor <= 0) return null;
+
+      let precioFinal = precio;
+      let porcentaje = 0;
+
+      if (tipo === "monto") {
+        precioFinal = Math.max(0, +(precio - valor).toFixed(2));
+        porcentaje = precio > 0 ? Math.round(((precio - precioFinal) / precio) * 100) : 0;
+      } else {
+        porcentaje = Math.round(valor);
+        if (!Number.isFinite(porcentaje) || porcentaje <= 0 || porcentaje >= 100) return null;
+        precioFinal = +(precio * (1 - porcentaje / 100)).toFixed(2);
+      }
+
+      if (!(precioFinal < precio)) return null;
+
+      seen.add(idProducto);
+
+      return {
+        id: idProducto,
+        nombre: String(r.Nombre || "Producto"),
+        precio,
+        precioFinal,
+        porcentaje,
+        ahorro: +(precio - precioFinal).toFixed(2),
+        imagen: r.Imagen ? String(r.Imagen) : null,
+      } as DiscountItem;
+    })
+    .filter(Boolean) as DiscountItem[];
+} catch (error) {
+  console.error("[descuentos] error cargando descuentos:", error);
+}
+
+const resolveImageSrc = (src: string | null) => {
+  if (!src) return "/images/logo/logo.png";
+  if (src.startsWith("http") || src.startsWith("/")) return src;
+  return `/images/${src}`;
+};
+
+const totalOfertas = descuentos.length;
+const ofertaTop = descuentos.reduce((max, item) => Math.max(max, Number(item.porcentaje || 0)), 0);
+const ahorroPromedio = totalOfertas
+  ? descuentos.reduce((acc, item) => acc + Number(item.ahorro || 0), 0) / totalOfertas
+  : 0;
+---
+
+<BaseLayout
+  title={`Descuentos | Productos | NEXUS`}
+  currentLang={currentLang}
+>
+  <main class="ds-main">
+
+    <!-- ══ Ambient Glows ══ -->
+    <div class="ds-glow ds-glow--top"></div>
+    <div class="ds-glow ds-glow--orb"></div>
+
+    <!-- ══════════ HERO ══════════ -->
+    <section class="ds-hero">
+      <div class="ds-hero__content">
+        <span class="ds-eyebrow">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+          ULTIMA OPORTUNIDAD
+        </span>
+
+        <h1 class="ds-hero__title">
+          Flash <span class="ds-hero__accent">Descuentos</span>
+        </h1>
+
+        <p class="ds-hero__sub">
+          Ofertas activas que estan por terminar. Aprovecha precio preferencial antes de que el contador llegue a cero.
+        </p>
+
+        <div class="ds-hero__actions">
+          <a href={`/${currentLang}/productos/todos`} class="ds-btn ds-btn--primary">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+            Ver todos los productos
+          </a>
+          <a href={`/${currentLang}/carrito`} class="ds-btn ds-btn--ghost">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 002 1.61h9.72a2 2 0 002-1.61L23 6H6"/></svg>
+            Ir al carrito
+          </a>
+        </div>
+      </div>
+
+      <!-- KPI Cards -->
+      <div class="ds-hero__kpis">
+        <div class="ds-kpi">
+          <div class="ds-kpi__icon ds-kpi__icon--offers">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+          </div>
+          <div class="ds-kpi__data">
+            <span class="ds-kpi__value">{totalOfertas}</span>
+            <span class="ds-kpi__label">Ofertas activas</span>
+          </div>
+          {totalOfertas > 0 && <span class="ds-kpi__live"><span class="ds-live-dot"></span> Live</span>}
+        </div>
+
+        <div class="ds-kpi">
+          <div class="ds-kpi__icon ds-kpi__icon--top">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
+          </div>
+          <div class="ds-kpi__data">
+            <span class="ds-kpi__value">{ofertaTop > 0 ? `${ofertaTop}%` : "—"}</span>
+            <span class="ds-kpi__label">Oferta mas alta</span>
+          </div>
+        </div>
+
+        <div class="ds-kpi">
+          <div class="ds-kpi__icon ds-kpi__icon--save">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>
+          </div>
+          <div class="ds-kpi__data">
+            <span class="ds-kpi__value">${ahorroPromedio.toFixed(2)}</span>
+            <span class="ds-kpi__label">Ahorro promedio</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ══════════ CONTENT ══════════ -->
+    {totalOfertas === 0 ? (
+      <section class="ds-empty">
+        <div class="ds-empty__glow"></div>
+        <div class="ds-empty__icon">
+          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="8" y1="15" x2="16" y2="15"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>
+        </div>
+        <h2>No hay descuentos flash activos ahora</h2>
+        <p>Estamos preparando nuevas ofertas de cierre. Mientras tanto, explora todos los productos disponibles.</p>
+        <a href={`/${currentLang}/productos/todos`} class="ds-btn ds-btn--primary ds-btn--inline">
+          Ir a productos
+          <span class="ds-btn__arrow">→</span>
+        </a>
+      </section>
+    ) : (
+      <>
+        <!-- Section header -->
+        <div class="ds-section-header">
+          <div class="ds-section-header__left">
+            <h2 class="ds-section-title">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+              Ofertas disponibles
+            </h2>
+            <span class="ds-section-count">{totalOfertas} productos</span>
+          </div>
+        </div>
+
+        <!-- Grid -->
+        <section class="ds-grid" aria-label="Productos con descuento">
+          {descuentos.map((item, index) => (
+            <a
+              href={`/${currentLang}/productos/detalle/${item.id}`}
+              class="ds-card"
+              aria-label={`${item.nombre} — ${item.porcentaje}% de descuento`}
+              style={`--delay: ${index * 0.06}s`}
+            >
+              {/* Badges */}
+              <div class="ds-card__badges">
+                <span class="ds-badge ds-badge--discount">-{item.porcentaje}%</span>
+                {index === 0 && <span class="ds-badge ds-badge--top">Top Pick</span>}
+                {item.porcentaje >= 30 && index !== 0 && <span class="ds-badge ds-badge--hot">Hot</span>}
+              </div>
+
+              {/* Image */}
+              <div class="ds-card__img-wrap">
+                <img
+                  src={resolveImageSrc(item.imagen)}
+                  alt=""
+                  loading="lazy"
+                  decoding="async"
+                  class="ds-card__img"
+                />
+                <div class="ds-card__img-overlay">
+                  <span class="ds-card__quick-view">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                    Ver detalle
+                  </span>
+                </div>
+              </div>
+
+              {/* Body */}
+              <div class="ds-card__body">
+                <h3 class="ds-card__name">{item.nombre}</h3>
+
+                <div class="ds-card__prices">
+                  <span class="ds-card__price-old">${item.precio.toFixed(2)}</span>
+                  <span class="ds-card__price-now">${item.precioFinal.toFixed(2)}</span>
+                </div>
+
+                <div class="ds-card__savings">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>
+                  Ahorras <strong>${item.ahorro.toFixed(2)} MXN</strong>
+                </div>
+
+                <div class="ds-card__cta">
+                  <span>Ver producto</span>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+                </div>
+              </div>
+
+              {/* Rank indicator */}
+              <div class="ds-card__rank">#{index + 1}</div>
+            </a>
+          ))}
+        </section>
+      </>
+    )}
+
+  </main>
+
+  <Footer currentLang={currentLang} />
+</BaseLayout>
+
+<style is:global>
+/* ═══════════════════════════════════════════════════════
+   DESCUENTOS — PREMIUM DARK THEME (User = Brand)
+   Matches go-platform glassmorphism design system
+   ═══════════════════════════════════════════════════════ */
+
+.ds-main {
+  --ds-bg: #0b0e14;
+  --ds-surface: rgba(18,22,31,.8);
+  --ds-surface-solid: #12161f;
+  --ds-surface-2: #181d28;
+  --ds-surface-3: #1e2433;
+  --ds-border: rgba(255,255,255,.07);
+  --ds-border-hover: rgba(255,255,255,.14);
+  --ds-text: #f0f2f5;
+  --ds-text-2: #8b95a5;
+  --ds-text-3: #5a6478;
+  --ds-accent: var(--brand-accent);
+  --ds-accent-hover: var(--brand-accent-3);
+  --ds-accent-glow: rgba(var(--brand-accent-rgb), .15);
+  --ds-accent-glow-s: rgba(var(--brand-accent-3-rgb), .3);
+  --ds-green: #22c55e;
+  --ds-green-bg: rgba(34,197,94,.1);
+  --ds-green-border: rgba(34,197,94,.25);
+  --ds-red: #ef4444;
+  --ds-amber: #f59e0b;
+  --ds-radius: 16px;
+  --ds-radius-sm: 10px;
+  --ds-shadow: 0 2px 8px rgba(0,0,0,.2), 0 0 0 1px rgba(255,255,255,.04);
+  --ds-shadow-lg: 0 8px 32px rgba(0,0,0,.35), 0 0 0 1px rgba(255,255,255,.05);
+  --ds-shadow-glow: 0 4px 24px rgba(var(--brand-accent-rgb), .12), 0 0 0 1px rgba(var(--brand-accent-3-rgb), .15);
+
+  position: relative;
+  overflow: hidden;
+  min-height: 100vh;
+  padding: 40px 0 0;
+  font-family: var(--fuente-cuerpo, 'NeueMontreal', 'Inter', -apple-system, sans-serif);
+  color: var(--ds-text);
+}
+
+/* ── Ambient Glows ── */
+.ds-glow {
+  position: fixed;
+  pointer-events: none;
+  z-index: 0;
+}
+.ds-glow--top {
+  top: -200px;
+  right: -200px;
+  width: 600px;
+  height: 600px;
+  background: radial-gradient(circle, rgba(122,37,50,.07) 0%, transparent 70%);
+}
+.ds-glow--orb {
+  bottom: -100px;
+  left: -100px;
+  width: 400px;
+  height: 400px;
+  background: radial-gradient(circle, rgba(245,158,11,.05) 0%, transparent 70%);
+}
+
+/* ═══════════ HERO ═══════════ */
+.ds-hero {
+  max-width: 1140px;
+  margin: 0 auto;
+  padding: 40px 24px 0;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 32px;
+  position: relative;
+  z-index: 1;
+}
+
+.ds-hero__content {
+  max-width: 720px;
+}
+
+.ds-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .15em;
+  color: var(--ds-accent);
+  text-transform: uppercase;
+  margin-bottom: 14px;
+  padding: 6px 14px;
+  background: var(--ds-accent-glow);
+  border: 1px solid rgba(122,37,50,.2);
+  border-radius: 24px;
+  width: fit-content;
+}
+
+.ds-hero__title {
+  margin: 0 0 16px;
+  font-size: clamp(2.2rem, 5vw, 3.6rem);
+  font-weight: 800;
+  line-height: 1.05;
+  letter-spacing: -.03em;
+  color: var(--ds-text);
+  font-family: var(--fuente-titulos, 'NeueMontreal', 'SF Pro Display', sans-serif);
+}
+.ds-hero__accent {
+  background: linear-gradient(135deg, var(--ds-accent) 0%, var(--ds-amber) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.ds-hero__sub {
+  margin: 0 0 24px;
+  font-size: 15px;
+  color: var(--ds-text-2);
+  line-height: 1.6;
+  max-width: 540px;
+}
+
+/* ── Hero Actions ── */
+.ds-hero__actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 32px;
+}
+
+.ds-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 24px;
+  border-radius: 50px;
+  font-size: 13px;
+  font-weight: 700;
+  font-family: inherit;
+  text-decoration: none;
+  cursor: pointer;
+  transition: all .25s ease;
+  border: none;
+  position: relative;
+  overflow: hidden;
+}
+.ds-btn--primary {
+  background: linear-gradient(135deg, #7a2532, #263a72);
+  color: #fff;
+  box-shadow: 0 4px 16px rgba(122,37,50,.25);
+}
+.ds-btn--primary::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, rgba(255,255,255,.12) 0%, transparent 50%);
+  pointer-events: none;
+}
+.ds-btn--primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 28px rgba(122,37,50,.4);
+}
+.ds-btn--ghost {
+  background: var(--ds-surface-2);
+  color: var(--ds-text-2);
+  border: 1px solid var(--ds-border);
+}
+.ds-btn--ghost:hover {
+  color: var(--ds-text);
+  border-color: var(--ds-border-hover);
+  background: var(--ds-surface-3);
+}
+.ds-btn--inline { width: fit-content; }
+.ds-btn__arrow {
+  font-size: 16px;
+  transition: transform .2s ease;
+}
+.ds-btn:hover .ds-btn__arrow { transform: translateX(4px); }
+
+/* ── KPI Cards ── */
+.ds-hero__kpis {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+
+.ds-kpi {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 18px;
+  background: var(--ds-surface);
+  backdrop-filter: blur(16px);
+  border: 1px solid var(--ds-border);
+  border-radius: var(--ds-radius);
+  position: relative;
+  transition: all .25s ease;
+}
+.ds-kpi:hover {
+  border-color: var(--ds-border-hover);
+  transform: translateY(-2px);
+  box-shadow: var(--ds-shadow-lg);
+}
+
+.ds-kpi__icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.ds-kpi__icon--offers { background: var(--ds-accent-glow); color: var(--ds-accent); }
+.ds-kpi__icon--top { background: rgba(245,158,11,.12); color: var(--ds-amber); }
+.ds-kpi__icon--save { background: var(--ds-green-bg); color: var(--ds-green); }
+
+.ds-kpi__data { display: flex; flex-direction: column; gap: 2px; }
+.ds-kpi__value {
+  font-size: 20px;
+  font-weight: 800;
+  color: var(--ds-text);
+  line-height: 1;
+}
+.ds-kpi__label {
+  font-size: 11px;
+  color: var(--ds-text-3);
+  font-weight: 500;
+}
+
+.ds-kpi__live {
+  position: absolute;
+  top: 10px;
+  right: 12px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--ds-green);
+  text-transform: uppercase;
+  letter-spacing: .08em;
+}
+.ds-live-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--ds-green);
+  animation: ds-pulse 2s ease-in-out infinite;
+}
+@keyframes ds-pulse {
+  0%, 100% { opacity: .5; transform: scale(.8); }
+  50% { opacity: 1; transform: scale(1.2); }
+}
+
+/* ═══════════ SECTION HEADER ═══════════ */
+.ds-section-header {
+  max-width: 1140px;
+  margin: 48px auto 20px;
+  padding: 0 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: relative;
+  z-index: 1;
+}
+.ds-section-header__left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.ds-section-title {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--ds-text);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.ds-section-title svg { color: var(--ds-accent); }
+.ds-section-count {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ds-text-3);
+  padding: 4px 10px;
+  background: var(--ds-surface-2);
+  border: 1px solid var(--ds-border);
+  border-radius: 20px;
+}
+
+/* ═══════════ CARD GRID ═══════════ */
+.ds-grid {
+  max-width: 1140px;
+  margin: 0 auto;
+  padding: 0 24px 80px;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 16px;
+  position: relative;
+  z-index: 1;
+}
+
+/* ═══════════ DISCOUNT CARD ═══════════ */
+.ds-card {
+  background: var(--ds-surface);
+  backdrop-filter: blur(16px);
+  border: 1px solid var(--ds-border);
+  border-radius: var(--ds-radius);
+  overflow: hidden;
+  text-decoration: none;
+  color: inherit;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  transition: all .35s cubic-bezier(.25,.46,.45,.94);
+  animation: ds-cardIn .4s ease calc(var(--delay, 0s)) both;
+}
+@keyframes ds-cardIn {
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.ds-card:hover {
+  border-color: var(--ds-accent-glow-s);
+  transform: translateY(-6px);
+  box-shadow: 0 16px 48px rgba(0,0,0,.4), 0 0 0 1px rgba(122,37,50,.12);
+}
+
+/* ── Badges ── */
+.ds-card__badges {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  display: flex;
+  gap: 6px;
+  z-index: 3;
+}
+
+.ds-badge {
+  padding: 4px 10px;
+  border-radius: 8px;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: .02em;
+  backdrop-filter: blur(8px);
+}
+.ds-badge--discount {
+  background: rgba(239,68,68,.9);
+  color: #fff;
+  box-shadow: 0 2px 8px rgba(239,68,68,.3);
+}
+.ds-badge--top {
+  background: rgba(122,37,50,.9);
+  color: #fff;
+  box-shadow: 0 2px 8px rgba(122,37,50,.3);
+}
+.ds-badge--hot {
+  background: rgba(245,158,11,.9);
+  color: #1a1a1a;
+  box-shadow: 0 2px 8px rgba(245,158,11,.3);
+}
+
+/* ── Rank ── */
+.ds-card__rank {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  font-size: 11px;
+  font-weight: 800;
+  color: var(--ds-text-3);
+  background: rgba(0,0,0,.4);
+  backdrop-filter: blur(8px);
+  padding: 4px 8px;
+  border-radius: 6px;
+  z-index: 3;
+}
+
+/* ── Image ── */
+.ds-card__img-wrap {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  overflow: hidden;
+  background: var(--ds-surface-2);
+}
+.ds-card__img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform .5s cubic-bezier(.25,.46,.45,.94);
+}
+.ds-card:hover .ds-card__img {
+  transform: scale(1.08);
+}
+
+/* Quick view overlay */
+.ds-card__img-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0,0,0,.5);
+  backdrop-filter: blur(2px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity .3s ease;
+}
+.ds-card:hover .ds-card__img-overlay { opacity: 1; }
+
+.ds-card__quick-view {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  background: rgba(255,255,255,.12);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255,255,255,.2);
+  border-radius: 24px;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 600;
+  transform: translateY(8px);
+  transition: transform .3s ease;
+}
+.ds-card:hover .ds-card__quick-view { transform: translateY(0); }
+
+/* ── Card Body ── */
+.ds-card__body {
+  padding: 16px 18px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex: 1;
+}
+
+.ds-card__name {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--ds-text);
+  line-height: 1.3;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.ds-card__prices {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+.ds-card__price-old {
+  font-size: 13px;
+  color: var(--ds-text-3);
+  text-decoration: line-through;
+  font-weight: 500;
+}
+.ds-card__price-now {
+  font-size: 20px;
+  font-weight: 800;
+  color: var(--ds-accent);
+  letter-spacing: -.01em;
+}
+
+.ds-card__savings {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  color: var(--ds-green);
+  font-weight: 600;
+  padding: 4px 10px;
+  background: var(--ds-green-bg);
+  border: 1px solid var(--ds-green-border);
+  border-radius: 8px;
+  width: fit-content;
+}
+.ds-card__savings strong { font-weight: 800; }
+
+.ds-card__cta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: auto;
+  padding-top: 10px;
+  border-top: 1px solid var(--ds-border);
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--ds-accent);
+  transition: color .2s ease;
+}
+.ds-card:hover .ds-card__cta { color: var(--ds-accent-hover); }
+.ds-card__cta svg {
+  transition: transform .2s ease;
+}
+.ds-card:hover .ds-card__cta svg { transform: translateX(4px); }
+
+/* ═══════════ EMPTY STATE ═══════════ */
+.ds-empty {
+  max-width: 500px;
+  margin: 60px auto;
+  text-align: center;
+  padding: 60px 24px;
+  background: var(--ds-surface);
+  backdrop-filter: blur(16px);
+  border: 1px solid var(--ds-border);
+  border-radius: var(--ds-radius);
+  position: relative;
+  overflow: hidden;
+  z-index: 1;
+}
+.ds-empty__glow {
+  position: absolute;
+  top: -60px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 300px;
+  height: 200px;
+  background: radial-gradient(circle, rgba(122,37,50,.06) 0%, transparent 70%);
+  pointer-events: none;
+}
+.ds-empty__icon {
+  width: 80px;
+  height: 80px;
+  margin: 0 auto 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--ds-accent-glow);
+  border: 1px solid rgba(122,37,50,.2);
+  border-radius: 50%;
+  color: var(--ds-accent);
+  position: relative;
+  z-index: 1;
+}
+.ds-empty h2 {
+  margin: 0 0 8px;
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--ds-text);
+  position: relative;
+}
+.ds-empty p {
+  margin: 0 0 22px;
+  font-size: 14px;
+  color: var(--ds-text-2);
+  line-height: 1.5;
+  position: relative;
+}
+
+/* ═══════════ RESPONSIVE ═══════════ */
+@media (max-width: 768px) {
+  .ds-hero { padding: 24px 16px 0; }
+  .ds-hero__kpis { grid-template-columns: 1fr; gap: 8px; }
+  .ds-kpi { padding: 12px 14px; }
+  .ds-kpi__value { font-size: 16px; }
+
+  .ds-grid {
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: 12px;
+    padding: 0 16px 60px;
+  }
+
+  .ds-hero__title { font-size: clamp(1.8rem, 6vw, 2.4rem); }
+  .ds-hero__actions { flex-direction: column; }
+  .ds-btn { width: 100%; justify-content: center; }
+
+  .ds-section-header { margin-top: 32px; padding: 0 16px; }
+}
+
+@media (max-width: 480px) {
+  .ds-grid { grid-template-columns: 1fr; }
+  .ds-card__img-wrap { aspect-ratio: 16 / 10; }
+}
+</style>
+
+
+

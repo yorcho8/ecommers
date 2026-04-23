@@ -1,0 +1,37 @@
+
+
+<div class="fondo-global"></div>
+
+<style>
+  :root {
+    /* MODO CLARO: Blanco puro al 100% */
+    --bg-color: #ffffff;
+  }
+
+  :global(.dark) {
+    /* MODO OSCURO: Negro puro al 100% */
+    --bg-color: #000000;
+  }
+
+  .fondo-global {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    
+    /* Usamos color sólido en lugar de imágenes o degradados */
+    background-color: var(--bg-color);
+    
+    /* Eliminamos formas, filtros y desplazamientos */
+    border-radius: 0;
+    filter: none;
+    transform: none;
+    
+    z-index: -10;
+    pointer-events: none;
+    
+    /* Transición suave entre blanco y negro */
+    transition: background-color 0.4s ease;
+  }
+</style>
