@@ -1,7 +1,6 @@
 ---
 // src/layouts/BaseLayout.astro
 
-import { pwaInfo } from "virtual:pwa-info";
 import Loader from "../components/Loader.astro";
 import Navbar from "../components/Nadbar.astro";
 import FondoGlobal from "../components/FondoGlobal.astro";
@@ -64,8 +63,6 @@ const mailSupportHref = `mailto:${supportEmail}?subject=Reporte%20de%20fallo%20o
     <link rel="icon" href="/favicon.ico" sizes="32x32" />
     <link rel="icon" type="image/png" href="https://res.cloudinary.com/dfuzfdrat/image/upload/v1772744553/logob_pw3jsd.png" />
     <link rel="apple-touch-icon" href={pwaIcon} />
-
-    {pwaInfo && <Fragment set:html={pwaInfo.webManifest.linkTag} />}
 
     <!-- Google Analytics 4 -->
     {import.meta.env.PUBLIC_GA4_MEASUREMENT_ID && (
@@ -1466,10 +1463,20 @@ const mailSupportHref = `mailto:${supportEmail}?subject=Reporte%20de%20fallo%20o
 
     <script src="/scripts/theme-toggle.js" defer></script>
 
-    <!-- ⚡ PWA Service Worker — defer para no bloquear -->
-    <script>
-      import { registerSW } from "virtual:pwa-register";
-      registerSW({ immediate: false }); // immediate:false → no bloquea el hilo principal
+    <!-- Limpieza de Service Worker legado para evitar loops/flicker en producción -->
+    <script nonce={cspNonce} is:inline>
+      (function () {
+        if (typeof window === "undefined" || !("serviceWorker" in navigator)) return;
+        window.addEventListener("load", function () {
+          navigator.serviceWorker.getRegistrations()
+            .then(function (regs) {
+              return Promise.all((regs || []).map(function (r) {
+                try { return r.update(); } catch (_) { return Promise.resolve(); }
+              }));
+            })
+            .catch(function () {});
+        });
+      })();
     </script>
 
     <!-- ⚡ Loader oculto con requestAnimationFrame → no bloquea el paint -->

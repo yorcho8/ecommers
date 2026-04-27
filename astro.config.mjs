@@ -28,7 +28,9 @@ export default defineConfig({
     react(),
     mdx(),
     sitemap(),
-    AstroPWA({
+    ...(
+      String(process.env.ENABLE_PWA || '').trim().toLowerCase() === 'true'
+        ? [AstroPWA({
       registerType: 'autoUpdate',
       manifest: {
         name: 'GO',
@@ -48,7 +50,9 @@ export default defineConfig({
         maximumFileSizeToCacheInBytes: 45000000,
         globPatterns: ['**/*.{js,css,html,ico,png,svg,webp}']
       }
-    })
+    })]
+        : []
+    )
   ],
 
   vite: {
