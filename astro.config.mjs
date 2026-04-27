@@ -3,7 +3,7 @@ import react from '@astrojs/react';
 import mdx from '@astrojs/mdx';
 import sitemap from '@astrojs/sitemap';
 import AstroPWA from '@vite-pwa/astro';
-import node from '@astrojs/node';
+import vercel from '@astrojs/vercel';
 import basicSsl from '@vitejs/plugin-basic-ssl';
 
 export default defineConfig({
@@ -11,7 +11,7 @@ export default defineConfig({
 
   // ✅ Server Rendered
   output: 'server',
-  adapter: node({ mode: 'standalone' }),  // ← el servidor real
+  adapter: vercel(),
 
   server: {
     host: true,
