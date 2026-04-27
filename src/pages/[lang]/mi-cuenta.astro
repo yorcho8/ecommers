@@ -51,6 +51,7 @@ if (!user) return Astro.redirect(`/${currentLang}/login`);
   {/* ── Tabs navigation ── */}
   <nav class="ac-tabs" role="tablist" aria-label="Secciones de cuenta">
     <button class="ac-tab is-active" role="tab" data-tab="perfil" aria-selected="true">Perfil</button>
+    <button class="ac-tab" role="tab" data-tab="perfil-fiscal">Perfil fiscal</button>
     <button class="ac-tab" role="tab" data-tab="seguridad">Seguridad</button>
     <button class="ac-tab" role="tab" data-tab="direcciones">Direcciones</button>
     <button class="ac-tab" role="tab" data-tab="pedidos">Pedidos</button>
@@ -78,6 +79,55 @@ if (!user) return Astro.redirect(`/${currentLang}/login`);
       </div>
       <div class="ac-actions">
         <button id="btnSaveProfile" class="ac-btn ac-btn--primary">Guardar cambios</button>
+      </div>
+    </div>
+  </section>
+
+  {/* ═══ TAB: Perfil fiscal ═══ */}
+  <section class="ac-panel" data-panel="perfil-fiscal" role="tabpanel" hidden>
+    <div class="ac-card">
+      <h2 class="ac-card__title">Datos fiscales (CFDI)</h2>
+      <p class="ac-card__sub">Guárdalos una vez y los usaremos al facturar tus pedidos.</p>
+      <div class="ac-fields">
+        <div class="ac-field ac-span2">
+          <label for="fiscalRfc">RFC fiscal *</label>
+          <input id="fiscalRfc" type="text" maxlength="13" placeholder="XAXX010101000" autocomplete="off" spellcheck="false" />
+        </div>
+        <div class="ac-field ac-span2">
+          <label for="fiscalNombre">Razón social / nombre completo *</label>
+          <input id="fiscalNombre" type="text" maxlength="254" placeholder="JUAN PEREZ GARCIA" />
+        </div>
+        <div class="ac-field">
+          <label for="fiscalUso">Uso del CFDI *</label>
+          <select id="fiscalUso">
+            <option value="G01">G01 - Adquisición de mercancias</option>
+            <option value="G03" selected>G03 - Gastos en general</option>
+            <option value="D01">D01 - Honorarios médicos</option>
+            <option value="I01">I01 - Construcciones</option>
+            <option value="S01">S01 - Sin efectos fiscales</option>
+          </select>
+        </div>
+        <div class="ac-field">
+          <label for="fiscalCp">CP fiscal *</label>
+          <input id="fiscalCp" type="text" maxlength="5" pattern="[0-9]{5}" placeholder="64000" />
+        </div>
+        <div class="ac-field ac-span2">
+          <label for="fiscalRegimen">Régimen fiscal del receptor *</label>
+          <select id="fiscalRegimen">
+            <option value="601" selected>601 - General de Ley Personas Morales</option>
+            <option value="603">603 - Personas Morales con Fines no Lucrativos</option>
+            <option value="605">605 - Sueldos y Salarios e Ingresos Asimilados</option>
+            <option value="606">606 - Arrendamiento</option>
+            <option value="612">612 - Personas Físicas con Actividades Empresariales</option>
+            <option value="616">616 - Sin obligaciones fiscales</option>
+            <option value="625">625 - Actividades Vía Plataformas Tecnológicas</option>
+            <option value="626">626 - RESICO</option>
+          </select>
+        </div>
+      </div>
+      <div class="ac-actions">
+        <button id="btnSaveFiscalProfile" class="ac-btn ac-btn--primary">Guardar perfil fiscal</button>
+        <button id="btnDeleteFiscalProfile" class="ac-btn ac-btn--danger">Eliminar perfil fiscal</button>
       </div>
     </div>
   </section>
@@ -748,7 +798,7 @@ html:not(.dark) .ac-root {
   // Init from hash/query
   const initTabByQuery = new URLSearchParams(location.search).get("tab") || "";
   const initTab = mustChangePassword ? "seguridad" : (location.hash.replace("#", "") || initTabByQuery || "perfil");
-  const hashMap = { "info-personal": "perfil", "mis-direcciones": "direcciones", "mis-pedidos": "pedidos", "mis-tarjetas": "tarjetas" };
+  const hashMap = { "info-personal": "perfil", "perfil-fiscal": "perfil-fiscal", "mis-direcciones": "direcciones", "mis-pedidos": "pedidos", "mis-tarjetas": "tarjetas" };
   switchTab(hashMap[initTab] || initTab);
 
   /* ═══ TOAST (replaces Modal for simple messages) ═══ */
@@ -826,6 +876,98 @@ html:not(.dark) .ac-root {
       const ti = $("profileTelefono"); if (ti) ti.value = d.user?.telefono || "";
     } catch {}
   }
+
+  /* ═══ FISCAL PROFILE ═══ */
+  function setFiscalForm(data) {
+    const rfc = $("fiscalRfc"); if (rfc) rfc.value = data?.rfcFiscal || "";
+    const nombre = $("fiscalNombre"); if (nombre) nombre.value = data?.razonSocialFiscal || "";
+    const uso = $("fiscalUso"); if (uso) uso.value = data?.usoCfdi || "G03";
+    const cp = $("fiscalCp"); if (cp) cp.value = data?.codigoPostalFiscal || "";
+    const regimen = $("fiscalRegimen"); if (regimen) regimen.value = data?.regimenFiscal || "601";
+  }
+
+  function getFiscalPayload() {
+    return {
+      rfcFiscal: ($("fiscalRfc")?.value || "").trim().toUpperCase().replace(/\s+/g, ""),
+      razonSocialFiscal: ($("fiscalNombre")?.value || "").trim().toUpperCase(),
+      usoCfdi: ($("fiscalUso")?.value || "G03").trim().toUpperCase(),
+      regimenFiscal: ($("fiscalRegimen")?.value || "616").trim(),
+      codigoPostalFiscal: ($("fiscalCp")?.value || "").trim(),
+    };
+  }
+
+  function validateFiscalPayload(payload) {
+    if (!/^[A-Z&Ñ]{3,4}[0-9]{6}[A-Z0-9]{3}$/.test(payload.rfcFiscal)) {
+      return "RFC fiscal inválido";
+    }
+    if ((payload.razonSocialFiscal || "").length < 3) {
+      return "Ingresa razón social o nombre completo";
+    }
+    if (!/^\d{5}$/.test(payload.codigoPostalFiscal || "")) {
+      return "CP fiscal inválido";
+    }
+    if (!payload.regimenFiscal) {
+      return "Selecciona régimen fiscal";
+    }
+    return null;
+  }
+
+  async function loadFiscalProfile() {
+    try {
+      const r = await fetch("/api/me/datos-fiscales", { credentials: "include" });
+      const d = await r.json().catch(() => ({}));
+      if (!r.ok || !d?.success) return;
+      setFiscalForm(d?.datosFiscales || null);
+    } catch {}
+  }
+
+  $("btnSaveFiscalProfile")?.addEventListener("click", async () => {
+    const payload = getFiscalPayload();
+    const error = validateFiscalPayload(payload);
+    if (error) { toast(error, "warning"); return; }
+
+    const btn = $("btnSaveFiscalProfile");
+    if (btn) { btn.disabled = true; btn.textContent = "Guardando..."; }
+    try {
+      const r = await fetch("/api/me/datos-fiscales", {
+        method: "PUT",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const d = await r.json().catch(() => ({}));
+      if (!r.ok || !d?.success) {
+        toast(d?.error || "Error al guardar perfil fiscal", "error");
+      } else {
+        setFiscalForm(d?.datosFiscales || payload);
+        toast("Perfil fiscal guardado");
+      }
+    } catch {
+      toast("Error de conexión", "error");
+    }
+    if (btn) { btn.disabled = false; btn.textContent = "Guardar perfil fiscal"; }
+  });
+
+  $("btnDeleteFiscalProfile")?.addEventListener("click", async () => {
+    const ok = await askConfirm("¿Eliminar perfil fiscal?", "Dejará de autocompletar tus datos al facturar.", { confirmText: "Eliminar" });
+    if (!ok) return;
+
+    const btn = $("btnDeleteFiscalProfile");
+    if (btn) { btn.disabled = true; btn.textContent = "Eliminando..."; }
+    try {
+      const r = await fetch("/api/me/datos-fiscales", { method: "DELETE", credentials: "include" });
+      const d = await r.json().catch(() => ({}));
+      if (!r.ok || !d?.success) {
+        toast(d?.error || "Error al eliminar perfil fiscal", "error");
+      } else {
+        setFiscalForm(null);
+        toast("Perfil fiscal eliminado");
+      }
+    } catch {
+      toast("Error de conexión", "error");
+    }
+    if (btn) { btn.disabled = false; btn.textContent = "Eliminar perfil fiscal"; }
+  });
 
   $("btnSaveProfile")?.addEventListener("click", async () => {
     const correo = $("profileCorreo")?.value.trim() || "";
@@ -1203,7 +1345,7 @@ html:not(.dark) .ac-root {
     loadSecurityStatus();
     switchTab("seguridad");
   } else {
-    loadProfile(); loadCards(); loadOrders(); loadAddresses(); loadSecurityStatus();
+    loadProfile(); loadFiscalProfile(); loadCards(); loadOrders(); loadAddresses(); loadSecurityStatus();
   }
 })();
 </script>

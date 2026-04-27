@@ -1,0 +1,16 @@
+---
+const { date } = Astro.props;
+
+const value = date ? new Date(date) : null;
+const isValid = value instanceof Date && !Number.isNaN(value.getTime());
+const formatted = isValid
+  ? value.toLocaleDateString("es-MX", {
+      year: "numeric",
+      month: "short",
+      day: "2-digit",
+    })
+  : "";
+const iso = isValid ? value.toISOString() : "";
+---
+
+{isValid ? <time datetime={iso}>{formatted}</time> : null}

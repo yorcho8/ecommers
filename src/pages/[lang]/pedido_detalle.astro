@@ -764,9 +764,69 @@ const sessionRole = String(Astro.locals?.user?.rol || "").toLowerCase();
     btn.dataset.action = action || "view";
   }
 
+  var savedFiscalProfile = null;
+
+  function isSavedFiscalComplete(data) {
+    if (!data) return false;
+    var rfc = String(data.rfcFiscal || "").trim();
+    var nombre = String(data.razonSocialFiscal || "").trim();
+    var regimen = String(data.regimenFiscal || "").trim();
+    var cp = String(data.codigoPostalFiscal || "").trim();
+    return (rfc.length >= 12 && rfc.length <= 13 && nombre.length >= 3 && regimen && /^\d{5}$/.test(cp));
+  }
+
+  function prefillFacturaFormFromProfile() {
+    if (!savedFiscalProfile) return;
+    var rfcEl = $("od-fac-rfc");
+    var nombreEl = $("od-fac-nombre");
+    var usoEl = $("od-fac-uso");
+    var regimenEl = $("od-fac-regimen");
+    var cpEl = $("od-fac-cp");
+
+    if (rfcEl instanceof HTMLInputElement) rfcEl.value = String(savedFiscalProfile.rfcFiscal || "");
+    if (nombreEl instanceof HTMLInputElement) nombreEl.value = String(savedFiscalProfile.razonSocialFiscal || "");
+    if (usoEl instanceof HTMLSelectElement) usoEl.value = String(savedFiscalProfile.usoCfdi || "G03");
+    if (regimenEl instanceof HTMLSelectElement) regimenEl.value = String(savedFiscalProfile.regimenFiscal || "601");
+    if (cpEl instanceof HTMLInputElement) cpEl.value = String(savedFiscalProfile.codigoPostalFiscal || "");
+  }
+
+  async function submitFacturaRequest(orderId, payload) {
+    var submitBtn = $("od-fac-submit");
+    var submitTxt = $("od-fac-submit-txt");
+    if (submitBtn instanceof HTMLButtonElement) submitBtn.disabled = true;
+    if (submitTxt instanceof HTMLElement) submitTxt.textContent = "Generando...";
+
+    try {
+      var res = await fetch("/api/me/pedidos/" + orderId + "/factura", {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      var data = await res.json().catch(function () { return {}; });
+
+      if (!res.ok || !data.success) {
+        setFacturaError(data?.error || "No se pudo generar la factura. Verifica tus datos fiscales.");
+        return false;
+      }
+
+      closeFacturaModal();
+      descargarFactura(orderId, "pdf");
+      await loadFactura(orderId);
+      return true;
+    } catch (err) {
+      setFacturaError("Error de red al generar la factura. Intenta de nuevo.");
+      return false;
+    } finally {
+      if (submitBtn instanceof HTMLButtonElement) submitBtn.disabled = false;
+      if (submitTxt instanceof HTMLElement) submitTxt.textContent = "Generar Factura";
+    }
+  }
+
   function openFacturaModal() {
     var modal = $("od-fac-modal");
     if (modal) { modal.hidden = false; document.body.style.overflow = "hidden"; }
+    prefillFacturaFormFromProfile();
   }
 
   function closeCancelModal() {
@@ -897,9 +957,9 @@ const sessionRole = String(Astro.locals?.user?.rol || "").toLowerCase();
         await loadFactura(orderId);
         // renderFactura has now run — trigger the action that caused the click
         if (action === "emit") {
-          // Only open modal if the CTA was rendered (invoice doesn't exist yet)
-          if ($("od-fac-open-modal")) openFacturaModal();
-          // If no modal element: an existing invoice was revealed — nothing extra needed
+          var quickBtnOnLoad = $("od-fac-generate-saved");
+          if (quickBtnOnLoad) quickBtnOnLoad.click();
+          else if ($("od-fac-open-modal")) openFacturaModal();
         } else if (action === "cancel") {
           openInlineCancelFactura(body);
         }
@@ -908,7 +968,9 @@ const sessionRole = String(Astro.locals?.user?.rol || "").toLowerCase();
 
       // Already loaded — act immediately
       if (action === "emit") {
-        openFacturaModal();
+        var quickBtn = $("od-fac-generate-saved");
+        if (quickBtn) quickBtn.click();
+        else openFacturaModal();
       } else if (action === "cancel") {
         var cancelBtnEl = $("od-fac-cancel-btn");
         if (cancelBtnEl) cancelBtnEl.click();
@@ -921,6 +983,7 @@ const sessionRole = String(Astro.locals?.user?.rol || "").toLowerCase();
     var body = $("od-factura-body");
     if (!body) return;
     var orderId = getOrderId();
+    savedFiscalProfile = data?.datosFiscales || null;
 
     if (data.factura) {
       var f = data.factura;
@@ -989,6 +1052,16 @@ const sessionRole = String(Astro.locals?.user?.rol || "").toLowerCase();
     var testBadge = data.isTestOverride
       ? '<span class="od-fac-test-badge">Modo pruebas activo</span>'
       : "";
+    var canAutoGenerate = isSavedFiscalComplete(savedFiscalProfile);
+    var autoGenerateHtml = canAutoGenerate
+      ? '<button class="od-fac-cta-btn" id="od-fac-generate-saved" type="button" style="margin-top:.55rem">' +
+          '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" width="17" height="17"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><path d="M8 15h8"/></svg>' +
+          ' Generar con mi perfil fiscal guardado' +
+        '</button>'
+      : "";
+    var profileHintHtml = canAutoGenerate
+      ? '<p class="od-fac-hint" style="margin-top:.5rem">Tus datos fiscales guardados se usarán automáticamente.</p>'
+      : "";
     body.innerHTML =
       '<div class="od-fac-cta">' +
         testBadge +
@@ -997,12 +1070,33 @@ const sessionRole = String(Astro.locals?.user?.rol || "").toLowerCase();
           '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" width="17" height="17"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="12" x2="12" y2="18"/><line x1="9" y1="15" x2="15" y2="15"/></svg>' +
           " Solicitar Factura Electrónica" +
         "</button>" +
+        autoGenerateHtml +
+        profileHintHtml +
       "</div>";
 
     var openBtn = $("od-fac-open-modal");
     if (openBtn) {
       openBtn.addEventListener("click", function () {
         openFacturaModal();
+      });
+    }
+
+    var quickBtn = $("od-fac-generate-saved");
+    if (quickBtn) {
+      quickBtn.addEventListener("click", async function () {
+        if (!isSavedFiscalComplete(savedFiscalProfile)) {
+          openFacturaModal();
+          return;
+        }
+        var payload = {
+          rfc: String(savedFiscalProfile.rfcFiscal || "").trim().toUpperCase(),
+          nombre: String(savedFiscalProfile.razonSocialFiscal || "").trim().toUpperCase(),
+          usoCfdi: String(savedFiscalProfile.usoCfdi || "G03"),
+          regimenFiscal: String(savedFiscalProfile.regimenFiscal || "616"),
+          cpFiscal: String(savedFiscalProfile.codigoPostalFiscal || "64000"),
+          saveFiscalData: true,
+        };
+        await submitFacturaRequest(orderId, payload);
       });
     }
   }
@@ -1073,9 +1167,6 @@ const sessionRole = String(Astro.locals?.user?.rol || "").toLowerCase();
     var usoEl     = $("od-fac-uso");
     var regimenEl = $("od-fac-regimen");
     var cpEl      = $("od-fac-cp");
-    var submitBtn = $("od-fac-submit");
-    var submitTxt = $("od-fac-submit-txt");
-
     if (!(rfcEl instanceof HTMLInputElement) || !(nombreEl instanceof HTMLInputElement)) return;
 
     var rfc    = rfcEl.value.trim().toUpperCase().replace(/\s+/g, "");
@@ -1091,38 +1182,14 @@ const sessionRole = String(Astro.locals?.user?.rol || "").toLowerCase();
     }
 
     setFacturaError("");
-    if (submitBtn instanceof HTMLButtonElement) submitBtn.disabled = true;
-    if (submitTxt instanceof HTMLElement) submitTxt.textContent = "Generando...";
-
-    try {
-      var res = await fetch("/api/me/pedidos/" + orderId + "/factura", {
-        method: "POST",
-        credentials: "include",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          rfc,
-          nombre,
-          usoCfdi:       usoEl     instanceof HTMLSelectElement ? usoEl.value     : "G03",
-          regimenFiscal: regimenEl instanceof HTMLSelectElement ? regimenEl.value  : "616",
-          cpFiscal:      cpEl      instanceof HTMLInputElement  ? (cpEl.value.trim() || "64000") : "64000",
-        }),
-      });
-      var data = await res.json().catch(function () { return {}; });
-
-      if (!res.ok || !data.success) {
-        setFacturaError(data?.error || "No se pudo generar la factura. Verifica tus datos fiscales.");
-        return;
-      }
-
-      closeFacturaModal();
-      descargarFactura(orderId, "pdf");
-      await loadFactura(orderId);
-    } catch (err) {
-      setFacturaError("Error de red al generar la factura. Intenta de nuevo.");
-    } finally {
-      if (submitBtn instanceof HTMLButtonElement) submitBtn.disabled = false;
-      if (submitTxt instanceof HTMLElement) submitTxt.textContent = "Generar Factura";
-    }
+    await submitFacturaRequest(orderId, {
+      rfc,
+      nombre,
+      usoCfdi:       usoEl     instanceof HTMLSelectElement ? usoEl.value     : "G03",
+      regimenFiscal: regimenEl instanceof HTMLSelectElement ? regimenEl.value  : "616",
+      cpFiscal:      cpEl      instanceof HTMLInputElement  ? (cpEl.value.trim() || "64000") : "64000",
+      saveFiscalData: true,
+    });
   });
 
   loadOrder();

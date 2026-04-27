@@ -26,6 +26,99 @@ function getSession(cookies) {
   }
 }
 
+async function ensureUsuarioDatosFiscalesSchema() {
+  await db.execute(`
+    CREATE TABLE IF NOT EXISTS UsuarioDatosFiscales (
+      Id_Datos integer PRIMARY KEY AUTOINCREMENT,
+      Id_Usuario integer NOT NULL UNIQUE,
+      RFC_Fiscal text NOT NULL,
+      Razon_Social_Fiscal text NOT NULL,
+      Regimen_Fiscal text NOT NULL,
+      Codigo_Postal_Fiscal text NOT NULL,
+      Uso_CFDI text DEFAULT 'G03' NOT NULL,
+      Fecha_Creacion text NOT NULL,
+      Fecha_Actualizacion text NOT NULL,
+      CONSTRAINT fk_UsuarioDatosFiscales_Id_Usuario_Usuario_Id_fk
+        FOREIGN KEY (Id_Usuario) REFERENCES Usuario(Id) ON DELETE CASCADE
+    )
+  `);
+
+  const cols = await db.execute("PRAGMA table_info(UsuarioDatosFiscales)");
+  const hasUsoCfdi = cols.rows.some((row) => String(row.name || "") === "Uso_CFDI");
+  if (!hasUsoCfdi) {
+    await db.execute("ALTER TABLE UsuarioDatosFiscales ADD COLUMN Uso_CFDI text DEFAULT 'G03' NOT NULL");
+  }
+}
+
+async function getSavedFiscalData(userId) {
+  const result = await db.execute({
+    sql: `
+      SELECT RFC_Fiscal, Razon_Social_Fiscal, Regimen_Fiscal, Codigo_Postal_Fiscal, Uso_CFDI
+      FROM UsuarioDatosFiscales
+      WHERE Id_Usuario = ?
+      LIMIT 1
+    `,
+    args: [Number(userId)],
+  });
+  if (!result.rows.length) return null;
+  const row = result.rows[0];
+  return {
+    rfcFiscal: String(row.RFC_Fiscal || ""),
+    razonSocialFiscal: String(row.Razon_Social_Fiscal || ""),
+    regimenFiscal: String(row.Regimen_Fiscal || ""),
+    codigoPostalFiscal: String(row.Codigo_Postal_Fiscal || ""),
+    usoCfdi: String(row.Uso_CFDI || "G03"),
+  };
+}
+
+function normalizeFiscalInput(body = {}) {
+  return {
+    rfc: String(body?.rfc || "").trim().toUpperCase().replace(/\s+/g, ""),
+    nombre: String(body?.nombre || "").trim().toUpperCase(),
+    usoCfdi: String(body?.usoCfdi || "").trim().toUpperCase(),
+    regimenFiscal: String(body?.regimenFiscal || "").trim(),
+    cpFiscal: String(body?.cpFiscal || "").trim(),
+  };
+}
+
+function mergeFiscalInputWithSaved(input, saved = null) {
+  return {
+    rfc: input.rfc || String(saved?.rfcFiscal || "").trim().toUpperCase(),
+    nombre: input.nombre || String(saved?.razonSocialFiscal || "").trim().toUpperCase(),
+    usoCfdi: input.usoCfdi || String(saved?.usoCfdi || "G03").trim().toUpperCase(),
+    regimenFiscal: input.regimenFiscal || String(saved?.regimenFiscal || "616").trim(),
+    cpFiscal: input.cpFiscal || String(saved?.codigoPostalFiscal || "64000").trim(),
+  };
+}
+
+async function upsertSavedFiscalData(userId, fiscal) {
+  const now = new Date().toISOString();
+  await db.execute({
+    sql: `
+      INSERT INTO UsuarioDatosFiscales
+        (Id_Usuario, RFC_Fiscal, Razon_Social_Fiscal, Regimen_Fiscal, Codigo_Postal_Fiscal, Uso_CFDI, Fecha_Creacion, Fecha_Actualizacion)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+      ON CONFLICT(Id_Usuario) DO UPDATE SET
+        RFC_Fiscal = excluded.RFC_Fiscal,
+        Razon_Social_Fiscal = excluded.Razon_Social_Fiscal,
+        Regimen_Fiscal = excluded.Regimen_Fiscal,
+        Codigo_Postal_Fiscal = excluded.Codigo_Postal_Fiscal,
+        Uso_CFDI = excluded.Uso_CFDI,
+        Fecha_Actualizacion = excluded.Fecha_Actualizacion
+    `,
+    args: [
+      Number(userId),
+      fiscal.rfc,
+      fiscal.nombre,
+      fiscal.regimenFiscal,
+      fiscal.cpFiscal,
+      fiscal.usoCfdi,
+      now,
+      now,
+    ],
+  });
+}
+
 async function ensureFacturaTable() {
   return true;
 }
@@ -58,6 +151,7 @@ export async function GET({ params, cookies, request }) {
 
   try {
     await ensureFacturaTable();
+    await ensureUsuarioDatosFiscalesSchema();
 
     // Verificar propiedad del pedido
     const orderRes = await db.execute({
@@ -68,6 +162,7 @@ export async function GET({ params, cookies, request }) {
 
     const estadoPedido = String(orderRes.rows[0].Estado || "");
     const eligibility = canRequestFactura(user, estadoPedido);
+    const savedFiscalData = await getSavedFiscalData(user.userId);
 
     // ── Descarga de archivo ──
     if (download === "pdf" || download === "xml") {
@@ -111,6 +206,7 @@ export async function GET({ params, cookies, request }) {
       return json({
         success: true,
         factura: null,
+        datosFiscales: savedFiscalData,
         canRequest: eligibility.can,
         isTestOverride: eligibility.isTestOverride,
         reason: eligibility.can
@@ -124,6 +220,7 @@ export async function GET({ params, cookies, request }) {
       success: true,
       canRequest: eligibility.can,
       isTestOverride: eligibility.isTestOverride,
+      datosFiscales: savedFiscalData,
       factura: {
         id: Number(f.Id_Factura),
         facturamaId: String(f.Facturama_Id || ""),
@@ -159,22 +256,41 @@ export async function POST({ params, cookies, request }) {
     return json({ success: false, error: "Cuerpo JSON inválido" }, 400);
   }
 
-  const { rfc, nombre, usoCfdi, regimenFiscal, cpFiscal } = body || {};
+  const saveFiscalData = body?.saveFiscalData !== false;
 
-  if (!rfc || String(rfc).trim().length < 12) {
-    return json({ success: false, error: "RFC inválido (mínimo 12 caracteres)" }, 400);
-  }
-  if (!nombre || String(nombre).trim().length < 3) {
-    return json({ success: false, error: "Nombre o razón social inválido" }, 400);
-  }
-
-  const rfcClean = String(rfc).trim().toUpperCase().replace(/\s+/g, "");
-  if (rfcClean.length < 12 || rfcClean.length > 13) {
-    return json({ success: false, error: "RFC debe tener 12 caracteres (moral) o 13 (física)" }, 400);
-  }
+  const inputFiscal = normalizeFiscalInput(body || {});
 
   try {
     await ensureFacturaTable();
+    await ensureUsuarioDatosFiscalesSchema();
+
+    const savedFiscalData = await getSavedFiscalData(user.userId);
+    const mergedFiscal = mergeFiscalInputWithSaved(inputFiscal, savedFiscalData);
+
+    const rfcClean = mergedFiscal.rfc;
+    const receptorName = mergedFiscal.nombre;
+    const receptorUsoCfdi = mergedFiscal.usoCfdi || "G03";
+    const receptorRegimen = mergedFiscal.regimenFiscal || "616";
+    const receptorCpFiscal = mergedFiscal.cpFiscal || "64000";
+
+    if (!rfcClean || rfcClean.length < 12) {
+      return json({ success: false, error: "RFC invalido (minimo 12 caracteres)" }, 400);
+    }
+    if (!receptorName || receptorName.length < 3) {
+      return json({ success: false, error: "Nombre o razon social invalido" }, 400);
+    }
+
+    if (!/^\d{5}$/.test(receptorCpFiscal)) {
+      return json({ success: false, error: "Codigo postal fiscal invalido" }, 400);
+    }
+
+    if (!receptorRegimen) {
+      return json({ success: false, error: "Regimen fiscal invalido" }, 400);
+    }
+
+    if (rfcClean.length < 12 || rfcClean.length > 13) {
+      return json({ success: false, error: "RFC debe tener 12 caracteres (moral) o 13 (fisica)" }, 400);
+    }
 
     // Verificar propiedad y estado del pedido
     const orderRes = await db.execute({
@@ -237,10 +353,10 @@ export async function POST({ params, cookies, request }) {
       },
       receptor: {
         rfc: rfcClean,
-        nombre: String(nombre).trim(),
-        usoCfdi: String(usoCfdi || "G03"),
-        regimenFiscal: String(regimenFiscal || "616"),
-        cpFiscal: String(cpFiscal || "64000"),
+        nombre: receptorName,
+        usoCfdi: receptorUsoCfdi,
+        regimenFiscal: receptorRegimen,
+        cpFiscal: receptorCpFiscal,
       },
     });
 
@@ -298,15 +414,25 @@ export async function POST({ params, cookies, request }) {
         facturamaId,
         uuid,
         rfcClean,
-        String(nombre).trim().toUpperCase(),
-        String(usoCfdi || "G03"),
-        String(regimenFiscal || "616"),
-        String(cpFiscal || "64000"),
+        receptorName,
+        receptorUsoCfdi,
+        receptorRegimen,
+        receptorCpFiscal,
         totalCfdi,
         fechaEmision,
         now,
       ],
     });
+
+    if (saveFiscalData) {
+      await upsertSavedFiscalData(user.userId, {
+        rfc: rfcClean,
+        nombre: receptorName,
+        usoCfdi: receptorUsoCfdi,
+        regimenFiscal: receptorRegimen,
+        cpFiscal: receptorCpFiscal,
+      });
+    }
 
     return json(
       {
@@ -316,7 +442,7 @@ export async function POST({ params, cookies, request }) {
           facturamaId,
           uuid,
           rfcReceptor: rfcClean,
-          nombreReceptor: String(nombre).trim().toUpperCase(),
+          nombreReceptor: receptorName,
           total: totalCfdi,
           fechaEmision,
         },
