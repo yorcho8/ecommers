@@ -55,6 +55,7 @@ if (!user) return Astro.redirect(`/${currentLang}/login`);
     <button class="ac-tab" role="tab" data-tab="direcciones">Direcciones</button>
     <button class="ac-tab" role="tab" data-tab="pedidos">Pedidos</button>
     <button class="ac-tab" role="tab" data-tab="tarjetas">Tarjetas</button>
+    <button class="ac-tab" role="tab" data-tab="fiscal">Datos fiscales</button>
   </nav>
 
   {/* ═══ TAB: Perfil ═══ */}
@@ -225,6 +226,75 @@ if (!user) return Astro.redirect(`/${currentLang}/login`);
         <div id="cardsList" class="ac-cards-list"></div>
         <div id="cardsEmpty" class="ac-empty ac-empty--sm" style="display:none">
           <p>Sin tarjetas</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  {/* ═══ TAB: Datos fiscales ═══ */}
+  <section class="ac-panel" data-panel="fiscal" role="tabpanel" hidden>
+    <div class="ac-card">
+      <div class="ac-card__head-row">
+        <h2 class="ac-card__title">Datos fiscales</h2>
+        <button id="btnNewFiscal" class="ac-btn ac-btn--primary ac-btn--sm">+ Nuevo</button>
+      </div>
+      <p class="ac-card__sub">Administra tus RFC y datos para facturación</p>
+      <div id="fiscalList" class="ac-fiscal-list"></div>
+      <div id="fiscalEmpty" class="ac-empty" style="display:none">
+        <p>Sin datos fiscales</p>
+        <span>Agrega tu RFC para agilizar la facturación</span>
+      </div>
+
+      <div id="fiscalFormPanel" class="ac-fiscal-form" style="display:none">
+        <h3 id="fiscalFormTitle" class="ac-addr-form__title">Nuevo dato fiscal</h3>
+        <input id="fiscalEditId" type="hidden" />
+        <div class="ac-fields">
+          <div class="ac-field ac-span2">
+            <label>Alias (ej: Personal, Mi empresa)</label>
+            <input id="fiscalAlias" type="text" placeholder="Personal, Empresa…" />
+          </div>
+          <div class="ac-field">
+            <label for="fiscalRfc">RFC *</label>
+            <input id="fiscalRfc" type="text" placeholder="XAXX010101000" maxlength="13" style="text-transform:uppercase" />
+          </div>
+          <div class="ac-field">
+            <label for="fiscalNombre">Nombre / Razón social *</label>
+            <input id="fiscalNombre" type="text" placeholder="NOMBRE O EMPRESA S.A." style="text-transform:uppercase" />
+          </div>
+          <div class="ac-field">
+            <label for="fiscalUsoCfdi">Uso CFDI *</label>
+            <select id="fiscalUsoCfdi">
+              <option value="G01">G01 – Adquisición de mercancías</option>
+              <option value="G03" selected>G03 – Gastos en general</option>
+              <option value="I04">I04 – Equipo de cómputo</option>
+              <option value="D01">D01 – Honorarios médicos</option>
+              <option value="S01">S01 – Sin efectos fiscales</option>
+            </select>
+          </div>
+          <div class="ac-field">
+            <label for="fiscalRegimen">Régimen fiscal *</label>
+            <select id="fiscalRegimen">
+              <option value="601">601 – General de Ley Personas Morales</option>
+              <option value="612">612 – Personas Físicas con Actividades Empresariales</option>
+              <option value="616" selected>616 – Sin obligaciones fiscales</option>
+              <option value="621">621 – Incorporación Fiscal</option>
+              <option value="625">625 – Régimen de las Actividades Empresariales con ingresos</option>
+            </select>
+          </div>
+          <div class="ac-field">
+            <label for="fiscalCp">C.P. Fiscal *</label>
+            <input id="fiscalCp" type="text" inputmode="numeric" maxlength="5" placeholder="64000" />
+          </div>
+          <div class="ac-field ac-span2">
+            <label class="ac-checkbox-label">
+              <input id="fiscalPredeterminado" type="checkbox" />
+              Establecer como predeterminado
+            </label>
+          </div>
+        </div>
+        <div class="ac-actions">
+          <button id="btnSaveFiscal" class="ac-btn ac-btn--primary">Guardar</button>
+          <button id="btnCancelFiscal" class="ac-btn ac-btn--ghost">Cancelar</button>
         </div>
       </div>
     </div>
@@ -636,6 +706,87 @@ html:not(.dark) .ac-root {
 .ac-root .saved-crd-number { margin:0 0 2px;font-size:0.82rem;font-weight:700;color:var(--ac-text); }
 .ac-root .saved-crd-meta { display:flex;justify-content:space-between;font-size:0.68rem;color:var(--ac-text-3);margin-bottom:8px; }
 .ac-root .saved-crd-actions { display:flex;gap:5px; }
+
+/* ── Fiscal data list ── */
+.ac-root .ac-fiscal-list { display: flex; flex-direction: column; gap: 8px; }
+
+.ac-root .fiscal-card {
+  background: var(--ac-surface-2);
+  border: 1px solid var(--ac-border);
+  border-radius: var(--ac-r);
+  padding: 12px 14px;
+}
+
+.ac-root .fiscal-card.is-default { border-color: var(--ac-border-h); }
+
+.ac-root .fiscal-card-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 6px;
+  gap: 8px;
+}
+
+.ac-root .fiscal-card-alias {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--ac-accent);
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.ac-root .fiscal-card-rfc {
+  margin: 0 0 2px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--ac-text);
+  letter-spacing: 0.04em;
+}
+
+.ac-root .fiscal-card-nombre {
+  margin: 0 0 4px;
+  font-size: 0.78rem;
+  color: var(--ac-text-2);
+}
+
+.ac-root .fiscal-card-meta {
+  margin: 0 0 8px;
+  font-size: 0.68rem;
+  color: var(--ac-text-3);
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.ac-root .fiscal-card-actions { display: flex; gap: 5px; flex-wrap: wrap; }
+
+/* ── Fiscal form ── */
+.ac-root .ac-fiscal-form {
+  margin-top: 12px;
+  padding: 16px;
+  border: 1px dashed var(--ac-border-h);
+  border-radius: var(--ac-r);
+  background: rgba(249,115,22,0.03);
+}
+
+/* ── Checkbox label ── */
+.ac-root .ac-checkbox-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.78rem;
+  color: var(--ac-text-2);
+  cursor: pointer;
+  user-select: none;
+}
+
+.ac-root .ac-checkbox-label input[type="checkbox"] {
+  width: 15px;
+  height: 15px;
+  accent-color: var(--ac-accent);
+  cursor: pointer;
+}
 
 /* ── Dialog nativo ── */
 .ac-root .ac-dialog { border:none;border-radius:12px;background:transparent;padding:0;max-width:380px;width:calc(100% - 32px); }
@@ -1197,13 +1348,147 @@ html:not(.dark) .ac-root {
     }
   });
 
+  /* ═══ FISCAL DATA ═══ */
+  let datosFiscales = [];
+
+  const CFDI_LABELS = {
+    G01: "G01 – Adquisición de mercancías",
+    G03: "G03 – Gastos en general",
+    I04: "I04 – Equipo de cómputo",
+    D01: "D01 – Honorarios médicos",
+    S01: "S01 – Sin efectos fiscales",
+  };
+  const REGIMEN_LABELS = {
+    "601": "General de Ley Personas Morales",
+    "612": "Actividades Empresariales",
+    "616": "Sin obligaciones fiscales",
+    "621": "Incorporación Fiscal",
+    "625": "Régimen de ingresos por plataformas",
+  };
+
+  function renderFiscal() {
+    const list = $("fiscalList"), empty = $("fiscalEmpty");
+    if (!list) return;
+    datosFiscales.length > 0 ? hide(empty) : show(empty);
+    list.innerHTML = datosFiscales.map((f) => `
+      <article class="fiscal-card${f.predeterminado ? " is-default" : ""}">
+        <div class="fiscal-card-head">
+          <span class="fiscal-card-alias">🧾 ${f.alias || "Dato fiscal"}${f.predeterminado ? ' <span class="default-badge">Predeterminado</span>' : ""}</span>
+        </div>
+        <p class="fiscal-card-rfc">${f.rfc}</p>
+        <p class="fiscal-card-nombre">${f.nombre}</p>
+        <div class="fiscal-card-meta">
+          <span>Uso CFDI: ${CFDI_LABELS[f.usoCfdi] || f.usoCfdi}</span>
+          <span>Régimen: ${f.regimenFiscal} – ${REGIMEN_LABELS[f.regimenFiscal] || f.regimenFiscal}</span>
+          <span>C.P.: ${f.cpFiscal}</span>
+        </div>
+        <div class="fiscal-card-actions">
+          ${!f.predeterminado ? `<button class="ac-btn ac-btn--xs ac-btn--outline" data-fiscal-default="${f.id}">Predeterminado</button>` : ""}
+          <button class="ac-btn ac-btn--xs ac-btn--ghost" data-fiscal-edit="${f.id}">Editar</button>
+          <button class="ac-btn ac-btn--xs ac-btn--danger" data-fiscal-delete="${f.id}">Eliminar</button>
+        </div>
+      </article>`).join("");
+  }
+
+  async function loadFiscal() {
+    try {
+      const r = await fetch("/api/me/datos-fiscales", { credentials: "include" });
+      const d = await r.json().catch(() => ({}));
+      datosFiscales = (r.ok && d?.success && Array.isArray(d.datosFiscales)) ? d.datosFiscales : [];
+    } catch { datosFiscales = []; }
+    renderFiscal();
+  }
+
+  function closeFiscalForm() {
+    hide($("fiscalFormPanel"));
+    ["fiscalEditId", "fiscalAlias", "fiscalRfc", "fiscalNombre", "fiscalCp"].forEach((id) => { const el = $(id); if (el) el.value = ""; });
+    const uc = $("fiscalUsoCfdi"); if (uc) uc.value = "G03";
+    const rg = $("fiscalRegimen"); if (rg) rg.value = "616";
+    const pd = $("fiscalPredeterminado"); if (pd) pd.checked = false;
+  }
+
+  function openFiscalForm(mode) {
+    const f = $("fiscalFormPanel"); if (!f) return;
+    show(f);
+    const t = $("fiscalFormTitle"); if (t) t.textContent = mode === "edit" ? "Editar dato fiscal" : "Nuevo dato fiscal";
+    f.scrollIntoView({ behavior: "smooth", block: "nearest" });
+  }
+
+  $("btnNewFiscal")?.addEventListener("click", () => { closeFiscalForm(); openFiscalForm("new"); });
+  $("btnCancelFiscal")?.addEventListener("click", closeFiscalForm);
+
+  $("btnSaveFiscal")?.addEventListener("click", async () => {
+    const alias = $("fiscalAlias")?.value.trim() || "";
+    const rfc = ($("fiscalRfc")?.value.trim() || "").toUpperCase().replace(/\s+/g, "");
+    const nombre = ($("fiscalNombre")?.value.trim() || "").toUpperCase();
+    const usoCfdi = $("fiscalUsoCfdi")?.value || "G03";
+    const regimenFiscal = $("fiscalRegimen")?.value || "616";
+    const cpFiscal = $("fiscalCp")?.value.trim() || "";
+    const predeterminado = Boolean($("fiscalPredeterminado")?.checked);
+    const editId = Number($("fiscalEditId")?.value);
+    const isEdit = editId > 0;
+
+    if (rfc.length < 12 || rfc.length > 13) { toast("El RFC debe tener 12 o 13 caracteres", "warning"); return; }
+    if (!nombre || nombre.length < 3) { toast("Ingresa el nombre o razón social", "warning"); return; }
+    if (!cpFiscal || !/^\d{4,5}$/.test(cpFiscal)) { toast("Ingresa un código postal fiscal válido (4-5 dígitos)", "warning"); return; }
+
+    const btn = $("btnSaveFiscal"); btn.disabled = true; btn.textContent = "Guardando…";
+    try {
+      const url = isEdit ? `/api/me/datos-fiscales/${editId}` : "/api/me/datos-fiscales";
+      const method = isEdit ? "PUT" : "POST";
+      const r = await fetch(url, { method, credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ alias, rfc, nombre, usoCfdi, regimenFiscal, cpFiscal, predeterminado }) });
+      const d = await r.json().catch(() => ({}));
+      if (!r.ok || !d?.success) toast(d?.error || "Error al guardar", "error");
+      else { toast(isEdit ? "Dato actualizado" : "Dato guardado"); closeFiscalForm(); await loadFiscal(); }
+    } catch { toast("Error de conexión", "error"); }
+    btn.disabled = false; btn.textContent = "Guardar";
+  });
+
+  $("fiscalList")?.addEventListener("click", async (e) => {
+    const defBtn = e.target?.closest("button[data-fiscal-default]");
+    const editBtn = e.target?.closest("button[data-fiscal-edit]");
+    const delBtn = e.target?.closest("button[data-fiscal-delete]");
+
+    if (defBtn) {
+      const id = Number(defBtn.dataset.fiscalDefault);
+      try {
+        const r = await fetch(`/api/me/datos-fiscales/${id}`, { method: "PATCH", credentials: "include" });
+        const d = await r.json().catch(() => ({}));
+        if (!r.ok || !d?.success) toast("Error", "error"); else { toast("Actualizado"); await loadFiscal(); }
+      } catch { toast("Error", "error"); }
+    }
+
+    if (editBtn) {
+      const id = Number(editBtn.dataset.fiscalEdit);
+      const fiscal = datosFiscales.find((f) => f.id === id); if (!fiscal) return;
+      closeFiscalForm();
+      const m = { fiscalEditId: String(id), fiscalAlias: fiscal.alias || "", fiscalRfc: fiscal.rfc, fiscalNombre: fiscal.nombre, fiscalCp: fiscal.cpFiscal };
+      Object.entries(m).forEach(([k, v]) => { const el = $(k); if (el) el.value = v; });
+      const uc = $("fiscalUsoCfdi"); if (uc) uc.value = fiscal.usoCfdi || "G03";
+      const rg = $("fiscalRegimen"); if (rg) rg.value = fiscal.regimenFiscal || "616";
+      const pd = $("fiscalPredeterminado"); if (pd) pd.checked = Boolean(fiscal.predeterminado);
+      openFiscalForm("edit");
+    }
+
+    if (delBtn) {
+      const id = Number(delBtn.dataset.fiscalDelete);
+      const ok = await askConfirm("¿Eliminar dato fiscal?", "No se puede deshacer.", { confirmText: "Eliminar" });
+      if (!ok) return;
+      try {
+        const r = await fetch(`/api/me/datos-fiscales/${id}`, { method: "DELETE", credentials: "include" });
+        const d = await r.json().catch(() => ({}));
+        if (!r.ok || !d?.success) toast("Error", "error"); else { toast("Eliminado"); await loadFiscal(); }
+      } catch { toast("Error", "error"); }
+    }
+  });
+
   /* ═══ INIT ═══ */
   if (mustChangePassword) {
     loadProfile();
     loadSecurityStatus();
     switchTab("seguridad");
   } else {
-    loadProfile(); loadCards(); loadOrders(); loadAddresses(); loadSecurityStatus();
+    loadProfile(); loadCards(); loadOrders(); loadAddresses(); loadSecurityStatus(); loadFiscal();
   }
 })();
 </script>
