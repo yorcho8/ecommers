@@ -42,33 +42,6 @@ html.dark {
   --color-gray-light: #333333;
 }
 
-/* --- FONDO CON TEXTURA --- */
-html,
-body {
-  margin: 0;
-  padding: 0;
-  width: 100%;
-  min-height: 100vh;
-  overflow-x: hidden;
-  
-  /* Pinta el color base sÃ³lido primero */
-  background-color: var(--body-bg);
-  
-  /* Textura de ruido */
-
-  background-attachment: fixed;
-  /* Overlay funciona bien para mezclar ruido y color */
-  background-blend-mode: overlay; 
-  
-  transition: background-color 0.4s ease, color 0.4s ease;
-}
-
-/* Ajuste especÃ­fico para Dark Mode */
-html.dark body {
-  /* soft-light hace que el ruido sea mÃ¡s sutil sobre el gris oscuro */
-  background-blend-mode: soft-light;
-}
-
 /* --- SCROLLBAR PERSONALIZADO --- */
 ::-webkit-scrollbar {
   width: 10px;

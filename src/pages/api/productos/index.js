@@ -1,6 +1,6 @@
 import { createClient } from "@libsql/client";
 import 'dotenv/config';
-import { ensureProductVisibilitySchema, getSessionUser, getSessionUserId, isPrivileged } from "../../../lib/product-visibility.js";
+import { ensureProductVisibilitySchema, getSessionUser, getSessionUserId, isPrivileged, normalizeRole } from "../../../lib/product-visibility.js";
 import { ensureProductVariantExtendedSchema } from "../../../lib/product-variant-schema.js";
 
 const db = createClient({
@@ -26,18 +26,40 @@ export async function GET({ cookies, url }) {
     const q           = String(url.searchParams.get("q") || "").trim();
     const categoriaId = Number(url.searchParams.get("categoriaId") || 0);
 
-    const rol = String(session?.rol || "").toLowerCase();
+    const rol = normalizeRole(session?.rol);
     const esSuperAdmin = rol === "superusuario";
 
     let empresaId = null;
     if (sessionUserId && !esSuperAdmin) {
-      const empresaRes = await db.execute({
-        sql: `SELECT Id_Empresa FROM UsuarioEmpresa WHERE Id_Usuario = ? AND Activo = 1 LIMIT 1`,
-        args: [sessionUserId],
-      });
-      if (empresaRes.rows.length) {
-        empresaId = Number(empresaRes.rows[0].Id_Empresa);
+      try {
+        const empresaRes = await db.execute({
+          sql: `SELECT Id_Empresa FROM UsuarioEmpresa WHERE Id_Usuario = ? AND Activo = 1 LIMIT 1`,
+          args: [sessionUserId],
+        });
+        if (empresaRes.rows.length) {
+          empresaId = Number(empresaRes.rows[0].Id_Empresa);
+        }
+      } catch (empresaErr) {
+        console.warn("[GET /api/productos] No se pudo resolver la empresa del usuario:", empresaErr?.message || empresaErr);
       }
+    }
+
+    if (sessionUserId && isPrivileged(session) && !esSuperAdmin && !empresaId) {
+      return new Response(
+        JSON.stringify({
+          success: true,
+          productos: [],
+          pagination: {
+            page,
+            limit,
+            total: 0,
+            totalPages: 0,
+            hasNext: false,
+            hasPrev: false,
+          },
+        }),
+        { status: 200, headers: { 'Content-Type': 'application/json' } }
+      );
     }
 
     const searchClause = q

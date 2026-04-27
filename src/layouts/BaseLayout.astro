@@ -1,4 +1,4 @@
-﻿---
+---
 // src/layouts/BaseLayout.astro
 
 import { pwaInfo } from "virtual:pwa-info";
@@ -171,20 +171,6 @@ const mailSupportHref = `mailto:${supportEmail}?subject=Reporte%20de%20fallo%20o
         --grid-gap: 24px;
       }
 
-      html,
-      body {
-        background:
-          radial-gradient(circle at 0% -10%, rgba(251, 140, 55, 0.09), transparent 46%),
-          radial-gradient(circle at 100% -20%, rgba(214, 166, 81, 0.08), transparent 48%),
-          linear-gradient(180deg, #08080a 0%, #0b0b0f 48%, #09090d 100%);
-        color: var(--text-body);
-      }
-
-      body {
-        font-family: "SF Pro Display", "Inter", "Segoe UI", sans-serif;
-        text-rendering: optimizeLegibility;
-      }
-
       .app-content {
         width: 100%;
         padding-top: calc(var(--header-height) + 24px);
@@ -325,13 +311,6 @@ const mailSupportHref = `mailto:${supportEmail}?subject=Reporte%20de%20fallo%20o
         --shadow-elevated: 0 20px 38px rgba(15, 23, 42, 0.12);
       }
 
-      html:not(.dark) body {
-        background:
-          radial-gradient(circle at 0% -10%, rgba(251, 140, 55, 0.1), transparent 48%),
-          radial-gradient(circle at 100% -20%, rgba(214, 166, 81, 0.08), transparent 50%),
-          linear-gradient(180deg, #f8fafc 0%, #f4f6fb 50%, #f8fafc 100%);
-      }
-
       html:not(.dark) .premium-card {
         background: linear-gradient(160deg, rgba(255, 255, 255, 0.96), rgba(247, 250, 255, 0.94));
       }
@@ -398,59 +377,6 @@ const mailSupportHref = `mailto:${supportEmail}?subject=Reporte%20de%20fallo%20o
         pointer-events: auto;
       }
 
-      * {
-        -webkit-tap-highlight-color: transparent;
-      }
-
-      a,
-      button,
-      [role="button"],
-      label,
-      input[type="button"],
-      input[type="submit"],
-      input[type="reset"],
-      select,
-      summary {
-        -webkit-user-select: none;
-        -moz-user-select: none;
-        user-select: none;
-        outline: none;
-      }
-
-      section,
-      article,
-      .card,
-      .btn,
-      [class*="container"],
-      [class*="wrapper"],
-      [class*="section"],
-      [class*="block"],
-      [class*="tile"],
-      [class*="item"],
-      [class*="box"],
-      nav,
-      header,
-      footer,
-      aside {
-        -webkit-user-select: none;
-        -moz-user-select: none;
-        user-select: none;
-      }
-
-      p,
-      span,
-      h1, h2, h3, h4, h5, h6,
-      input[type="text"],
-      input[type="email"],
-      input[type="password"],
-      input[type="search"],
-      input[type="number"],
-      textarea {
-        -webkit-user-select: text;
-        -moz-user-select: text;
-        user-select: text;
-      }
-
       .app-content.with-admin-offset {
         box-sizing: border-box;
         width: 100%;
@@ -462,22 +388,63 @@ const mailSupportHref = `mailto:${supportEmail}?subject=Reporte%20de%20fallo%20o
         padding-left: 0;
       }
 
+      @keyframes adminSidebarFloat {
+        0% { transform: translateY(0px); box-shadow: 0 32px 64px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.15), 0 0 0 1px rgba(255, 255, 255, 0.02); }
+        50% { transform: translateY(-5px); box-shadow: 0 40px 70px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.25), 0 0 0 1px rgba(255, 255, 255, 0.05); }
+        100% { transform: translateY(0px); box-shadow: 0 32px 64px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.15), 0 0 0 1px rgba(255, 255, 255, 0.02); }
+      }
+
+      @keyframes auroraSpin {
+        0% { transform: rotate(0deg) scale(1); opacity: 0.5; }
+        50% { transform: rotate(180deg) scale(1.2); opacity: 0.8; }
+        100% { transform: rotate(360deg) scale(1); opacity: 0.5; }
+      }
+
       .admin-sidebar {
         position: fixed;
         top: 92px;
         left: 16px;
         bottom: 24px;
-        width: 220px;
+        width: 270px;
         z-index: 9000;
-        border: 1px solid rgba(255, 255, 255, 0.12);
-        border-radius: 16px;
-        background: linear-gradient(180deg, rgba(20, 20, 20, 0.96), rgba(10, 10, 10, 0.9));
-        backdrop-filter: blur(8px);
-        padding: 14px;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 28px;
+        background: linear-gradient(155deg, rgba(16, 16, 26, 0.65), rgba(4, 4, 8, 0.85));
+        backdrop-filter: blur(32px) saturate(2.5);
+        padding: 22px 20px;
         display: flex;
         flex-direction: column;
         overflow: hidden;
-        transition: transform 0.24s ease, opacity 0.24s ease;
+        animation: adminSidebarFloat 6s ease-in-out infinite;
+        transition: opacity 0.4s ease;
+      }
+
+      /* Reflejo superior estilo cristal curvo */
+      .admin-sidebar::after {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 5%;
+        right: 5%;
+        height: 1px;
+        background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.6), transparent);
+        pointer-events: none;
+      }
+
+      /* Efecto Aurora animado hiper dinámico */
+      .admin-sidebar::before {
+        content: "";
+        position: absolute;
+        top: -100px;
+        left: -100px;
+        width: 250px;
+        height: 250px;
+        background: radial-gradient(circle, #a855f7 0%, #d946ef 40%, transparent 70%);
+        filter: blur(60px);
+        pointer-events: none;
+        z-index: -1;
+        animation: auroraSpin 12s linear infinite;
+        mix-blend-mode: screen;
       }
 
       .admin-sidebar__scroll-area {
@@ -499,45 +466,24 @@ const mailSupportHref = `mailto:${supportEmail}?subject=Reporte%20de%20fallo%20o
       }
 
       .admin-sidebar__scroll-area::-webkit-scrollbar-thumb {
-        background: linear-gradient(180deg, rgba(122, 37, 50, 0.92), rgba(245, 158, 11, 0.88));
+        background: rgba(255, 255, 255, 0.15);
         border-radius: 999px;
-        border: 2px solid rgba(10, 10, 10, 0.6);
       }
 
-      .admin-sidebar-scroll {
-        margin-top: 12px;
-        padding-top: 10px;
-        border-top: 1px solid rgba(255, 255, 255, 0.12);
-        display: flex;
-        justify-content: center;
-        gap: 8px;
+      .admin-sidebar__group-label {
+        font-size: 0.65rem;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 0.2em;
+        margin: 18px 0 8px 8px;
+        background: linear-gradient(90deg, #ff0844, #ffb199);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        opacity: 0.9;
+        text-shadow: 0 0 12px rgba(255, 8, 68, 0.3);
       }
-
-      .admin-sidebar-scroll__btn {
-        width: 34px;
-        height: 34px;
-        border-radius: 999px;
-        border: 1px solid rgba(122, 37, 50, 0.5);
-        background: linear-gradient(160deg, rgba(122, 37, 50, 0.18), rgba(15, 23, 42, 0.75));
-        color: rgba(255, 255, 255, 0.95);
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        cursor: pointer;
-        font-size: 0.92rem;
-        font-weight: 700;
-        line-height: 1;
-        transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
-      }
-
-      .admin-sidebar-scroll__btn:hover {
-        transform: translateY(-1px);
-        border-color: rgba(122, 37, 50, 0.85);
-        box-shadow: 0 0 0 3px rgba(122, 37, 50, 0.18);
-      }
-
-      .admin-sidebar-scroll__btn:active {
-        transform: translateY(0);
+      .admin-sidebar__group-label:first-child {
+        margin-top: 4px;
       }
 
       .admin-sidebar.is-collapsed {
@@ -548,35 +494,85 @@ const mailSupportHref = `mailto:${supportEmail}?subject=Reporte%20de%20fallo%20o
 
       .admin-sidebar__head {
         display: flex;
-        align-items: flex-start;
-        justify-content: space-between;
-        gap: 10px;
+        align-items: center;
+        gap: 16px;
+        margin-bottom: 24px;
+        padding-bottom: 20px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        position: relative;
       }
 
-      .admin-sidebar__close {
-        border: 1px solid rgba(255, 255, 255, 0.2);
-        background: rgba(255, 255, 255, 0.04);
-        color: rgba(255, 255, 255, 0.86);
-        border-radius: 8px;
-        width: 30px;
-        height: 30px;
-        font-size: 1rem;
-        line-height: 1;
-        cursor: pointer;
+      /* Destello inferior en el head */
+      .admin-sidebar__head::after {
+        content: "";
+        position: absolute;
+        bottom: -1px;
+        left: 20%;
+        width: 60%;
+        height: 1px;
+        background: linear-gradient(90deg, transparent, #a855f7, transparent);
+        box-shadow: 0 0 8px #a855f7;
+      }
+
+      .admin-sidebar__logo {
+        width: 44px;
+        height: 44px;
+        border-radius: 14px;
+        background: linear-gradient(135deg, #a855f7, #d946ef);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #fff;
+        font-weight: 900;
+        font-size: 1.3rem;
+        letter-spacing: -0.05em;
+        box-shadow: 0 10px 20px rgba(168, 85, 247, 0.4), inset 0 2px 4px rgba(255, 255, 255, 0.5);
+        text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        animation: pulseLogo 3s infinite alternate;
+      }
+
+      @keyframes pulseLogo {
+        0% { filter: brightness(1); box-shadow: 0 10px 20px rgba(168, 85, 247, 0.4); }
+        100% { filter: brightness(1.2); box-shadow: 0 10px 30px rgba(168, 85, 247, 0.6); }
+      }
+
+      .admin-sidebar__titles {
+        flex: 1;
       }
 
       .admin-sidebar__title {
-        margin: 0 0 2px;
-        font-size: 0.86rem;
-        letter-spacing: 0.08em;
-        text-transform: uppercase;
-        color: rgba(255, 255, 255, 0.88);
+        margin: 0;
+        font-size: 0.95rem;
+        font-weight: 700;
+        color: #ffffff;
+        letter-spacing: 0.02em;
+        line-height: 1.2;
       }
 
       .admin-sidebar__subtitle {
-        margin: 0 0 14px;
+        margin: 2px 0 0;
         font-size: 0.75rem;
-        color: rgba(255, 255, 255, 0.58);
+        font-weight: 500;
+        color: rgba(255, 255, 255, 0.45);
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+      }
+
+      .admin-sidebar__close {
+        background: transparent;
+        border: none;
+        color: rgba(255, 255, 255, 0.4);
+        cursor: pointer;
+        padding: 4px;
+        border-radius: 6px;
+        transition: background 0.2s, color 0.2s;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .admin-sidebar__close:hover {
+        background: rgba(255, 255, 255, 0.1);
+        color: white;
       }
 
       .admin-sidebar__list {
@@ -586,17 +582,60 @@ const mailSupportHref = `mailto:${supportEmail}?subject=Reporte%20de%20fallo%20o
       }
 
       .admin-sidebar__link {
+        position: relative;
         display: flex;
         align-items: center;
-        gap: 10px;
-        padding: 10px 12px;
-        border: 1px solid rgba(255, 255, 255, 0.08);
-        border-radius: 10px;
+        gap: 14px;
+        padding: 12px 16px;
+        border: 1px solid transparent;
+        border-radius: 16px;
         text-decoration: none;
-        color: rgba(255, 255, 255, 0.85);
-        font-size: 0.82rem;
-        background: rgba(255, 255, 255, 0.03);
-        transition: background 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
+        color: rgba(255, 255, 255, 0.6);
+        font-size: 0.88rem;
+        font-weight: 600;
+        letter-spacing: 0.01em;
+        background: transparent;
+        transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+        overflow: hidden;
+      }
+
+      @keyframes shimmerSweep {
+        0% { transform: translateX(-100%) skewX(-15deg); }
+        100% { transform: translateX(200%) skewX(-15deg); }
+      }
+
+      /* Glass sweep reflection layer */
+      .admin-sidebar__link::after {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        bottom: 0;
+        width: 50%;
+        background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+        transform: translateX(-100%) skewX(-15deg);
+        pointer-events: none;
+      }
+
+      /* Hover highlight line indicator */
+      .admin-sidebar__link::before {
+        content: "";
+        position: absolute;
+        left: 0;
+        top: 0;
+        bottom: 0;
+        width: 4px;
+        background: linear-gradient(180deg, #a855f7, #d946ef);
+        border-radius: 0 6px 6px 0;
+        transform: scaleY(0);
+        transform-origin: center;
+        transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+      }
+
+      .admin-sidebar__link svg {
+        opacity: 0.6;
+        transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+        filter: drop-shadow(0 0 0px rgba(0, 0, 0, 0));
       }
 
       .admin-sidebar__link--pending {
@@ -613,31 +652,57 @@ const mailSupportHref = `mailto:${supportEmail}?subject=Reporte%20de%20fallo%20o
         align-items: center;
         justify-content: center;
         font-size: 0.69rem;
-        font-weight: 750;
-        letter-spacing: 0;
-        color: #fbbf24;
-        background: rgba(245, 158, 11, 0.14);
-        border: 1px solid rgba(245, 158, 11, 0.38);
-        animation: sidebarBadgeGlow 2.8s ease-in-out infinite;
+        font-weight: 800;
+        color: #ff0844;
+        background: rgba(255, 8, 68, 0.15);
+        border: 1px solid rgba(255, 8, 68, 0.4);
+        box-shadow: 0 0 12px rgba(255, 8, 68, 0.3);
+        animation: sidebarBadgeGlow 2s ease-in-out infinite alternate;
       }
 
       @keyframes sidebarBadgeGlow {
-        0%, 100% { box-shadow: 0 0 4px rgba(245, 158, 11, 0.14); }
-        50%       { box-shadow: 0 0 10px rgba(245, 158, 11, 0.32); }
+        0%   { box-shadow: 0 0 8px rgba(255, 8, 68, 0.2); }
+        100% { box-shadow: 0 0 20px rgba(255, 8, 68, 0.6); }
+      }
+
+      .admin-sidebar__link:hover::before {
+        transform: scaleY(0.5);
+      }
+      
+      .admin-sidebar__link:hover::after {
+        animation: shimmerSweep 1.2s ease-out;
       }
 
       .admin-sidebar__link:hover {
-        background: rgba(122, 37, 50, 0.12);
-        border-color: rgba(122, 37, 50, 0.42);
-        transform: translateX(2px);
+        background: linear-gradient(90deg, rgba(255, 255, 255, 0.08) 0%, transparent 100%);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        color: #ffffff;
+        transform: translateX(8px);
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+      }
+      .admin-sidebar__link:hover svg {
+        opacity: 1;
+        color: #a855f7;
+        transform: scale(1.25) rotate(-5deg);
+        filter: drop-shadow(0 0 14px rgba(168, 85, 247, 0.8));
       }
 
-      .admin-sidebar__dot {
-        width: 7px;
-        height: 7px;
-        border-radius: 999px;
-        background: #7a2532;
-        box-shadow: 0 0 8px rgba(122, 37, 50, 0.65);
+      /* Active page styling */
+      .admin-sidebar__link[aria-current="page"]::before {
+        transform: scaleY(1);
+        background: #a855f7;
+        box-shadow: 0 0 10px #a855f7;
+      }
+      .admin-sidebar__link[aria-current="page"] {
+        background: linear-gradient(90deg, rgba(168, 85, 247, 0.15) 0%, transparent 100%);
+        border: 1px solid rgba(168, 85, 247, 0.15);
+        color: #ffffff;
+        box-shadow: inset 0 0 20px rgba(168, 85, 247, 0.05);
+      }
+      .admin-sidebar__link[aria-current="page"] svg {
+        opacity: 1;
+        color: #a855f7;
+        filter: drop-shadow(0 0 12px rgba(168, 85, 247, 0.8));
       }
 
       /* ─── Admin Toggle v2 — "Command Center" ─── */
@@ -879,12 +944,11 @@ const mailSupportHref = `mailto:${supportEmail}?subject=Reporte%20de%20fallo%20o
       }
 
       html:not(.dark) .admin-sidebar__scroll-area::-webkit-scrollbar-thumb {
-        border-color: rgba(255, 255, 255, 0.88);
+        background: rgba(15, 23, 42, 0.2);
       }
 
-      html:not(.dark) .admin-sidebar-scroll__btn {
-        color: rgba(15, 23, 42, 0.88);
-        background: linear-gradient(160deg, rgba(122, 37, 50, 0.2), rgba(255, 255, 255, 0.95));
+      html:not(.dark) .admin-sidebar__group-label {
+        color: rgba(15, 23, 42, 0.5);
       }
 
       html:not(.dark) .admin-sidebar-toggle {
@@ -1206,93 +1270,103 @@ const mailSupportHref = `mailto:${supportEmail}?subject=Reporte%20de%20fallo%20o
 
           <aside id="admin-sidebar" class="admin-sidebar" aria-label="Sidebar de administración">
             <div class="admin-sidebar__head">
-              <div>
-                <p class="admin-sidebar__title">Admin</p>
-                <p class="admin-sidebar__subtitle">Accesos de gestión</p>
+              <div class="admin-sidebar__logo">GO</div>
+              <div class="admin-sidebar__titles">
+                <p class="admin-sidebar__title">Workspace</p>
+                <p class="admin-sidebar__subtitle">Admin Central</p>
               </div>
-              <button id="admin-sidebar-close" class="admin-sidebar__close" type="button" aria-label="Cerrar sidebar admin">×</button>
+              <button id="admin-sidebar-close" class="admin-sidebar__close" type="button" aria-label="Cerrar">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"></path></svg>
+              </button>
             </div>
 
             <div id="admin-sidebar-scroll-area" class="admin-sidebar__scroll-area">
               <nav class="admin-sidebar__list">
+                
+                <div class="admin-sidebar__group-label">Vista General</div>
                 <a class="admin-sidebar__link" href={`/${currentLang}/admin/dashboard`}>
-                  <span class="admin-sidebar__dot" style="background:#22d3ee;box-shadow:0 0 8px rgba(34,211,238,0.65)"></span>
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="9"/><rect x="14" y="3" width="7" height="5"/><rect x="14" y="12" width="7" height="9"/><rect x="3" y="16" width="7" height="5"/></svg>
                   Dashboard ejecutivo
                 </a>
+
+                <div class="admin-sidebar__group-label">Catálogo</div>
                 <a class="admin-sidebar__link" href={`/${currentLang}/admin/productos`}>
-                  <span class="admin-sidebar__dot"></span>
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg>
                   Gestión de productos
                 </a>
+                <a class="admin-sidebar__link" href={`/${currentLang}/admin/categorias`}>
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path><line x1="7" y1="7" x2="7.01" y2="7"></line></svg>
+                  Gestión de categorías
+                </a>
+                {isSuperAdmin && (
+                  <a class="admin-sidebar__link admin-sidebar__link--pending" href={`/${currentLang}/admin/productos-aprobacion`}>
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+                    Productos por aprobar
+                    <span id="admin-pending-products" class="admin-sidebar__badge" hidden>0</span>
+                  </a>
+                )}
+
+                <div class="admin-sidebar__group-label">Ventas y Operaciones</div>
+                <a class="admin-sidebar__link" href={`/${currentLang}/admin/pedidos`}>
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="21" r="1"></circle><circle cx="20" cy="21" r="1"></circle><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path></svg>
+                  Gestión de pedidos
+                </a>
+                <a class="admin-sidebar__link" href={`/${currentLang}/admin/facturacion`}>
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line></svg>
+                  Facturación
+                </a>
+                <a class="admin-sidebar__link" href={`/${currentLang}/admin/incidencias-pedidos`}>
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+                  Quejas de productos
+                </a>
+
+                <div class="admin-sidebar__group-label">Marketing y Finanzas</div>
+                <a class="admin-sidebar__link" href={`/${currentLang}/publicidad`}>
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path></svg>
+                  Gestión de publicidad
+                </a>
+                <a class="admin-sidebar__link" href={`/${currentLang}/admin/descuentos`}>
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="9" r="2"></circle><circle cx="15" cy="15" r="2"></circle><line x1="19" y1="5" x2="5" y2="19"></line></svg>
+                  Descuentos
+                </a>
+                <a class="admin-sidebar__link" href={`/${currentLang}/admin/empresas-perfil`}>
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
+                  Perfil de empresa destacada
+                </a>
+                <a class="admin-sidebar__link" href={`/${currentLang}/simulador`}>
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="2" width="16" height="20" rx="2" ry="2"></rect><line x1="8" y1="6" x2="16" y2="6"></line><line x1="16" y1="14" x2="16" y2="14.01"></line><line x1="12" y1="14" x2="12" y2="14.01"></line><line x1="8" y1="14" x2="8" y2="14.01"></line><line x1="16" y1="18" x2="16" y2="18.01"></line><line x1="12" y1="18" x2="12" y2="18.01"></line><line x1="8" y1="18" x2="8" y2="18.01"></line></svg>
+                  Simulador de costos
+                </a>
+
+                <div class="admin-sidebar__group-label">Configuración</div>
                 {isSuperAdmin && (
                   <a class="admin-sidebar__link" href={`/${currentLang}/admin/usuarios`}>
-                    <span class="admin-sidebar__dot"></span>
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
                     Gestión de usuarios
                   </a>
                 )}
-                <a class="admin-sidebar__link" href={`/${currentLang}/admin/categorias`}>
-                  <span class="admin-sidebar__dot"></span>
-                  Gestión de categorías
-                </a>
-                <a class="admin-sidebar__link" href={`/${currentLang}/admin/pedidos`}>
-                  <span class="admin-sidebar__dot"></span>
-                  Gestión de pedidos
-                </a>
                 <a class="admin-sidebar__link" href={`/${currentLang}/admin/equipo`}>
-                  <span class="admin-sidebar__dot" style="background:#38bdf8;box-shadow:0 0 8px rgba(56,189,248,0.62)"></span>
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
                   Equipo admin
-                </a>
-                <a class="admin-sidebar__link" href={`/${currentLang}/admin/incidencias-pedidos`}>
-                  <span class="admin-sidebar__dot" style="background:#f43f5e;box-shadow:0 0 8px rgba(244,63,94,0.65)"></span>
-                  Quejas de productos
-                </a>
-                <a class="admin-sidebar__link" href={`/${currentLang}/simulador`}>
-                  <span class="admin-sidebar__dot" style="background:#22d87a;box-shadow:0 0 8px rgba(34,216,122,0.65)"></span>
-                  Simulador de costos
-                </a>
-                <a class="admin-sidebar__link" href={`/${currentLang}/admin/descuentos`}>
-                  <span class="admin-sidebar__dot" style="background:#f59e0b;box-shadow:0 0 8px rgba(245,158,11,0.6)"></span>
-                  Descuentos
-                </a>
-                <a class="admin-sidebar__link" href={`/${currentLang}/publicidad`}>
-                  <span class="admin-sidebar__dot" style="background:#7a2532;box-shadow:0 0 8px rgba(122,37,50,0.65)"></span>
-                  Gestión de publicidad
-                </a>
-                <a class="admin-sidebar__link" href={`/${currentLang}/admin/empresas-perfil`}>
-                  <span class="admin-sidebar__dot" style="background:#f59e0b;box-shadow:0 0 8px rgba(245,158,11,0.65)"></span>
-                  Perfil de empresa destacada
-                </a>
-                <a class="admin-sidebar__link" href={`/${currentLang}/admin/facturacion`}>
-                  <span class="admin-sidebar__dot" style="background:#0ea5e9;box-shadow:0 0 8px rgba(14,165,233,0.65)"></span>
-                  Facturación
                 </a>
                 {isSuperAdmin && (
                   <>
-                    <a class="admin-sidebar__link admin-sidebar__link--pending" href={`/${currentLang}/admin/productos-aprobacion`}>
-                      <span class="admin-sidebar__dot" style="background:#7a2532;box-shadow:0 0 8px rgba(122,37,50,0.65)"></span>
-                      Productos por aprobar
-                      <span id="admin-pending-products" class="admin-sidebar__badge" hidden>0</span>
-                    </a>
                     <a class="admin-sidebar__link admin-sidebar__link--pending" href={`/${currentLang}/admin/empresas`}>
-                      <span class="admin-sidebar__dot" style="background:#8b5cf6;box-shadow:0 0 8px rgba(139,92,246,0.65)"></span>
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line></svg>
                       Aprobar empresas
                       <span id="admin-pending-empresas" class="admin-sidebar__badge" hidden>0</span>
                     </a>
                     <a class="admin-sidebar__link" href={`/${currentLang}/admin/empresas`}>
-                      <span class="admin-sidebar__dot" style="background:#10b981;box-shadow:0 0 8px rgba(16,185,129,0.65)"></span>
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
                       Registrar empresas
                     </a>
                     <a class="admin-sidebar__link" href={`/${currentLang}/admin/feedback`}>
-                      <span class="admin-sidebar__dot" style="background:#06b6d4;box-shadow:0 0 8px rgba(6,182,212,0.65)"></span>
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path></svg>
                       Quejas y sugerencias
                     </a>
                   </>
                 )}
               </nav>
-            </div>
-
-            <div class="admin-sidebar-scroll" aria-label="Desplazamiento del panel admin">
-              <button id="admin-sidebar-scroll-up" class="admin-sidebar-scroll__btn" type="button" aria-label="Subir en panel admin">▲</button>
-              <button id="admin-sidebar-scroll-down" class="admin-sidebar-scroll__btn" type="button" aria-label="Bajar en panel admin">▼</button>
             </div>
           </aside>
         </>
@@ -1427,8 +1501,6 @@ const mailSupportHref = `mailto:${supportEmail}?subject=Reporte%20de%20fallo%20o
       const sidebar = document.getElementById("admin-sidebar");
       const sidebarScrollArea = document.getElementById("admin-sidebar-scroll-area");
       const closeSidebarButton = document.getElementById("admin-sidebar-close");
-      const sidebarScrollUp = document.getElementById("admin-sidebar-scroll-up");
-      const sidebarScrollDown = document.getElementById("admin-sidebar-scroll-down");
       const toggleLabel = toggleButton?.querySelector(".admin-sidebar-toggle__label");
       const toggleCount = document.getElementById("admin-sidebar-toggle-count");
       const pendingProductsBadge = document.getElementById("admin-pending-products");
@@ -1586,17 +1658,6 @@ const mailSupportHref = `mailto:${supportEmail}?subject=Reporte%20de%20fallo%20o
         });
       }
 
-      if (sidebarScrollArea && sidebarScrollUp) {
-        sidebarScrollUp.addEventListener("click", () => {
-          sidebarScrollArea.scrollBy({ top: -220, behavior: "smooth" });
-        });
-      }
-
-      if (sidebarScrollArea && sidebarScrollDown) {
-        sidebarScrollDown.addEventListener("click", () => {
-          sidebarScrollArea.scrollBy({ top: 220, behavior: "smooth" });
-        });
-      }
 
       if (sidebar) {
         if (isMobile()) {
@@ -1776,5 +1837,3 @@ const mailSupportHref = `mailto:${supportEmail}?subject=Reporte%20de%20fallo%20o
     </script>
   </body>
 </html>
-
-

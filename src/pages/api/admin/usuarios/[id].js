@@ -30,6 +30,23 @@ function isPrivileged(role) {
   return role === "admin" || role === "superusuario";
 }
 
+async function tableExists(tableName) {
+  try {
+    const res = await db.execute({
+      sql: "SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = ? LIMIT 1",
+      args: [tableName],
+    });
+    return Boolean(res.rows.length);
+  } catch {
+    return false;
+  }
+}
+
+async function runIfTableExists(tableName, sql, args) {
+  if (!(await tableExists(tableName))) return;
+  await db.execute({ sql, args });
+}
+
 export async function PUT({ params, request, cookies }) {
   const currentUser = getCurrentUser(cookies);
   const currentRole = String(currentUser?.rol || "").toLowerCase();
@@ -175,11 +192,45 @@ export async function DELETE({ params, cookies }) {
       return json({ success: false, error: "Usuario no encontrado" }, 404);
     }
 
-    // Cascade-delete related records before deleting the user to avoid FK constraint violations
-    await db.execute({ sql: "DELETE FROM ItemCarrito WHERE Id_Carrito IN (SELECT Id_Carrito FROM Carrito WHERE Id_Usuario = ?)", args: [id] });
-    await db.execute({ sql: "DELETE FROM Carrito WHERE Id_Usuario = ?", args: [id] });
-    await db.execute({ sql: "DELETE FROM Tarjeta WHERE Id_Usuario = ?", args: [id] });
-    await db.execute({ sql: "DELETE FROM Direccion WHERE Id_Usuario = ?", args: [id] });
+    if (await tableExists("Pedido")) {
+      const orders = await db.execute({
+        sql: "SELECT COUNT(*) AS total FROM Pedido WHERE Id_Usuario = ?",
+        args: [id],
+      });
+      const totalOrders = Number(orders.rows?.[0]?.total || 0);
+      if (totalOrders > 0) {
+        return json(
+          {
+            success: false,
+            error: "No se puede eliminar el usuario porque tiene pedidos asociados",
+            code: "USER_HAS_ORDERS",
+            totalOrders,
+          },
+          409,
+        );
+      }
+    }
+
+    // Remove dependent records first to avoid FK violations on databases with mixed legacy schemas.
+    await runIfTableExists("ItemCarrito", "DELETE FROM ItemCarrito WHERE Id_Carrito IN (SELECT Id_Carrito FROM Carrito WHERE Id_Usuario = ?)", [id]);
+    await runIfTableExists("Carrito", "DELETE FROM Carrito WHERE Id_Usuario = ?", [id]);
+    await runIfTableExists("Tarjeta", "DELETE FROM Tarjeta WHERE Id_Usuario = ?", [id]);
+    await runIfTableExists("Direccion", "DELETE FROM Direccion WHERE Id_Usuario = ?", [id]);
+    await runIfTableExists("UsuarioEmpresa", "DELETE FROM UsuarioEmpresa WHERE Id_Usuario = ?", [id]);
+    await runIfTableExists("UsuarioEmailAuth", "DELETE FROM UsuarioEmailAuth WHERE Id_Usuario = ?", [id]);
+    await runIfTableExists("UsuarioTOTPBackup", "DELETE FROM UsuarioTOTPBackup WHERE Id_Usuario = ?", [id]);
+    await runIfTableExists("UsuarioTOTP", "DELETE FROM UsuarioTOTP WHERE Id_Usuario = ?", [id]);
+    await runIfTableExists("UserSecurityCode", "DELETE FROM UserSecurityCode WHERE Id_Usuario = ?", [id]);
+    await runIfTableExists("PasswordResetCode", "DELETE FROM PasswordResetCode WHERE Id_Usuario = ?", [id]);
+    await runIfTableExists("ProductoVisibilidadUsuario", "DELETE FROM ProductoVisibilidadUsuario WHERE Id_Usuario = ?", [id]);
+    await runIfTableExists("Favorito", "DELETE FROM Favorito WHERE Id_Usuario = ?", [id]);
+    await runIfTableExists("LoginActivity", "DELETE FROM LoginActivity WHERE Id_Usuario = ?", [id]);
+
+    // In audit/feedback tables user references are optional; keep records and detach the deleted user.
+    await runIfTableExists("QuejaSugerencia", "UPDATE QuejaSugerencia SET Id_Usuario = NULL WHERE Id_Usuario = ?", [id]);
+    await runIfTableExists("PedidoIncidencia", "UPDATE PedidoIncidencia SET Resuelto_Por = NULL WHERE Resuelto_Por = ?", [id]);
+    await runIfTableExists("PedidoIncidenciaBitacora", "UPDATE PedidoIncidenciaBitacora SET Id_Actor = NULL WHERE Id_Actor = ?", [id]);
+
     await db.execute({ sql: "DELETE FROM Usuario WHERE Id = ?", args: [id] });
 
     return json({ success: true, message: "Usuario eliminado" });

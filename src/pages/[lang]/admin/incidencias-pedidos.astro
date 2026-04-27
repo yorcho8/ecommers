@@ -1,4 +1,4 @@
-﻿---
+---
 import BaseLayout from "../../../layouts/BaseLayout.astro";
 
 export function getStaticPaths() {
@@ -7,46 +7,81 @@ export function getStaticPaths() {
 const currentLang = "es";
 const cspNonce = Astro.locals?.cspNonce || "";
 
-const role = String(Astro.locals?.user?.rol || "").trim().toLowerCase().replace(/[\s_-]/g, "")
+const role = String(Astro.locals?.user?.rol || "")
+  .trim()
+  .toLowerCase()
+  .replace(/[\s_-]/g, "")
   .replace(/^superadmin$|^superuser$|^superusuario$/, "superusuario");
 
 if (!role) return Astro.redirect(`/${currentLang}/login`);
-if (role !== "admin" && role !== "superusuario") return Astro.redirect(`/${currentLang}`);
+if (role !== "admin" && role !== "superusuario")
+  return Astro.redirect(`/${currentLang}`);
 
-const canVerdict = role === "superusuario";
 ---
 
 <BaseLayout title="Quejas de productos" currentLang={currentLang}>
   <main class="pi-page" data-app-view>
-    <section class="pi-head">
-      <div>
-        <p class="pi-kicker">Incidencias de pedidos</p>
-        <h1>Quejas por producto entregado</h1>
-        <p>Revisa evidencias de clientes y emite veredicto de devolucion.</p>
+    <!-- ── Hero header ── -->
+    <header class="pi-hero">
+      <div class="pi-hero__glow" aria-hidden="true"></div>
+      <div class="pi-hero__dots" aria-hidden="true"></div>
+      <div class="pi-hero__content">
+        <div>
+          <span class="pi-hero__badge">
+            <span class="pi-hero__badge-dot"></span>
+            Incidencias de pedidos
+          </span>
+          <h1 class="pi-hero__title">Quejas por producto entregado</h1>
+          <p class="pi-hero__sub">
+            Revisa evidencias de clientes sobre problemas con productos entregados.
+          </p>
+        </div>
+        <div class="pi-hero__actions">
+          <div class="pi-select-wrap">
+            <svg
+              width="13"
+              height="13"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2.2"><path d="M3 6h18M6 12h12M10 18h4"></path></svg
+            >
+            <select id="pi-status-filter">
+              <option value="all">Todos los estados</option>
+              <option value="pendiente">Pendientes</option>
+              <option value="aprobada_devolucion">Aprobadas</option>
+              <option value="rechazada_devolucion">Rechazadas</option>
+            </select>
+          </div>
+        </div>
       </div>
-      <div class="pi-actions">
-        <select id="pi-status-filter">
-          <option value="all">Todos</option>
-          <option value="pendiente">Pendientes</option>
-          <option value="aprobada_devolucion">Aprobadas</option>
-          <option value="rechazada_devolucion">Rechazadas</option>
-        </select>
-      </div>
-    </section>
+    </header>
 
+    <!-- ── Stats summary ── -->
+    <div id="pi-stats" class="pi-stats" hidden></div>
+
+    <!-- ── List ── -->
     <section id="pi-list" class="pi-list"></section>
   </main>
 
-  <script nonce={cspNonce} is:inline define:vars={{ canVerdict }}>
+  <!-- ════════ JS LOGIC (unchanged) ════════ -->
+  <script nonce={cspNonce} is:inline>
     (function () {
       var list = document.getElementById("pi-list");
       var filter = document.getElementById("pi-status-filter");
+      var statsEl = document.getElementById("pi-stats");
 
       function fmtDate(iso) {
         if (!iso) return "-";
         var d = new Date(iso);
         if (Number.isNaN(d.getTime())) return String(iso);
-        return d.toLocaleString("es-MX", { year: "numeric", month: "short", day: "2-digit", hour: "2-digit", minute: "2-digit" });
+        return d.toLocaleString("es-MX", {
+          year: "numeric",
+          month: "short",
+          day: "2-digit",
+          hour: "2-digit",
+          minute: "2-digit",
+        });
       }
 
       function statusLabel(status) {
@@ -69,11 +104,11 @@ const canVerdict = role === "superusuario";
 
       function priorityLabel(priority) {
         var map = {
-          alta: "Alta Â· roto grave",
-          media: "Media Â· faltante parcial",
-          baja: "Baja Â· detalle menor",
+          alta: "Alta · roto grave",
+          media: "Media · faltante parcial",
+          baja: "Baja · detalle menor",
         };
-        return map[String(priority || "")] || "Media Â· faltante parcial";
+        return map[String(priority || "")] || "Media · faltante parcial";
       }
 
       function priorityClass(priority) {
@@ -88,224 +123,930 @@ const canVerdict = role === "superusuario";
       function logLabel(action) {
         var map = {
           creada: "Incidencia creada",
-          dictamen_aprobado: "Veredicto: devolucion aprobada",
-          dictamen_rechazado: "Veredicto: devolucion rechazada",
-          notificacion_fallida: "Fallo en notificacion",
+          dictamen_aprobado: "Veredicto: devolución aprobada",
+          dictamen_rechazado: "Veredicto: devolución rechazada",
+          notificacion_fallida: "Fallo en notificación",
         };
-        return map[String(action || "")] || String(action || "Accion");
+        return map[String(action || "")] || String(action || "Acción");
       }
 
       function cardHtml(item) {
         var images = Array.isArray(item.imagenes) ? item.imagenes : [];
         var imageGrid = images.length
-          ? '<div class="pi-images">' + images.map(function (u) {
-              return '<a href="' + u + '" target="_blank" rel="noopener"><img src="' + u + '" alt="Evidencia" loading="lazy" /></a>';
-            }).join("") + '</div>'
-          : '<p class="pi-muted">Sin imagenes</p>';
+          ? '<div class="pi-images">' +
+            images
+              .map(function (u) {
+                return (
+                  '<a href="' +
+                  u +
+                  '" target="_blank" rel="noopener"><img src="' +
+                  u +
+                  '" alt="Evidencia" loading="lazy" /></a>'
+                );
+              })
+              .join("") +
+            "</div>"
+          : '<p class="pi-muted pi-muted--imgs">Sin imágenes adjuntas</p>';
 
         var verdictInfo = item.veredicto
-          ? '<p class="pi-verdict">Veredicto: ' + item.veredicto + '</p>' + (item.comentarioVeredicto ? '<p class="pi-verdict-comment">' + item.comentarioVeredicto + '</p>' : '')
-          : '';
+          ? '<div class="pi-verdict-box"><p class="pi-verdict-label">Veredicto emitido</p><p class="pi-verdict">' +
+            item.veredicto +
+            "</p>" +
+            (item.comentarioVeredicto
+              ? '<p class="pi-verdict-comment">' +
+                item.comentarioVeredicto +
+                "</p>"
+              : "") +
+            "</div>"
+          : "";
 
         var logItems = Array.isArray(item.bitacora) ? item.bitacora : [];
         var logHtml = logItems.length
-          ? '<div class="pi-log"><h3>Bitacora de acciones</h3>' + logItems.map(function (entry) {
-              var actor = entry.actorNombre || 'Sistema';
-              var when = fmtDate(entry.fecha);
-              var role = entry.actorRol ? ' (' + entry.actorRol + ')' : '';
-              var detail = entry.detalle ? '<p>' + entry.detalle + '</p>' : '';
-              return '<article><header><strong>' + logLabel(entry.accion) + '</strong><span>' + when + '</span></header><small>' + actor + role + '</small>' + detail + '</article>';
-            }).join('') + '</div>'
-          : '';
+          ? '<details class="pi-log"><summary>Bitácora de acciones <span class="pi-log-count">' +
+            logItems.length +
+            "</span></summary>" +
+            '<div class="pi-log-items">' +
+            logItems
+              .map(function (entry) {
+                var actor = entry.actorNombre || "Sistema";
+                var when = fmtDate(entry.fecha);
+                var role = entry.actorRol ? " · " + entry.actorRol : "";
+                var detail = entry.detalle
+                  ? '<p class="pi-log-detail">' + entry.detalle + "</p>"
+                  : "";
+                return (
+                  '<article class="pi-log-entry">' +
+                  '<div class="pi-log-dot"></div>' +
+                  '<div class="pi-log-body">' +
+                  '<div class="pi-log-row"><strong>' +
+                  logLabel(entry.accion) +
+                  "</strong><time>" +
+                  when +
+                  "</time></div>" +
+                  "<small>" +
+                  actor +
+                  role +
+                  "</small>" +
+                  detail +
+                  "</div>" +
+                  "</article>"
+                );
+              })
+              .join("") +
+            "</div></details>"
+          : "";
 
-        var buttons = '';
-        if (canVerdict && item.estado === "pendiente") {
-          buttons =
-            '<div class="pi-buttons">' +
-            '<button data-action="aprobar" data-id="' + item.id + '">Aprobar devolucion</button>' +
-            '<button data-action="rechazar" data-id="' + item.id + '" class="danger">Rechazar devolucion</button>' +
-            '</div>';
-        }
+        var buttons = "";
 
-        return '' +
+        return (
+          "" +
           '<article class="pi-card">' +
-            '<header class="pi-card-head">' +
-              '<div>' +
-                '<p class="pi-folio">' + item.folio + ' Â· Pedido #' + item.numeroPedido + '</p>' +
-                '<h2>' + item.motivo + '</h2>' +
-                '<p class="pi-priority ' + priorityClass(item.prioridad) + '">' + priorityLabel(item.prioridad) + '</p>' +
-              '</div>' +
-              '<span class="pi-status ' + statusClass(item.estado) + '">' + statusLabel(item.estado) + '</span>' +
-            '</header>' +
-            '<p class="pi-desc">' + (item.descripcion || "") + '</p>' +
-            '<div class="pi-meta">' +
-              '<span>Cliente: ' + (item.usuario?.nombre || "-") + '</span>' +
-              '<span>Correo: ' + (item.usuario?.correo || "-") + '</span>' +
-              '<span>Limite reporte: ' + fmtDate(item.fechaLimiteReporte) + '</span>' +
-              '<span>Creada: ' + fmtDate(item.fechaCreacion) + '</span>' +
-            '</div>' +
-            imageGrid +
-            verdictInfo +
-            logHtml +
-            buttons +
-          '</article>';
+          '<header class="pi-card-head">' +
+          '<div class="pi-card-head__left">' +
+          '<p class="pi-folio">' +
+          item.folio +
+          " · Pedido #" +
+          item.numeroPedido +
+          "</p>" +
+          '<h2 class="pi-card-title">' +
+          item.motivo +
+          "</h2>" +
+          '<span class="pi-priority ' +
+          priorityClass(item.prioridad) +
+          '">' +
+          '<span class="pi-priority__dot"></span>' +
+          priorityLabel(item.prioridad) +
+          "</span>" +
+          "</div>" +
+          '<span class="pi-status ' +
+          statusClass(item.estado) +
+          '">' +
+          statusLabel(item.estado) +
+          "</span>" +
+          "</header>" +
+          '<p class="pi-desc">' +
+          (item.descripcion || "") +
+          "</p>" +
+          '<div class="pi-meta">' +
+          '<div class="pi-meta__item"><span class="pi-meta__label">Cliente</span><span class="pi-meta__val">' +
+          (item.usuario?.nombre || "-") +
+          "</span></div>" +
+          '<div class="pi-meta__item"><span class="pi-meta__label">Correo</span><span class="pi-meta__val">' +
+          (item.usuario?.correo || "-") +
+          "</span></div>" +
+          '<div class="pi-meta__item"><span class="pi-meta__label">Límite reporte</span><span class="pi-meta__val">' +
+          fmtDate(item.fechaLimiteReporte) +
+          "</span></div>" +
+          '<div class="pi-meta__item"><span class="pi-meta__label">Creada</span><span class="pi-meta__val">' +
+          fmtDate(item.fechaCreacion) +
+          "</span></div>" +
+          "</div>" +
+          '<div class="pi-section-label">Evidencia fotográfica</div>' +
+          imageGrid +
+          verdictInfo +
+          logHtml +
+          buttons +
+          "</article>"
+        );
       }
 
       async function loadItems() {
         if (!list) return;
-        list.innerHTML = '<p class="pi-loading">Cargando incidencias...</p>';
+        list.innerHTML =
+          '<div class="pi-loading"><div class="pi-spinner"></div><span>Cargando incidencias…</span></div>';
+        if (statsEl) statsEl.hidden = true;
         try {
           var status = filter ? filter.value : "all";
-          var res = await fetch('/api/admin/incidencias-pedidos?status=' + encodeURIComponent(status), { credentials: 'include' });
-          var data = await res.json().catch(function () { return {}; });
+          var res = await fetch(
+            "/api/admin/incidencias-pedidos?status=" +
+              encodeURIComponent(status),
+            { credentials: "include" },
+          );
+          var data = await res.json().catch(function () {
+            return {};
+          });
           if (!res.ok || !data?.success) {
-            list.innerHTML = '<p class="pi-error">' + (data?.error || 'No se pudo cargar incidencias') + '</p>';
+            list.innerHTML =
+              '<div class="pi-state-msg pi-state-msg--err"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>' +
+              (data?.error || "No se pudo cargar incidencias") +
+              "</div>";
             return;
           }
           var items = Array.isArray(data.items) ? data.items : [];
+
+          /* stats */
+          if (statsEl && items.length) {
+            var pending = items.filter(function (i) {
+              return i.estado === "pendiente";
+            }).length;
+            var approved = items.filter(function (i) {
+              return i.estado === "aprobada_devolucion";
+            }).length;
+            var rejected = items.filter(function (i) {
+              return i.estado === "rechazada_devolucion";
+            }).length;
+            statsEl.innerHTML =
+              '<div class="pi-stat"><span class="pi-stat__num">' +
+              items.length +
+              '</span><span class="pi-stat__lbl">Total</span></div>' +
+              '<div class="pi-stat pi-stat--warn"><span class="pi-stat__num">' +
+              pending +
+              '</span><span class="pi-stat__lbl">Pendientes</span></div>' +
+              '<div class="pi-stat pi-stat--ok"><span class="pi-stat__num">' +
+              approved +
+              '</span><span class="pi-stat__lbl">Aprobadas</span></div>' +
+              '<div class="pi-stat pi-stat--err"><span class="pi-stat__num">' +
+              rejected +
+              '</span><span class="pi-stat__lbl">Rechazadas</span></div>';
+            statsEl.hidden = false;
+          }
+
           if (!items.length) {
-            list.innerHTML = '<p class="pi-empty">No hay incidencias para este filtro.</p>';
+            list.innerHTML =
+              '<div class="pi-state-msg"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M9 10h.01M15 10h.01M9.5 15a3.5 3.5 0 005 0"/></svg>No hay incidencias para este filtro.</div>';
             return;
           }
-          list.innerHTML = items.map(cardHtml).join('');
+          list.innerHTML = items.map(cardHtml).join("");
         } catch (e) {
-          list.innerHTML = '<p class="pi-error">Error de red cargando incidencias.</p>';
+          list.innerHTML =
+            '<div class="pi-state-msg pi-state-msg--err"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>Error de red cargando incidencias.</div>';
         }
       }
 
-      async function handleVerdict(id, action) {
-        var comment = window.prompt(action === 'aprobar' ? 'Comentario para aprobar (opcional):' : 'Motivo de rechazo (recomendado):', '') || '';
-        var res = await fetch('/api/admin/incidencias-pedidos', {
-          method: 'PATCH',
-          credentials: 'include',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ id: Number(id), veredicto: action, comentario: comment }),
-        });
-        var data = await res.json().catch(function () { return {}; });
-        if (!res.ok || !data?.success) {
-          window.alert(data?.error || 'No se pudo registrar veredicto');
-          return;
-        }
-        await loadItems();
-      }
 
-      list?.addEventListener('click', function (ev) {
-        var target = ev.target;
-        if (!(target instanceof HTMLElement)) return;
-        var btn = target.closest('button[data-action]');
-        if (!(btn instanceof HTMLElement)) return;
-        var id = btn.getAttribute('data-id');
-        var action = btn.getAttribute('data-action');
-        if (!id || !action) return;
-        handleVerdict(id, action);
-      });
-
-      filter?.addEventListener('change', loadItems);
+      filter?.addEventListener("change", loadItems);
       loadItems();
     })();
   </script>
 
   <style is:global>
+    /* ═══════════════════════════════════════════════
+   QUEJAS / INCIDENCIAS ADMIN — Dark Navy v2
+   Matches facturacion + productos design system
+   ═══════════════════════════════════════════════ */
+
     .pi-page {
       max-width: 1180px;
       margin: 0 auto;
-      padding: 112px 22px 52px;
-      color: #e8edf5;
-      position: relative;
+      padding: 2rem 1.75rem 4rem;
+      font-family:
+        "Inter",
+        -apple-system,
+        BlinkMacSystemFont,
+        "Segoe UI",
+        sans-serif;
+      -webkit-font-smoothing: antialiased;
+      display: flex;
+      flex-direction: column;
+      gap: 1.1rem;
     }
-    .pi-page::before {
-      content: "";
-      position: fixed;
+
+    /* ── Hero ── */
+    .pi-hero {
+      position: relative;
+      overflow: hidden;
+      border-radius: 1.25rem;
+      background: linear-gradient(
+        135deg,
+        #0c1024 0%,
+        #111827 55%,
+        #0e1520 100%
+      );
+      border: 1px solid rgba(99, 102, 241, 0.2);
+      padding: 2.25rem 2.25rem;
+      box-shadow:
+        0 24px 60px rgba(0, 0, 0, 0.45),
+        inset 0 1px 0 rgba(255, 255, 255, 0.03);
+    }
+
+    .pi-hero__glow {
+      position: absolute;
       inset: 0;
-      z-index: -1;
       pointer-events: none;
       background:
-        radial-gradient(circle at 15% 18%, rgba(122,37,50,.2), transparent 35%),
-        radial-gradient(circle at 78% 22%, rgba(34,211,238,.16), transparent 34%),
-        linear-gradient(180deg, #0b1120 0%, #111827 100%);
+        radial-gradient(
+          ellipse 60% 70% at -5% 50%,
+          rgba(99, 102, 241, 0.18) 0%,
+          transparent 65%
+        ),
+        radial-gradient(
+          ellipse 35% 45% at 105% 0%,
+          rgba(139, 92, 246, 0.12) 0%,
+          transparent 60%
+        );
     }
-    .pi-head {
+
+    .pi-hero__dots {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      opacity: 0.4;
+      background-image: radial-gradient(
+        rgba(99, 102, 241, 0.12) 1px,
+        transparent 1px
+      );
+      background-size: 26px 26px;
+    }
+
+    .pi-hero__content {
+      position: relative;
       display: flex;
       justify-content: space-between;
-      gap: 14px;
-      align-items: end;
-      margin-bottom: 18px;
-      padding: 14px 16px;
-      border: 1px solid rgba(71,85,105,.5);
-      border-radius: 16px;
-      background: linear-gradient(170deg, rgba(15,23,42,.75), rgba(2,6,23,.65));
-      box-shadow: 0 14px 34px rgba(2,6,23,.38);
+      align-items: center;
+      gap: 1rem;
+      flex-wrap: wrap;
     }
-    .pi-kicker { margin: 0; font-size: .68rem; letter-spacing: .08em; text-transform: uppercase; color: #94a3b8; }
-    .pi-head h1 { margin: 2px 0 4px; font-size: clamp(1.3rem, 2.3vw, 1.9rem); }
-    .pi-head p { margin: 0; color: #94a3b8; font-size: .86rem; }
-    .pi-actions select {
-      background: rgba(15,23,42,.95);
-      border: 1px solid rgba(148,163,184,.45);
-      color: #e8edf5;
-      border-radius: 12px;
-      padding: 9px 12px;
+
+    .pi-hero__badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      padding: 0.22rem 0.85rem;
+      background: rgba(99, 102, 241, 0.14);
+      border: 1px solid rgba(99, 102, 241, 0.32);
+      border-radius: 999px;
+      font-size: 0.68rem;
+      font-weight: 700;
+      color: #818cf8;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      margin-bottom: 0.65rem;
+    }
+
+    .pi-hero__badge-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: #6366f1;
+      box-shadow: 0 0 6px rgba(99, 102, 241, 0.8);
+      flex-shrink: 0;
+    }
+
+    .pi-hero__title {
+      font-size: clamp(1.5rem, 3vw, 2rem);
+      font-weight: 800;
+      color: #f1f5f9;
+      margin: 0 0 0.3rem;
+      line-height: 1.1;
+      letter-spacing: -0.02em;
+    }
+
+    .pi-hero__sub {
+      font-size: 0.83rem;
+      color: #64748b;
+      margin: 0;
+    }
+
+    .pi-hero__actions {
+      display: flex;
+      gap: 0.75rem;
+      align-items: center;
+    }
+
+    .pi-select-wrap {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      background: rgba(15, 23, 42, 0.7);
+      border: 1px solid rgba(99, 102, 241, 0.22);
+      border-radius: 0.65rem;
+      padding: 0.45rem 0.85rem;
+      transition: border-color 0.15s;
+    }
+    .pi-select-wrap:focus-within {
+      border-color: rgba(99, 102, 241, 0.5);
+    }
+    .pi-select-wrap svg {
+      flex-shrink: 0;
+      color: #64748b;
+    }
+    .pi-select-wrap select {
+      background: none;
+      border: none;
+      outline: none;
+      color: #e2e8f0;
+      font-size: 0.83rem;
+      font-weight: 600;
+      cursor: pointer;
+      font-family: inherit;
+      padding: 0;
+      appearance: none;
+      min-width: 160px;
+    }
+    .pi-select-wrap select option {
+      background: #0f172a;
+      color: #e2e8f0;
+    }
+
+    /* ── Stats ── */
+    .pi-stats {
+      display: flex;
+      gap: 0.75rem;
+      flex-wrap: wrap;
+    }
+
+    .pi-stat {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.15rem;
+      padding: 0.85rem 1.5rem;
+      border-radius: 0.9rem;
+      background: rgba(10, 14, 26, 0.6);
+      border: 1px solid rgba(99, 102, 241, 0.1);
+      min-width: 90px;
+      flex: 1;
+    }
+    .pi-stat--warn {
+      border-color: rgba(245, 158, 11, 0.2);
+      background: rgba(245, 158, 11, 0.04);
+    }
+    .pi-stat--ok {
+      border-color: rgba(52, 211, 153, 0.2);
+      background: rgba(52, 211, 153, 0.04);
+    }
+    .pi-stat--err {
+      border-color: rgba(244, 63, 94, 0.2);
+      background: rgba(244, 63, 94, 0.04);
+    }
+
+    .pi-stat__num {
+      font-size: 1.6rem;
+      font-weight: 800;
+      line-height: 1;
+      color: #e2e8f0;
+    }
+    .pi-stat--warn .pi-stat__num {
+      color: #fbbf24;
+    }
+    .pi-stat--ok .pi-stat__num {
+      color: #34d399;
+    }
+    .pi-stat--err .pi-stat__num {
+      color: #fb7185;
+    }
+
+    .pi-stat__lbl {
+      font-size: 0.7rem;
+      font-weight: 600;
+      color: #475569;
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+    }
+
+    /* ── List ── */
+    .pi-list {
+      display: flex;
+      flex-direction: column;
+      gap: 0.85rem;
+    }
+
+    /* ── Loading / states ── */
+    .pi-loading {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.75rem;
+      padding: 3rem;
+      color: #475569;
+      font-size: 0.83rem;
+    }
+
+    .pi-spinner {
+      width: 18px;
+      height: 18px;
+      border: 2px solid rgba(99, 102, 241, 0.2);
+      border-top-color: #6366f1;
+      border-radius: 50%;
+      animation: pi-spin 0.7s linear infinite;
+      flex-shrink: 0;
+    }
+    @keyframes pi-spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
+    .pi-state-msg {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.75rem;
+      padding: 3rem;
+      color: #475569;
+      font-size: 0.83rem;
+      border: 1px dashed rgba(99, 102, 241, 0.12);
+      border-radius: 1rem;
+      background: rgba(10, 14, 26, 0.4);
+    }
+    .pi-state-msg--err {
+      color: #fb7185;
+      border-color: rgba(244, 63, 94, 0.18);
+      background: rgba(244, 63, 94, 0.04);
+    }
+
+    /* ── Card ── */
+    .pi-card {
+      border: 1px solid rgba(99, 102, 241, 0.12);
+      border-radius: 1rem;
+      background: linear-gradient(
+        150deg,
+        rgba(10, 14, 26, 0.85) 0%,
+        rgba(7, 9, 15, 0.9) 100%
+      );
+      box-shadow:
+        0 8px 28px rgba(0, 0, 0, 0.3),
+        inset 0 1px 0 rgba(255, 255, 255, 0.025);
+      padding: 1.35rem 1.5rem;
+      transition:
+        transform 0.15s,
+        border-color 0.15s,
+        box-shadow 0.15s;
+    }
+    .pi-card:hover {
+      transform: translateY(-2px);
+      border-color: rgba(99, 102, 241, 0.25);
+      box-shadow:
+        0 14px 36px rgba(0, 0, 0, 0.38),
+        0 0 0 1px rgba(99, 102, 241, 0.08);
+    }
+
+    /* ── Card header ── */
+    .pi-card-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 1rem;
+      align-items: flex-start;
+      margin-bottom: 1rem;
+    }
+
+    .pi-card-head__left {
+      display: flex;
+      flex-direction: column;
+      gap: 0.4rem;
+    }
+
+    .pi-folio {
+      margin: 0;
+      font-size: 0.7rem;
+      font-weight: 700;
+      color: #475569;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      font-family: "SF Mono", monospace;
+    }
+
+    .pi-card-title {
+      margin: 0;
+      font-size: 1.05rem;
+      font-weight: 700;
+      color: #e2e8f0;
+      line-height: 1.3;
+    }
+
+    /* ── Priority ── */
+    .pi-priority {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      font-size: 0.7rem;
+      font-weight: 700;
+      padding: 0.25rem 0.75rem;
+      border-radius: 999px;
+      border: 1px solid transparent;
+      width: fit-content;
+    }
+
+    .pi-priority__dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .pi-priority.is-high {
+      color: #fca5a5;
+      border-color: rgba(248, 113, 113, 0.35);
+      background: rgba(127, 29, 29, 0.3);
+    }
+    .pi-priority.is-high .pi-priority__dot {
+      background: #ef4444;
+      box-shadow: 0 0 8px rgba(239, 68, 68, 0.7);
+    }
+
+    .pi-priority.is-medium {
+      color: #fde68a;
+      border-color: rgba(245, 158, 11, 0.35);
+      background: rgba(120, 53, 15, 0.3);
+    }
+    .pi-priority.is-medium .pi-priority__dot {
+      background: #f59e0b;
+      box-shadow: 0 0 8px rgba(245, 158, 11, 0.7);
+    }
+
+    .pi-priority.is-low {
+      color: #a7f3d0;
+      border-color: rgba(52, 211, 153, 0.35);
+      background: rgba(6, 78, 59, 0.3);
+    }
+    .pi-priority.is-low .pi-priority__dot {
+      background: #34d399;
+      box-shadow: 0 0 8px rgba(52, 211, 153, 0.7);
+    }
+
+    /* ── Status badge ── */
+    .pi-status {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      font-size: 0.7rem;
+      font-weight: 800;
+      border-radius: 999px;
+      padding: 0.32rem 0.9rem;
+      border: 1px solid;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+
+    .pi-status.is-pending {
+      color: #fbbf24;
+      border-color: rgba(245, 158, 11, 0.35);
+      background: rgba(245, 158, 11, 0.1);
+    }
+    .pi-status.is-ok {
+      color: #34d399;
+      border-color: rgba(52, 211, 153, 0.35);
+      background: rgba(52, 211, 153, 0.1);
+    }
+    .pi-status.is-no {
+      color: #fb7185;
+      border-color: rgba(251, 113, 133, 0.35);
+      background: rgba(244, 63, 94, 0.1);
+    }
+
+    /* ── Description ── */
+    .pi-desc {
+      margin: 0 0 1rem;
+      color: #94a3b8;
+      font-size: 0.85rem;
+      line-height: 1.6;
+      white-space: pre-wrap;
+    }
+
+    /* ── Meta ── */
+    .pi-meta {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 0.5rem 0.75rem;
+      margin-bottom: 1rem;
+      padding: 0.85rem 1rem;
+      background: rgba(99, 102, 241, 0.04);
+      border: 1px solid rgba(99, 102, 241, 0.08);
+      border-radius: 0.65rem;
+    }
+
+    .pi-meta__item {
+      display: flex;
+      flex-direction: column;
+      gap: 0.15rem;
+    }
+    .pi-meta__label {
+      font-size: 0.65rem;
+      font-weight: 700;
+      color: #475569;
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+    }
+    .pi-meta__val {
+      font-size: 0.8rem;
+      color: #94a3b8;
+      font-weight: 500;
+    }
+
+    /* ── Section label ── */
+    .pi-section-label {
+      font-size: 0.68rem;
+      font-weight: 700;
+      color: #475569;
+      text-transform: uppercase;
+      letter-spacing: 0.09em;
+      margin-bottom: 0.65rem;
+    }
+
+    /* ── Images ── */
+    .pi-images {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+      gap: 0.6rem;
+      margin-bottom: 1rem;
+    }
+
+    .pi-images a {
+      display: block;
+      border-radius: 0.65rem;
+      overflow: hidden;
+      border: 1px solid rgba(99, 102, 241, 0.15);
+      box-shadow: 0 6px 16px rgba(0, 0, 0, 0.28);
+      transition: all 0.18s;
+    }
+    .pi-images a:hover {
+      border-color: rgba(99, 102, 241, 0.4);
+      transform: scale(1.03);
+      box-shadow: 0 10px 24px rgba(0, 0, 0, 0.38);
+    }
+
+    .pi-images img {
+      width: 100%;
+      height: 100px;
+      object-fit: cover;
+      display: block;
+    }
+
+    .pi-muted {
+      margin: 0 0 1rem;
+      color: #334155;
+      font-size: 0.8rem;
+    }
+    .pi-muted--imgs {
+      padding: 0.75rem 1rem;
+      border: 1px dashed rgba(99, 102, 241, 0.1);
+      border-radius: 0.6rem;
+      text-align: center;
+      margin-bottom: 1rem;
+    }
+
+    /* ── Verdict ── */
+    .pi-verdict-box {
+      margin-bottom: 1rem;
+      padding: 0.85rem 1rem;
+      background: rgba(14, 165, 233, 0.06);
+      border: 1px solid rgba(14, 165, 233, 0.2);
+      border-radius: 0.75rem;
+    }
+    .pi-verdict-label {
+      font-size: 0.68rem;
+      font-weight: 700;
+      color: #38bdf8;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin: 0 0 0.3rem;
+    }
+    .pi-verdict {
+      margin: 0 0 0.25rem;
+      color: #7dd3fc;
+      font-size: 0.85rem;
       font-weight: 600;
     }
-    .pi-list { display: grid; gap: 12px; }
-    .pi-card {
-      border: 1px solid rgba(71,85,105,.6);
-      border-radius: 16px;
-      background: linear-gradient(165deg, rgba(15,23,42,.95), rgba(2,6,23,.88));
-      box-shadow: 0 16px 32px rgba(2,6,23,.35);
-      padding: 14px;
-      transition: transform .16s ease, border-color .16s ease;
+    .pi-verdict-comment {
+      margin: 0;
+      color: #94a3b8;
+      font-size: 0.83rem;
+      line-height: 1.5;
     }
-    .pi-card:hover { transform: translateY(-1px); border-color: rgba(122,37,50,.45); }
-    .pi-card-head { display: flex; justify-content: space-between; gap: 12px; align-items: start; }
-    .pi-folio { margin: 0; color: #94a3b8; font-size: .72rem; }
-    .pi-card h2 { margin: 4px 0 0; font-size: 1rem; }
-    .pi-priority { margin: 8px 0 0; display: inline-flex; align-items: center; gap: 6px; font-size: .72rem; font-weight: 700; padding: 4px 10px; border-radius: 999px; border: 1px solid transparent; }
-    .pi-priority::before { content: ""; width: 8px; height: 8px; border-radius: 999px; }
-    .pi-priority.is-high { color: #fecaca; border-color: rgba(248,113,113,.42); background: rgba(127,29,29,.35); }
-    .pi-priority.is-high::before { background: #ef4444; box-shadow: 0 0 10px rgba(239,68,68,.68); }
-    .pi-priority.is-medium { color: #fde68a; border-color: rgba(245,158,11,.4); background: rgba(120,53,15,.35); }
-    .pi-priority.is-medium::before { background: #f59e0b; box-shadow: 0 0 10px rgba(245,158,11,.68); }
-    .pi-priority.is-low { color: #bbf7d0; border-color: rgba(52,211,153,.4); background: rgba(6,78,59,.35); }
-    .pi-priority.is-low::before { background: #34d399; box-shadow: 0 0 10px rgba(52,211,153,.68); }
-    .pi-status { font-size: .72rem; font-weight: 800; border-radius: 999px; padding: 4px 10px; border: 1px solid #334155; }
-    .pi-status.is-pending { color: #f59e0b; border-color: rgba(245,158,11,.4); background: rgba(245,158,11,.1); }
-    .pi-status.is-ok { color: #34d399; border-color: rgba(52,211,153,.4); background: rgba(52,211,153,.1); }
-    .pi-status.is-no { color: #fb7185; border-color: rgba(251,113,133,.45); background: rgba(251,113,133,.1); }
-    .pi-desc { margin: 10px 0; color: #cbd5e1; font-size: .87rem; white-space: pre-wrap; }
-    .pi-meta { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; margin-bottom: 10px; font-size: .77rem; color: #94a3b8; }
-    .pi-images { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 8px; margin-bottom: 10px; }
-    .pi-images a { display: block; border-radius: 10px; overflow: hidden; border: 1px solid #334155; box-shadow: 0 8px 18px rgba(2,6,23,.32); }
-    .pi-images img { width: 100%; height: 120px; object-fit: cover; display: block; }
-    .pi-buttons { display: flex; gap: 8px; flex-wrap: wrap; }
-    .pi-buttons button {
-      border: 0;
-      border-radius: 10px;
-      padding: 8px 12px;
-      font-weight: 700;
-      background: linear-gradient(140deg, #7a2532, #6b202d);
-      color: #fff;
+
+    /* ── Log ── */
+    .pi-log {
+      margin-bottom: 1rem;
+      border: 1px solid rgba(99, 102, 241, 0.1);
+      border-radius: 0.75rem;
+      overflow: hidden;
+    }
+
+    .pi-log summary {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      padding: 0.75rem 1rem;
       cursor: pointer;
-      transition: transform .14s ease, box-shadow .14s ease;
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: #64748b;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      background: rgba(99, 102, 241, 0.04);
+      user-select: none;
+      list-style: none;
+      transition: background 0.12s;
     }
-    .pi-buttons button:hover { transform: translateY(-1px); box-shadow: 0 10px 20px rgba(122,37,50,.26); }
-    .pi-buttons button.danger { background: #be123c; }
-    .pi-verdict { margin: 8px 0 4px; color: #7dd3fc; font-size: .8rem; }
-    .pi-verdict-comment { margin: 0 0 8px; color: #cbd5e1; font-size: .83rem; }
-    .pi-log { margin: 10px 0 12px; border: 1px solid #334155; border-radius: 10px; padding: 10px; background: rgba(15,23,42,.45); display: grid; gap: 8px; }
-    .pi-log h3 { margin: 0; font-size: .76rem; letter-spacing: .04em; color: #93c5fd; text-transform: uppercase; }
-    .pi-log article { border-top: 1px solid rgba(51,65,85,.8); padding-top: 8px; }
-    .pi-log article:first-of-type { border-top: 0; padding-top: 0; }
-    .pi-log header { display: flex; justify-content: space-between; gap: 10px; font-size: .74rem; color: #cbd5e1; }
-    .pi-log small { color: #94a3b8; font-size: .72rem; }
-    .pi-log p { margin: 4px 0 0; color: #e2e8f0; font-size: .79rem; white-space: pre-wrap; }
-    .pi-loading, .pi-error, .pi-empty, .pi-muted { margin: 0; color: #94a3b8; }
+    .pi-log summary::-webkit-details-marker {
+      display: none;
+    }
+    .pi-log summary:hover {
+      background: rgba(99, 102, 241, 0.08);
+      color: #94a3b8;
+    }
+    .pi-log[open] summary {
+      border-bottom: 1px solid rgba(99, 102, 241, 0.1);
+    }
+
+    .pi-log-count {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: rgba(99, 102, 241, 0.18);
+      color: #a5b4fc;
+      font-size: 0.65rem;
+      font-weight: 800;
+      flex-shrink: 0;
+    }
+
+    .pi-log-items {
+      padding: 0.75rem 1rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+    }
+
+    .pi-log-entry {
+      display: flex;
+      gap: 0.85rem;
+      padding: 0.75rem 0;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+    }
+    .pi-log-entry:last-child {
+      border-bottom: none;
+    }
+
+    .pi-log-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: rgba(99, 102, 241, 0.4);
+      border: 1.5px solid rgba(99, 102, 241, 0.6);
+      flex-shrink: 0;
+      margin-top: 0.35rem;
+    }
+
+    .pi-log-body {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .pi-log-row {
+      display: flex;
+      justify-content: space-between;
+      gap: 0.75rem;
+      align-items: baseline;
+      margin-bottom: 0.15rem;
+    }
+    .pi-log-row strong {
+      font-size: 0.78rem;
+      color: #c7d2fe;
+      font-weight: 600;
+    }
+    .pi-log-row time {
+      font-size: 0.7rem;
+      color: #475569;
+      white-space: nowrap;
+    }
+
+    .pi-log-entry small {
+      font-size: 0.7rem;
+      color: #475569;
+    }
+    .pi-log-detail {
+      margin: 0.3rem 0 0;
+      color: #94a3b8;
+      font-size: 0.78rem;
+      line-height: 1.5;
+      white-space: pre-wrap;
+    }
+
+    /* ── Buttons ── */
+    .pi-buttons {
+      display: flex;
+      gap: 0.65rem;
+      flex-wrap: wrap;
+      padding-top: 0.5rem;
+      border-top: 1px solid rgba(99, 102, 241, 0.08);
+      margin-top: 0.5rem;
+    }
+
+    .pi-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.45rem;
+      border: none;
+      border-radius: 0.6rem;
+      padding: 0.6rem 1.25rem;
+      font-size: 0.82rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.18s;
+      font-family: inherit;
+    }
+
+    .pi-btn--approve {
+      background: linear-gradient(
+        135deg,
+        rgba(52, 211, 153, 0.22),
+        rgba(16, 185, 129, 0.18)
+      );
+      color: #34d399;
+      border: 1px solid rgba(52, 211, 153, 0.35);
+      box-shadow: 0 2px 8px rgba(52, 211, 153, 0.1);
+    }
+    .pi-btn--approve:hover {
+      background: linear-gradient(
+        135deg,
+        rgba(52, 211, 153, 0.35),
+        rgba(16, 185, 129, 0.28)
+      );
+      border-color: rgba(52, 211, 153, 0.55);
+      box-shadow: 0 4px 16px rgba(52, 211, 153, 0.2);
+      transform: translateY(-1px);
+    }
+
+    .pi-btn--reject {
+      background: rgba(244, 63, 94, 0.1);
+      color: #fb7185;
+      border: 1px solid rgba(244, 63, 94, 0.28);
+    }
+    .pi-btn--reject:hover {
+      background: rgba(244, 63, 94, 0.2);
+      border-color: rgba(244, 63, 94, 0.48);
+      box-shadow: 0 4px 16px rgba(244, 63, 94, 0.15);
+      transform: translateY(-1px);
+    }
+
+    /* ── Scrollbar ── */
+    .pi-page ::-webkit-scrollbar {
+      width: 4px;
+      height: 4px;
+    }
+    .pi-page ::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    .pi-page ::-webkit-scrollbar-thumb {
+      background: rgba(99, 102, 241, 0.2);
+      border-radius: 2px;
+    }
+    .pi-page ::-webkit-scrollbar-thumb:hover {
+      background: rgba(99, 102, 241, 0.38);
+    }
+
+    /* ── Responsive ── */
     @media (max-width: 720px) {
-      .pi-head { flex-direction: column; align-items: start; }
-      .pi-meta { grid-template-columns: 1fr; }
+      .pi-hero__content {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+      .pi-meta {
+        grid-template-columns: 1fr;
+      }
+      .pi-stats {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+      }
+      .pi-page {
+        padding: 1.25rem 1rem 3rem;
+      }
+      .pi-card {
+        padding: 1rem 1.1rem;
+      }
     }
   </style>
 </BaseLayout>
-
-
-

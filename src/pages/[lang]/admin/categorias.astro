@@ -11,51 +11,62 @@ const role = String(Astro.locals?.user?.rol || "").trim().toLowerCase().replace(
   .replace(/^superadmin$|^superuser$|^superusuario$/, "superusuario");
 
 if (!role) return Astro.redirect(`/${currentLang}/login`);
-if (role !== "admin" && role !== "superusuario") return Astro.redirect(`/${currentLang}`);
+if (role !== "superusuario") return Astro.redirect(`/${currentLang}/admin/productos`);
+
+const isSuperusuario = role === "superusuario";
 ---
 
-<BaseLayout title="Gestion de categorias" currentLang={currentLang}>
+<BaseLayout title="Gestión de Categorías | NEXUS" currentLang={currentLang}>
 
   <script nonce={cspNonce} is:inline>
   (function(g){
     if(document.getElementById('go-modal-styles'))return;
-    const s=document.createElement('style');
-    s.id='go-modal-styles';
+    const s=document.createElement('style');s.id='go-modal-styles';
     s.textContent=`
-      .go-modal-backdrop{position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.55);backdrop-filter:blur(4px);display:flex;align-items:center;justify-content:center;padding:1rem;opacity:0;transition:opacity 220ms ease}
-      .go-modal-backdrop.go-visible{opacity:1}
-      .go-modal{background:#1a1d28;border:1px solid rgba(168,85,247,.15);border-radius:20px;box-shadow:0 24px 60px rgba(0,0,0,.5);padding:2rem 2rem 1.6rem;width:100%;max-width:420px;text-align:center;transform:scale(.88) translateY(20px);transition:transform 260ms cubic-bezier(.34,1.56,.64,1);position:relative}
+      .go-modal-backdrop{position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.6);backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;padding:1rem;opacity:0;transition:opacity 220ms ease; pointer-events: none;}
+      .go-modal-backdrop.go-visible{opacity:1; pointer-events: auto;}
+      .go-modal{background:#0d1117;border:1px solid rgba(139,92,246,.2);border-radius:20px;box-shadow:0 32px 80px rgba(0,0,0,.6);padding:2rem 2rem 1.6rem;width:100%;max-width:420px;text-align:center;transform:scale(.88) translateY(20px);transition:transform 260ms cubic-bezier(.34,1.56,.64,1);position:relative}
       .go-modal-backdrop.go-visible .go-modal{transform:scale(1) translateY(0)}
-      .go-modal-icon{width:72px;height:72px;border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 1.1rem}
-      .go-modal-icon.success{background:rgba(34,197,94,.1);color:#22c55e}.go-modal-icon.error{background:rgba(239,68,68,.1);color:#ef4444}
-      .go-modal-icon.warning{background:rgba(245,158,11,.1);color:#f59e0b}.go-modal-icon.info{background:rgba(96,165,250,.1);color:#60a5fa}
-      .go-modal-icon.confirm{background:rgba(168,85,247,.1);color:#a855f7}
-      .go-modal-title{font-size:1.35rem;font-weight:700;color:#f0f2f5;margin:0 0 .5rem;font-family:inherit!important;letter-spacing:normal!important;text-transform:none!important}
-      .go-modal-text{font-size:.97rem;color:#8b95a5;margin:0 0 1.4rem;line-height:1.5;font-family:inherit!important;letter-spacing:normal!important}
+      .go-modal-icon{width:68px;height:68px;border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 1.1rem}
+      .go-modal-icon.success{background:rgba(52,211,153,.12);color:#34d399}.go-modal-icon.error{background:rgba(251,113,133,.12);color:#fb7185}
+      .go-modal-icon.warning{background:rgba(251,191,36,.12);color:#fbbf24}.go-modal-icon.info{background:rgba(96,165,250,.12);color:#60a5fa}
+      .go-modal-icon.confirm{background:rgba(139,92,246,.12);color:#8b5cf6}
+      .go-modal-title{font-size:1.25rem;font-weight:700;color:#f1f5f9;margin:0 0 .5rem;font-family:inherit!important;letter-spacing:normal!important;text-transform:none!important}
+      .go-modal-text{font-size:.9rem;color:#64748b;margin:0 0 1.4rem;line-height:1.6;font-family:inherit!important}
       .go-modal-actions{display:flex;gap:.7rem;justify-content:center;flex-wrap:wrap}
-      .go-modal-btn{padding:.65rem 1.6rem;border-radius:12px;font-size:.95rem;font-weight:600;cursor:pointer;border:none;transition:filter 160ms,transform 100ms;min-width:110px;font-family:inherit!important;letter-spacing:normal!important;text-transform:none!important}
-      .go-modal-btn:hover{filter:brightness(1.08)}.go-modal-btn:active{transform:scale(.97)}
-      .go-modal-btn.primary{background:linear-gradient(135deg,#a855f7,#7c3aed);color:#fff}.go-modal-btn.secondary{background:rgba(255,255,255,.06);color:#8b95a5;border:1px solid rgba(255,255,255,.1)}
-      .go-modal-btn.danger{background:#ef4444;color:#fff}
-      .go-modal-progress{position:absolute;bottom:0;left:0;height:4px;border-radius:0 0 20px 20px;background:linear-gradient(90deg,#a855f7,#7c3aed);width:100%;transform-origin:left;animation:go-progress linear forwards}
-      @keyframes go-progress{from{transform:scaleX(1)}to{transform:scaleX(0)}}
-      .go-loading-backdrop{position:fixed;inset:0;z-index:10500;background:rgba(0,0,0,.6);backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity 200ms ease}
+      .go-modal-btn{padding:.65rem 1.6rem;border-radius:10px;font-size:.9rem;font-weight:600;cursor:pointer;border:none;transition:filter 160ms,transform 100ms;min-width:100px;font-family:inherit!important;text-transform:none!important}
+      .go-modal-btn:hover{filter:brightness(1.1)}.go-modal-btn:active{transform:scale(.97)}
+      .go-modal-btn.primary{background:linear-gradient(135deg,#8b5cf6,#6d28d9);color:#fff}.go-modal-btn.secondary{background:rgba(255,255,255,.08);color:#94a3b8;border:1px solid rgba(255,255,255,.12)}
+      .go-modal-btn.danger{background:linear-gradient(135deg,#7a2532,#be1a2b);color:#fff}
+      .go-loading-backdrop{position:fixed;inset:0;z-index:10500;background:rgba(0,0,0,.65);backdrop-filter:blur(8px);display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity 200ms ease}
       .go-loading-backdrop.go-visible{opacity:1;pointer-events:auto}
-      .go-loading-box{background:#1a1d28;border:1px solid rgba(168,85,247,.12);border-radius:20px;padding:2rem 2.5rem;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,.5);min-width:220px}
-      .go-loading-spinner{width:52px;height:52px;border-radius:50%;border:4px solid rgba(168,85,247,.2);border-top-color:#a855f7;animation:go-spin 0.8s linear infinite;margin:0 auto 1rem}
+      .go-loading-box{background:#0d1117;border:1px solid rgba(139,92,246,.15);border-radius:20px;padding:2.2rem 2.8rem;text-align:center;box-shadow:0 24px 64px rgba(0,0,0,.6);min-width:220px}
+      .go-loading-spinner{width:48px;height:48px;border-radius:50%;border:3px solid rgba(139,92,246,0.18);border-top-color:#8b5cf6;animation:go-spin 0.75s linear infinite;margin:0 auto 1rem}
       @keyframes go-spin{to{transform:rotate(360deg)}}
-      .go-loading-title{font-size:1rem;font-weight:700;color:#f0f2f5;margin:0 0 .25rem;font-family:inherit!important}
-      .go-loading-sub{font-size:0.8rem;color:#5a6478;margin:0;font-family:inherit!important}
+      .go-loading-title{font-size:1rem;font-weight:700;color:#f1f5f9;margin:0 0 .25rem;font-family:inherit!important}
+      .go-loading-sub{font-size:0.78rem;color:#475569;margin:0;font-family:inherit!important}
     `;
     document.head.appendChild(s);
     const IC={
-      success:`<svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>`,
-      error:`<svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>`,
-      warning:`<svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>`,
-      info:`<svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>`,
-      confirm:`<svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>`,
+      success:`<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>`,
+      error:`<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>`,
+      warning:`<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>`,
+      info:`<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>`,
+      confirm:`<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>`,
     };
-    function show(o){return new Promise(function(res){var type=o.type||'info',title=o.title||'',text=o.text||'',ct=o.confirmText||'Aceptar',cct=o.cancelText||'Cancelar',sc=o.showCancel||false,ac=o.autoClose||0;var bd=document.createElement('div');bd.className='go-modal-backdrop';bd.innerHTML='<div class="go-modal" role="dialog" aria-modal="true"><div class="go-modal-icon '+type+'">'+(IC[type]||IC.info)+'</div><h2 class="go-modal-title">'+title+'</h2>'+(text?'<p class="go-modal-text">'+text+'</p>':'')+'<div class="go-modal-actions">'+(sc?'<button class="go-modal-btn secondary" id="gmc">'+cct+'</button>':'')+'<button class="go-modal-btn '+(type==='error'?'danger':'primary')+'" id="gmok">'+ct+'</button></div>'+(ac?'<div class="go-modal-progress" style="animation-duration:'+ac+'ms"></div>':'')+'</div>';document.body.appendChild(bd);requestAnimationFrame(function(){bd.classList.add('go-visible');});function close(r){bd.classList.remove('go-visible');setTimeout(function(){bd.remove();},260);res(r);}bd.querySelector('#gmok').addEventListener('click',function(){close(true);});var cc=bd.querySelector('#gmc');if(cc)cc.addEventListener('click',function(){close(false);});function onKey(e){if(e.key==='Escape'){close(false);document.removeEventListener('keydown',onKey);}}document.addEventListener('keydown',onKey);if(ac)setTimeout(function(){close(true);},ac);});}
+    function show(o){
+      return new Promise(function(res){
+        var type=o.type||'info',title=o.title||'',text=o.text||'',ct=o.confirmText||'Aceptar',cct=o.cancelText||'Cancelar',sc=o.showCancel||false,ac=o.autoClose||0;
+        var bd=document.createElement('div');bd.className='go-modal-backdrop';
+        bd.innerHTML='<div class="go-modal" role="dialog" aria-modal="true"><div class="go-modal-icon '+type+'">'+(IC[type]||IC.info)+'</div><h2 class="go-modal-title">'+title+'</h2>'+(text?'<p class="go-modal-text">'+text+'</p>':'')+'<div class="go-modal-actions">'+(sc?'<button class="go-modal-btn secondary" id="gmc">'+cct+'</button>':'')+'<button class="go-modal-btn '+(type==='error'?'danger':'primary')+'" id="gmok">'+ct+'</button></div></div>';
+        document.body.appendChild(bd);requestAnimationFrame(function(){bd.classList.add('go-visible');});
+        function close(r){bd.classList.remove('go-visible');setTimeout(function(){bd.remove();},260);res(r);}
+        bd.querySelector('#gmok').addEventListener('click',function(){close(true);});
+        var cc=bd.querySelector('#gmc');if(cc)cc.addEventListener('click',function(){close(false);});
+        function onKey(e){if(e.key==='Escape'){close(false);document.removeEventListener('keydown',onKey);}}
+        document.addEventListener('keydown',onKey);if(ac)setTimeout(function(){close(true);},ac);
+      });
+    }
     var _loadEl=null;
     function showLoading(title,sub){if(_loadEl)return;_loadEl=document.createElement('div');_loadEl.className='go-loading-backdrop';_loadEl.innerHTML='<div class="go-loading-box"><div class="go-loading-spinner"></div><p class="go-loading-title">'+(title||'Procesando...')+'</p><p class="go-loading-sub">'+(sub||'Por favor espera')+'</p></div>';document.body.appendChild(_loadEl);requestAnimationFrame(function(){_loadEl.classList.add('go-visible');});}
     function hideLoading(){if(!_loadEl)return;_loadEl.classList.remove('go-visible');setTimeout(function(){if(_loadEl){_loadEl.remove();_loadEl=null;}},220);}
@@ -63,541 +74,997 @@ if (role !== "admin" && role !== "superusuario") return Astro.redirect(`/${curre
   })(window);
   </script>
 
-  <!-- Runtime-injected styles for action buttons, badges & pagination (bypasses Astro CSS scoping) -->
-  <script nonce={cspNonce} is:inline>
-  (function(){
-    if(document.getElementById('ca-runtime-styles'))return;
-    var s=document.createElement('style');
-    s.id='ca-runtime-styles';
-    s.textContent=`
-      .ca-row-actions{display:flex!important;align-items:center!important;gap:6px!important;justify-content:center!important}
-      button.ca-row-btn{width:32px!important;height:32px!important;border-radius:8px!important;border:1px solid rgba(255,255,255,.07)!important;background:rgba(255,255,255,.04)!important;display:inline-flex!important;align-items:center!important;justify-content:center!important;cursor:pointer!important;transition:all .2s ease!important;padding:0!important;line-height:1!important;flex-shrink:0!important;outline:none!important;box-shadow:none!important;font-size:0!important;overflow:hidden!important}
-      button.ca-row-btn:hover{transform:translateY(-1px)!important;filter:brightness(1.3)!important}
-      button.ca-row-btn svg{width:14px!important;height:14px!important;stroke:currentColor!important;fill:none!important;stroke-width:2!important;stroke-linecap:round!important;stroke-linejoin:round!important;display:block!important;pointer-events:none!important}
-      button.ca-row-btn.ca-row-btn--edit{color:#c084fc!important;border-color:rgba(168,85,247,.3)!important}
-      button.ca-row-btn.ca-row-btn--edit:hover{background:rgba(168,85,247,.15)!important}
-      button.ca-row-btn.ca-row-btn--delete{color:#ef4444!important;border-color:rgba(239,68,68,.2)!important}
-      button.ca-row-btn.ca-row-btn--delete:hover{background:rgba(239,68,68,.08)!important}
-      .ca-prod-badge{display:inline-block!important;font-size:10px!important;font-weight:700!important;padding:3px 10px!important;border-radius:20px!important;background:rgba(96,165,250,.1)!important;color:#60a5fa!important;border:1px solid rgba(96,165,250,.25)!important}
-      .ca-no-data{color:#5a6478!important;font-size:11px!important}
-      button.ca-page-btn{min-width:34px!important;height:34px!important;border-radius:8px!important;border:1px solid rgba(255,255,255,.07)!important;background:rgba(255,255,255,.03)!important;color:#8b95a5!important;font-size:12px!important;font-weight:600!important;cursor:pointer!important;display:inline-flex!important;align-items:center!important;justify-content:center!important;transition:all .18s ease!important;padding:0 8px!important;font-family:inherit!important;outline:none!important}
-      button.ca-page-btn:hover:not(.disabled):not(.active){background:rgba(255,255,255,.07)!important;border-color:rgba(255,255,255,.14)!important;color:#f0f2f5!important}
-      button.ca-page-btn.active{background:linear-gradient(135deg,#a855f7,#7c3aed)!important;border-color:transparent!important;color:#fff!important;box-shadow:0 2px 12px rgba(168,85,247,.4)!important;font-weight:700!important}
-      button.ca-page-btn.disabled{opacity:.3!important;cursor:not-allowed!important}
-      button.ca-page-btn.ca-page-btn--arrow{min-width:36px!important}
-      button.ca-page-btn.ca-page-btn--arrow svg{width:14px!important;height:14px!important;stroke:currentColor!important;fill:none!important;display:block!important;pointer-events:none!important}
-      .ca-page-ellipsis{color:#5a6478;font-size:13px;padding:0 4px;user-select:none;display:inline-flex;align-items:center;height:34px}
-    `;
-    document.head.appendChild(s);
-  })();
-  </script>
+  <div class="ux-root">
+  <main class="ux">
 
-  <main class="ca-page">
-    <section class="ca-shell">
-
-      <header class="ca-header">
-        <div>
-          <span class="ca-kicker">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
-            Panel Admin
-          </span>
-          <h1 class="ca-title">Gestión de categorías</h1>
-          <p class="ca-subtitle">Crea, edita y elimina las categorías del catálogo.</p>
+    <header class="ux-hero">
+      <div class="ux-hero__glow" aria-hidden="true"></div>
+      <div class="ux-hero__body">
+        <div class="ux-hero__left">
+          <p class="ux-hero__kicker">PANEL ADMIN · SUPERUSUARIO</p>
+          <h1 class="ux-hero__title">Gestión de Categorías</h1>
+          <p class="ux-hero__sub">Crea, edita y organiza las clasificaciones del catálogo</p>
         </div>
-        <div class="ca-top-actions">
-          <button id="btnAddCategory" class="ca-add-btn" type="button">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        <div class="ux-hero__right">
+          <button id="btnAddCategory" class="ux-cta" type="button">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
             Añadir categoría
           </button>
-          <a class="ca-back" href={`/${currentLang}`}>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M19 12H5"/><path d="M12 19l-7-7 7-7"/></svg>
+          <a href={`/${currentLang}`} class="ux-cta ux-cta--ghost">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
             Volver al sitio
           </a>
         </div>
-      </header>
+      </div>
+      <div id="ux-stats" class="ux-hero__stats" aria-live="polite">
+        <span class="ux-stat-loading">Calculando métricas...</span>
+      </div>
+    </header>
 
-      <!-- Image Viewer Modal -->
-      <section id="catImageViewerModal" class="ca-img-modal" hidden>
-        <div id="catImageViewerPanel" class="ca-img-panel" role="dialog" aria-modal="true">
-          <div class="ca-img-head">
-            <div class="ca-img-head-text">
-              <span class="ca-img-badge">Galería</span>
-              <h2 class="ca-img-title" id="catImageViewerName">Categoría</h2>
-            </div>
-            <button id="catImageViewerClose" class="ca-img-close" type="button" aria-label="Cerrar">
-              <svg viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"></path></svg>
-            </button>
+    <section id="catFormPanel" class="ux-form-panel" aria-hidden="true">
+      <article class="ux-card ux-card--form">
+
+        <div class="ux-form-titlebar">
+          <div class="ux-form-titlebar__left">
+            <span class="ux-form-badge" id="formModeBadge">Nuevo</span>
+            <h2 id="formTitle" class="ux-form-titlebar__title">Nueva categoría</h2>
           </div>
-          <div class="ca-img-preview-card">
-            <div id="catImageViewerPreview" class="ca-img-preview">
-              <img id="catImageViewerImg" class="ca-img-preview-img" src="" alt="Preview" />
-              <div class="ca-img-empty" id="catImageViewerEmpty">
-                <svg viewBox="0 0 24 24"><path d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
-                <span>Sin imágenes</span>
-              </div>
-            </div>
-            <p class="ca-img-counter" id="catImageViewerCounter"></p>
-          </div>
-          <div class="ca-img-section">
-            <p class="ca-img-section-label">Imágenes actuales</p>
-            <div id="catImageViewerList" class="ca-img-list"></div>
-          </div>
-          <div class="ca-img-section">
-            <p class="ca-img-section-label">Agregar nueva imagen</p>
-            <div class="ca-img-add-row">
-              <div class="ca-img-input-wrap">
-                <svg class="ca-img-input-icon" viewBox="0 0 24 24"><path d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101"></path><path d="M10.172 13.828a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"></path></svg>
-                <input id="catImageViewerNewUrl" class="ca-img-input" type="text" placeholder="URL de Cloudinary (se llena automáticamente al subir)" />
-              </div>
-              <button id="catImageViewerAddBtn" class="ca-img-add-btn" type="button">
-                <svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"></path></svg>
-                Agregar
-              </button>
-            </div>
-            <div class="ca-img-upload-row">
-              <input id="catImageUploadFile" class="ca-img-upload-file" type="file" accept="image/png,image/jpeg,image/webp" />
-              <button id="catImageUploadBtn" class="ca-img-upload-btn" type="button">Subir imagen a Cloudinary</button>
-            </div>
-          </div>
-          <div class="ca-img-footer">
-            <button class="ca-img-cancel" type="button" id="catImageViewerCancelBtn">Cancelar</button>
-            <button id="catImageViewerSave" class="ca-img-save" type="button">
-              <svg viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"></path></svg>
-              Guardar cambios
-            </button>
-          </div>
+          <button id="btnCancelEdit" class="ux-icon-btn" type="button" title="Cerrar formulario" aria-label="Cerrar formulario">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          </button>
         </div>
-      </section>
 
-      <!-- Form Panel -->
-      <section id="catFormPanel" class="ca-form-panel" hidden>
-        <article class="ca-card ca-card--form">
-          <div class="ca-form-header">
-            <h2 id="catFormTitle">Nueva categoría</h2>
-            <button id="btnCancelEdit" class="ca-btn-close" type="button">x Cerrar</button>
-          </div>
-          <p class="ca-note">Completa los campos y presiona Guardar. El nombre es obligatorio.</p>
-          <input id="currentCategoryId" type="hidden" />
-          <div class="ca-form-grid">
-            <div class="ca-field"><label for="catNombre">Nombre *</label><input id="catNombre" type="text" placeholder="Nombre de la categoría" /></div>
-            <div class="ca-field"><label for="catDescripcion">Descripción</label><input id="catDescripcion" type="text" placeholder="Descripción (opcional)" /></div>
-            <div class="ca-field">
-              <label>&nbsp;</label>
-              <input id="catImagenUrl" type="hidden" />
-              <button id="btnCatOpenGallery" class="ca-btn-gallery" type="button">
-                <svg viewBox="0 0 24 24"><path d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
-                Gestionar imágenes
-              </button>
+        <p class="ux-hint">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+          Completa los campos obligatorios. Las imágenes se gestionan desde la galería.
+        </p>
+
+        <input id="currentCategoryId" type="hidden" />
+
+        <div class="ux-sections">
+          <fieldset class="ux-section">
+            <legend class="ux-section__legend">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg>
+              Información principal
+            </legend>
+            <div class="ux-grid ux-grid--3">
+              <div class="ux-field ux-field--wide">
+                <label for="catNombre">Nombre <span class="req">*</span></label>
+                <input id="catNombre" type="text" placeholder="Ej: Empaques Flexibles" />
+              </div>
+              <div class="ux-field">
+                <label for="btnCatOpenGallery">Imagen Representativa</label>
+                <input id="catImagenUrl" type="hidden" />
+                <button id="btnCatOpenGallery" class="ux-cta ux-cta--ghost" type="button" style="width: 100%; justify-content: center; padding: 9px 12px; margin-top: 2px;">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
+                  Gestionar Imagen
+                </button>
+              </div>
+              <div class="ux-field ux-field--full">
+                <label for="catDescripcion">Descripción (Opcional)</label>
+                <input id="catDescripcion" type="text" placeholder="Breve detalle de la categoría..." />
+              </div>
             </div>
-          </div>
-          <div class="ca-form-actions">
-            <button id="btnSave" class="ca-btn-save" type="button">
-              <svg viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"></path></svg>
+          </fieldset>
+        </div>
+
+        <div class="ux-form-actions">
+          <div class="ux-form-actions__primary">
+            <button id="btnCreate" class="ux-cta" type="button">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+              Crear categoría
+            </button>
+            <button id="btnUpdate" class="ux-cta" type="button" style="display:none;">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M5 13l4 4L19 7"/></svg>
               Guardar cambios
             </button>
-            <button id="btnFormReset" class="ca-btn-ghost" type="button">Limpiar</button>
           </div>
-        </article>
-      </section>
+          <button id="btnFormReset" class="ux-cta ux-cta--ghost" type="button">Limpiar campos</button>
+        </div>
 
-      <!-- Lista -->
-      <section class="ca-list-section">
-        <article class="ca-card">
-          <div class="ca-toolbar">
-            <div class="ca-toolbar__left"><label for="rowsPerPage">Mostrar</label><select id="rowsPerPage" class="ca-toolbar-select"><option value="5">5</option><option value="10">10</option><option value="25">25</option><option value="50">50</option></select><span>por página</span></div>
-            <div class="ca-toolbar__center"><button id="btnCopy" class="ca-mini-btn" type="button">Copiar</button><button id="btnCsv" class="ca-mini-btn ca-mini-btn--blue" type="button">CSV</button></div>
-            <div class="ca-toolbar__right"><label for="searchCategories">Buscar:</label><input id="searchCategories" class="ca-toolbar-search" type="text" placeholder="Nombre o descripción..." /></div>
+      </article>
+    </section>
+
+    <section class="ux-card ux-card--table">
+
+      <div class="ux-toolbar">
+        <div class="ux-toolbar__search">
+          <svg class="ux-toolbar__search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+          <input id="searchCategories" class="ux-search" type="text" placeholder="Buscar categoría por nombre..." aria-label="Buscar categorías" />
+        </div>
+        <div class="ux-toolbar__controls">
+          <div class="ux-export-group" role="group" aria-label="Exportar datos">
+            <button id="btnCopy"  class="ux-export-btn" type="button">Copiar</button>
+            <button id="btnCsv"   class="ux-export-btn" type="button">CSV</button>
           </div>
-          <div class="ca-list-header"><h2>Lista de categorías</h2><div id="catStatsBar" class="ca-stats"></div></div>
-          <div class="ca-table-wrap">
-            <table class="ca-table">
-              <thead><tr><th>ID</th><th>Nombre</th><th>Descripción</th><th>Imagen</th><th>Productos</th><th class="ca-th-actions">Acciones</th></tr></thead>
-              <tbody id="catRows"></tbody>
-            </table>
-          </div>
-          <div class="ca-pagination" id="paginationBar"><span id="catResultsInfo" class="ca-pagination__info"></span><div class="ca-pagination__controls" id="paginationControls"></div></div>
-        </article>
-      </section>
+          <label class="ux-rows-label" for="rowsPerPage">
+            Mostrar
+            <select id="rowsPerPage" class="ux-rows-select">
+              <option value="5">5</option>
+              <option value="10" selected>10</option>
+              <option value="25">25</option>
+              <option value="50">50</option>
+            </select>
+          </label>
+        </div>
+      </div>
+
+      <div class="ux-table-scroll" role="region" aria-label="Lista de categorías">
+        <table class="ux-table" id="categoriesTable">
+          <thead>
+            <tr>
+              <th scope="col" class="col-id">ID</th>
+              <th scope="col" class="col-img">IMAGEN</th>
+              <th scope="col" class="col-cat">CATEGORÍA</th>
+              <th scope="col" class="col-desc">DESCRIPCIÓN</th>
+              <th scope="col" class="col-prods">PRODS.</th>
+              <th scope="col" class="col-actions">ACCIONES</th>
+            </tr>
+          </thead>
+          <tbody id="catRows">
+            <tr class="ux-skeleton-row"><td><span class="ux-skel"></span></td><td><div class="ux-skel-img"></div></td><td><span class="ux-skel ux-skel--wide"></span></td><td><span class="ux-skel ux-skel--wider"></span></td><td><span class="ux-skel ux-skel--sm"></span></td><td></td></tr>
+            <tr class="ux-skeleton-row"><td><span class="ux-skel"></span></td><td><div class="ux-skel-img"></div></td><td><span class="ux-skel ux-skel--wide"></span></td><td><span class="ux-skel ux-skel--wider"></span></td><td><span class="ux-skel ux-skel--sm"></span></td><td></td></tr>
+            <tr class="ux-skeleton-row"><td><span class="ux-skel"></span></td><td><div class="ux-skel-img"></div></td><td><span class="ux-skel ux-skel--wide"></span></td><td><span class="ux-skel ux-skel--wider"></span></td><td><span class="ux-skel ux-skel--sm"></span></td><td></td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="ux-pagination">
+        <span id="catResultsInfo" class="ux-pagination__info"></span>
+        <div class="ux-pagination__controls" id="paginationControls"></div>
+      </div>
 
     </section>
+
   </main>
+  </div>
 
-  <!-- All JS logic -->
-  <script nonce={cspNonce} is:inline>
-    const formPanelEl=document.getElementById("catFormPanel");const formTitleEl=document.getElementById("catFormTitle");const currentCategoryIdEl=document.getElementById("currentCategoryId");const rowsEl=document.getElementById("catRows");const btnAddCategory=document.getElementById("btnAddCategory");const searchEl=document.getElementById("searchCategories");const rowsPerPageEl=document.getElementById("rowsPerPage");const resultsInfoEl=document.getElementById("catResultsInfo");const statsBarEl=document.getElementById("catStatsBar");const paginationControlsEl=document.getElementById("paginationControls");const btnCopy=document.getElementById("btnCopy");const btnCsv=document.getElementById("btnCsv");const nombreEl=document.getElementById("catNombre");const descripcionEl=document.getElementById("catDescripcion");const imagenUrlEl=document.getElementById("catImagenUrl");const btnSave=document.getElementById("btnSave");const btnCancelEdit=document.getElementById("btnCancelEdit");const btnFormReset=document.getElementById("btnFormReset");
-    let categories=[],filteredCategories=[],formMode="create",currentPage=1;
+  <div id="catImageViewerModal" class="ux-modal-backdrop" hidden>
+    <div id="catImageViewerPanel" class="ux-modal-panel" role="dialog" aria-modal="true">
+      <div class="ux-modal-header">
+        <div class="ux-modal-header-text">
+          <span class="ux-form-badge">Galería</span>
+          <h2 class="ux-modal-title" id="catImageViewerName">Categoría</h2>
+        </div>
+        <button id="catImageViewerClose" class="ux-icon-btn" type="button" aria-label="Cerrar">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
 
-    /* â”€â”€â”€ SVG helper â€” creates proper namespace SVG via DOM â”€â”€â”€ */
-    function makeSVG(pathsArray, w, h, sw) {
-      var svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+      <div class="ux-modal-body">
+        <div class="ux-img-preview-card">
+          <img id="catImageViewerImg" class="ux-img-preview-img" src="" alt="Preview" style="display:none;" />
+          <div class="ux-img-empty" id="catImageViewerEmpty">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+            <span>Sin imagen asignada</span>
+          </div>
+          <p class="ux-img-counter" id="catImageViewerCounter"></p>
+        </div>
+
+        <div class="ux-img-section">
+          <p class="ux-img-section-label">Opciones de imagen</p>
+          <div id="catImageViewerList" class="ux-img-list"></div>
+        </div>
+
+        <div class="ux-img-section">
+          <p class="ux-img-section-label">Subir o enlazar nueva imagen</p>
+          <div class="ux-img-add-row">
+            <div class="ux-img-input-wrap">
+              <svg class="ux-img-input-icon" viewBox="0 0 24 24"><path d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101"></path><path d="M10.172 13.828a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"></path></svg>
+              <input id="catImageViewerNewUrl" class="ux-img-input" type="text" placeholder="URL de imagen externa..." />
+            </div>
+            <button id="catImageViewerAddBtn" class="ux-cta ux-cta--ghost" type="button" style="padding: 9px 14px;">Enlazar</button>
+          </div>
+          <div class="ux-img-upload-row">
+            <input id="catImageUploadFile" class="ux-img-upload-file" type="file" accept="image/png,image/jpeg,image/webp" />
+            <button id="catImageUploadBtn" class="ux-cta" type="button" style="padding: 9px 14px;">Subir a Cloudinary</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="ux-modal-footer">
+        <button class="ux-cta ux-cta--ghost" type="button" id="catImageViewerCancelBtn">Cancelar</button>
+        <button id="catImageViewerSave" class="ux-cta" type="button">Guardar cambios</button>
+      </div>
+    </div>
+  </div>
+
+  <script nonce={cspNonce} is:inline define:vars={{ isSuperusuario }}>
+  (function () {
+    /* refs */
+    const formPanelEl      = document.getElementById('catFormPanel');
+    const formTitleEl      = document.getElementById('formTitle');
+    const formModeBadgeEl  = document.getElementById('formModeBadge');
+    const currentCategoryIdEl = document.getElementById('currentCategoryId');
+    const rowsEl           = document.getElementById('catRows');
+    const btnAddCategory   = document.getElementById('btnAddCategory');
+    const searchCategoriesEl = document.getElementById('searchCategories');
+    const rowsPerPageEl    = document.getElementById('rowsPerPage');
+    const resultsInfoEl    = document.getElementById('catResultsInfo');
+    const statsEl          = document.getElementById('ux-stats');
+    const paginationControlsEl = document.getElementById('paginationControls');
+    const btnCopy          = document.getElementById('btnCopy');
+    const btnCsv           = document.getElementById('btnCsv');
+    const nombreEl         = document.getElementById('catNombre');
+    const descripcionEl    = document.getElementById('catDescripcion');
+    const imagenUrlEl      = document.getElementById('catImagenUrl');
+    const btnCreate        = document.getElementById('btnCreate');
+    const btnUpdate        = document.getElementById('btnUpdate');
+    const btnCancelEdit    = document.getElementById('btnCancelEdit');
+    const btnFormReset     = document.getElementById('btnFormReset');
+
+    /* state */
+    let categories = [], filteredCategories = [], currentPage = 1;
+    let formMode = 'create'; // 'create' | 'edit'
+
+    /* SVG helper */
+    function makeSVG(pathsArray) {
+      const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
       svg.setAttribute('viewBox', '0 0 24 24');
-      svg.setAttribute('width', String(w || 14));
-      svg.setAttribute('height', String(h || 14));
       svg.setAttribute('fill', 'none');
       svg.setAttribute('stroke', 'currentColor');
-      svg.setAttribute('stroke-width', String(sw || 2));
+      svg.setAttribute('stroke-width', '2');
       svg.setAttribute('stroke-linecap', 'round');
       svg.setAttribute('stroke-linejoin', 'round');
-      svg.style.display = 'block';
-      svg.style.pointerEvents = 'none';
-      pathsArray.forEach(function(d) {
-        var p = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+      pathsArray.forEach(d => {
+        const p = document.createElementNS('http://www.w3.org/2000/svg', 'path');
         p.setAttribute('d', d);
         svg.appendChild(p);
       });
       return svg;
     }
-    var SVG_EDIT = ['M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7','M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z'];
-    var SVG_DELETE = ['M3 6h18','M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2','M10 11v6','M14 11v6'];
+    const ICON_EDIT   = ['M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7','M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z'];
+    const ICON_DELETE = ['M3 6h18','M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2','M10 11v6','M14 11v6'];
 
-    function setMode(mode,label){formMode=mode;if(!formTitleEl||!currentCategoryIdEl)return;if(mode==="edit")formTitleEl.innerHTML=`Editando: <span style="color:#c084fc;font-weight:700">${label||""}</span>`;else{formTitleEl.textContent="Nueva categoría";currentCategoryIdEl.value="";}}
-    function resetForm(){if(!nombreEl||!descripcionEl||!imagenUrlEl)return;nombreEl.value="";descripcionEl.value="";imagenUrlEl.value="";setMode("create");}
-    function openForm(mode="create",label){if(!formPanelEl)return;formPanelEl.hidden=false;setMode(mode,label);formPanelEl.scrollIntoView({behavior:"smooth",block:"start"});}
-    function closeForm(){if(!formPanelEl)return;formPanelEl.hidden=true;resetForm();}
-    function fillForm(cat){if(!nombreEl||!descripcionEl||!imagenUrlEl||!currentCategoryIdEl)return;currentCategoryIdEl.value=String(cat.id);nombreEl.value=cat.nombre||"";descripcionEl.value=cat.descripcion||"";imagenUrlEl.value=cat.imagenUrl||"";openForm("edit",cat.nombre||"");}
-    function truncate(text,max){const s=String(text||"");return s.length>max?s.slice(0,max)+"...":s;}
-    function applyFilters(){const q=String(searchEl?.value||"").trim().toLowerCase();filteredCategories=categories.filter(c=>{if(!q)return true;return String(c.nombre||"").toLowerCase().includes(q)||String(c.descripcion||"").toLowerCase().includes(q);});}
-    function getPageData(){applyFilters();const perPage=Number(rowsPerPageEl?.value||10);const totalPages=Math.max(1,Math.ceil(filteredCategories.length/perPage));if(currentPage>totalPages)currentPage=totalPages;const start=(currentPage-1)*perPage;return{items:filteredCategories.slice(start,start+perPage),total:filteredCategories.length,totalPages,perPage,start};}
-
-    /* â”€â”€â”€ PAGINATION RENDER (improved with SVG arrows, always visible) â”€â”€â”€ */
-    function renderPagination({total,totalPages,start,items}){
-      if(resultsInfoEl) resultsInfoEl.textContent = total === 0 ? "Sin resultados" : `Mostrando ${start+1}-${start+items.length} de ${total}`;
-      if(!paginationControlsEl) return;
-      paginationControlsEl.innerHTML="";
-
-      function mkBtn(label, page, active, disabled, isArrow) {
-        var b = document.createElement("button");
-        b.className = "ca-page-btn" + (active ? " active" : "") + (disabled ? " disabled" : "") + (isArrow ? " ca-page-btn--arrow" : "");
-        b.type = "button";
-        if (isArrow) {
-          var svg = document.createElementNS('http://www.w3.org/2000/svg','svg');
-          svg.setAttribute('viewBox','0 0 24 24');svg.setAttribute('width','14');svg.setAttribute('height','14');
-          svg.setAttribute('fill','none');svg.setAttribute('stroke','currentColor');svg.setAttribute('stroke-width','2.5');
-          svg.setAttribute('stroke-linecap','round');svg.setAttribute('stroke-linejoin','round');
-          svg.style.display='block';svg.style.pointerEvents='none';
-          var p = document.createElementNS('http://www.w3.org/2000/svg','path');
-          p.setAttribute('d', label === 'prev' ? 'M15 18l-6-6 6-6' : 'M9 18l6-6-6-6');
-          svg.appendChild(p);
-          b.appendChild(svg);
-        } else {
-          b.textContent = label;
-        }
-        b.disabled = disabled;
-        if (!disabled && !active) b.addEventListener("click", function(){ currentPage = page; renderCategories(); });
-        return b;
+    /* form helpers */
+    function setMode(mode, label) {
+      formMode = mode;
+      if (mode === 'edit') {
+        formTitleEl.innerHTML = `Editando: <em>${label || ''}</em>`;
+        formModeBadgeEl.textContent = 'Editar';
+        formModeBadgeEl.classList.add('ux-form-badge--edit');
+        btnCreate.style.display = 'none';
+        btnUpdate.style.display = 'inline-flex';
+      } else {
+        formTitleEl.textContent = 'Nueva categoría';
+        formModeBadgeEl.textContent = 'Nuevo';
+        formModeBadgeEl.classList.remove('ux-form-badge--edit');
+        btnCreate.style.display = 'inline-flex';
+        btnUpdate.style.display = 'none';
+        currentCategoryIdEl.value = '';
       }
-
-      // Previous
-      paginationControlsEl.appendChild(mkBtn("prev", currentPage - 1, false, currentPage === 1, true));
-
-      // Page numbers
-      var delta = 2;
-      var pages = new Set([1, totalPages]);
-      for (var i = Math.max(2, currentPage - delta); i <= Math.min(totalPages - 1, currentPage + delta); i++) pages.add(i);
-      var prev = 0;
-      Array.from(pages).sort(function(a,b){return a-b;}).forEach(function(p) {
-        if (prev && p - prev > 1) {
-          var ellipsis = document.createElement("span");
-          ellipsis.className = "ca-page-ellipsis";
-          ellipsis.textContent = "...";
-          paginationControlsEl.appendChild(ellipsis);
-        }
-        paginationControlsEl.appendChild(mkBtn(String(p), p, p === currentPage, false, false));
-        prev = p;
-      });
-
-      // Next
-      paginationControlsEl.appendChild(mkBtn("next", currentPage + 1, false, currentPage === totalPages, true));
+    }
+    function resetForm() {
+      if(nombreEl) nombreEl.value = '';
+      if(descripcionEl) descripcionEl.value = '';
+      if(imagenUrlEl) imagenUrlEl.value = '';
+      setMode('create');
+    }
+    function openForm(mode = 'create', label) {
+      if (!formPanelEl) return;
+      formPanelEl.classList.add('is-open');
+      formPanelEl.setAttribute('aria-hidden', 'false');
+      setMode(mode, label);
+      setTimeout(() => formPanelEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' }), 80);
+    }
+    function closeForm() {
+      if (!formPanelEl) return;
+      formPanelEl.classList.remove('is-open');
+      formPanelEl.setAttribute('aria-hidden', 'true');
+      resetForm();
+    }
+    function fillForm(cat) {
+      if(!currentCategoryIdEl) return;
+      currentCategoryIdEl.value = String(cat.id);
+      if(nombreEl) nombreEl.value = cat.nombre || '';
+      if(descripcionEl) descripcionEl.value = cat.descripcion || '';
+      if(imagenUrlEl) imagenUrlEl.value = cat.imagenUrl || '';
+      openForm('edit', cat.nombre || '');
+    }
+    function buildPayload() {
+      return { 
+        nombre: nombreEl?.value?.trim() || '', 
+        descripcion: descripcionEl?.value?.trim() || '', 
+        imagenUrl: imagenUrlEl?.value?.trim() || '' 
+      };
     }
 
-    function renderStats(){if(!statsBarEl)return;const total=categories.length;const conImg=categories.filter(c=>c.imagenUrl).length;const conProds=categories.filter(c=>c.productCount>0).length;statsBarEl.innerHTML=`<span class="ca-stat-chip">${total} total</span><span class="ca-stat-chip ca-stat-chip--green">${conImg} con imagen</span><span class="ca-stat-chip ca-stat-chip--purple">${conProds} con productos</span>`;}
+    function truncate(text, max){ const s=String(text||""); return s.length>max?s.slice(0,max)+"...":s; }
 
-    function renderCategories(){
-      if(!rowsEl)return;
-      rowsEl.innerHTML="";
-      var pageData=getPageData();
-      pageData.items.forEach(function(cat){
-        var tr=document.createElement("tr");
-        var imgCell=cat.imagenUrl
-          ?'<div class="ca-thumb-wrap" data-cat-id="'+cat.id+'"><img src="'+cat.imagenUrl+'" alt="'+(cat.nombre||"")+'" class="ca-thumb" /></div>'
-          :'<span class="ca-no-img ca-thumb-wrap" data-cat-id="'+cat.id+'">Sin imagen</span>';
-        var prodBadge=cat.productCount>0
-          ?'<span class="ca-prod-badge">'+cat.productCount+'</span>'
-          :'<span class="ca-no-data">0</span>';
-
-        tr.innerHTML =
-          '<td class="ca-td-id">'+cat.id+'</td>'+
-          '<td><strong class="ca-nombre">'+(cat.nombre||"")+'</strong></td>'+
-          '<td class="ca-td-desc">'+truncate(cat.descripcion,60)+'</td>'+
-          '<td>'+imgCell+'</td>'+
-          '<td>'+prodBadge+'</td>'+
-          '<td><div class="ca-row-actions"></div></td>';
-
-        // Build action buttons with proper DOM SVGs
-        var actionsDiv = tr.querySelector('.ca-row-actions');
-
-        var editBtn = document.createElement('button');
-        editBtn.className = 'ca-row-btn ca-row-btn--edit';
-        editBtn.type = 'button';
-        editBtn.dataset.action = 'edit';
-        editBtn.dataset.id = String(cat.id);
-        editBtn.title = 'Editar';
-        editBtn.appendChild(makeSVG(SVG_EDIT, 14, 14, 2));
-        actionsDiv.appendChild(editBtn);
-
-        var delBtn = document.createElement('button');
-        delBtn.className = 'ca-row-btn ca-row-btn--delete';
-        delBtn.type = 'button';
-        delBtn.dataset.action = 'delete';
-        delBtn.dataset.id = String(cat.id);
-        delBtn.title = 'Eliminar';
-        delBtn.appendChild(makeSVG(SVG_DELETE, 14, 14, 2));
-        actionsDiv.appendChild(delBtn);
-
-        rowsEl.appendChild(tr);
+    /* paginate */
+    function applyFilters() {
+      const q = String(searchCategoriesEl?.value || '').trim().toLowerCase();
+      filteredCategories = categories.filter(c => {
+        if (!q) return true;
+        return String(c.nombre || '').toLowerCase().includes(q) || String(c.descripcion || '').toLowerCase().includes(q);
       });
+    }
+    function getPageData() {
+      applyFilters();
+      const perPage = Number(rowsPerPageEl?.value || 10);
+      const totalPages = Math.max(1, Math.ceil(filteredCategories.length / perPage));
+      if (currentPage > totalPages) currentPage = totalPages;
+      const start = (currentPage - 1) * perPage;
+      return { items: filteredCategories.slice(start, start + perPage), total: filteredCategories.length, totalPages, start };
+    }
+    function renderPagination({ total, totalPages, start, items }) {
+      if (resultsInfoEl) resultsInfoEl.textContent = total === 0 ? 'Sin resultados' : `Mostrando ${start + 1}–${start + items.length} de ${total} resultado${total !== 1 ? 's' : ''}`;
+      if (!paginationControlsEl) return;
+      paginationControlsEl.innerHTML = '';
+      if (totalPages <= 1) return;
+      const mkBtn = (label, page, active, disabled) => {
+        const b = document.createElement('button');
+        b.className = 'ux-page-btn' + (active ? ' is-active' : '') + (disabled ? ' is-disabled' : '');
+        b.textContent = label; b.disabled = disabled;
+        if (!disabled && !active) b.addEventListener('click', () => { currentPage = page; renderCategories(); });
+        return b;
+      };
+      paginationControlsEl.appendChild(mkBtn('‹', currentPage - 1, false, currentPage === 1));
+      let prev = 0; const pages = new Set([1, totalPages]);
+      for (let i = Math.max(2, currentPage - 2); i <= Math.min(totalPages - 1, currentPage + 2); i++) pages.add(i);
+      [...pages].sort((a, b) => a - b).forEach(p => {
+        if (prev && p - prev > 1) paginationControlsEl.appendChild(Object.assign(document.createElement('span'), { className: 'ux-page-ellipsis', textContent: '…' }));
+        paginationControlsEl.appendChild(mkBtn(String(p), p, p === currentPage, false)); prev = p;
+      });
+      paginationControlsEl.appendChild(mkBtn('›', currentPage + 1, false, currentPage === totalPages));
+    }
+
+    /* stats */
+    function renderStats() {
+      if (!statsEl) return;
+      const total = categories.length;
+      const conImg = categories.filter(c => c.imagenUrl).length;
+      const conProds = categories.filter(c => c.productCount > 0).length;
+      statsEl.innerHTML = `
+        <span class="ux-stat">
+          <strong>${total}</strong> categorías en total
+        </span>
+        <span class="ux-stat-sep" aria-hidden="true">·</span>
+        <span class="ux-stat ux-stat--violet"><strong>${conImg}</strong> con imagen representativa</span>
+        <span class="ux-stat-sep" aria-hidden="true">·</span>
+        <span class="ux-stat ux-stat--green"><strong>${conProds}</strong> en uso por productos</span>`;
+    }
+
+    /* render */
+    function renderCategories() {
+      if (!rowsEl) return;
+      rowsEl.innerHTML = '';
+      const pageData = getPageData();
+      if (pageData.items.length === 0) {
+        rowsEl.innerHTML = `<tr><td colspan="6" class="ux-empty">
+          <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+          <span>No se encontraron categorías</span>
+        </td></tr>`;
+      } else {
+        pageData.items.forEach(cat => {
+          const tr = document.createElement('tr');
+          const canDelete = isSuperusuario;
+          
+          const imgCell = cat.imagenUrl
+            ? `<div class="ux-cat-thumb" data-cat-id="${cat.id}"><img src="${cat.imagenUrl}" alt="${cat.nombre||''}" /></div>`
+            : `<div class="ux-cat-noimg" data-cat-id="${cat.id}">Sin img</div>`;
+            
+          const prodBadge = cat.productCount > 0
+            ? `<span class="ux-badge-prod">${cat.productCount} PRODS</span>`
+            : `<span class="ux-muted">0 PRODS</span>`;
+
+          tr.innerHTML = `
+            <td class="col-id"><span class="ux-id">#${cat.id}</span></td>
+            <td class="col-img">${imgCell}</td>
+            <td class="col-cat"><span class="ux-user-name">${cat.nombre || ''}</span></td>
+            <td class="col-desc"><span class="ux-email">${truncate(cat.descripcion, 40)}</span></td>
+            <td class="col-prods">${prodBadge}</td>
+            <td class="col-actions">
+              <div class="ux-row-actions">
+                <button class="ux-action-btn ux-action-btn--edit" data-action="edit" data-id="${cat.id}" type="button" title="Editar categoría"></button>
+                <button class="ux-action-btn ux-action-btn--delete" data-action="delete" data-id="${cat.id}" type="button" title="Eliminar categoría" ${canDelete ? '' : 'disabled'}></button>
+              </div>
+            </td>`;
+          
+          const editBtn = tr.querySelector('.ux-action-btn--edit');
+          const delBtn  = tr.querySelector('.ux-action-btn--delete');
+          if (editBtn) editBtn.appendChild(makeSVG(ICON_EDIT));
+          if (delBtn)  delBtn.appendChild(makeSVG(ICON_DELETE));
+          
+          // Image viewer open trigger
+          const imgTrigger = tr.querySelector('[data-cat-id]');
+          if(imgTrigger) imgTrigger.addEventListener('click', () => openCatImageViewer(cat.id));
+
+          rowsEl.appendChild(tr);
+        });
+      }
       renderPagination(pageData);
       renderStats();
     }
 
-    async function fetchCategories(){const r=await fetch("/api/categorias",{credentials:"include"});const d=await r.json().catch(()=>({}));if(!r.ok||!d?.success)throw new Error(d?.error||"No se pudieron cargar categorías");categories=(Array.isArray(d.categorias)?d.categorias:[]).map(c=>({id:c.Id_Categoria??c.id,nombre:c.Nombre??c.nombre??"",descripcion:c.Descripcion??c.descripcion??"",imagenUrl:c.Imagen_URL??c.imagenUrl??c.imagen??"",productCount:c.productCount??0,}));try{const pr=await fetch("/api/productos",{credentials:"include"});const pd=await pr.json().catch(()=>({}));if(pr.ok&&pd?.success){const countMap={};(Array.isArray(pd.productos)?pd.productos:[]).forEach(p=>{const id=Number(p.categoriaId||0);if(id)countMap[id]=(countMap[id]||0)+1;});categories.forEach(c=>{c.productCount=countMap[c.id]||0;});}}catch{}renderCategories();}
-    function buildPayload(){return{nombre:nombreEl?.value?.trim()||"",descripcion:descripcionEl?.value?.trim()||"",imagenUrl:imagenUrlEl?.value?.trim()||""};}
-    btnAddCategory?.addEventListener("click",()=>{resetForm();openForm("create");});
-    searchEl?.addEventListener("input",()=>{currentPage=1;renderCategories();});
-    rowsPerPageEl?.addEventListener("change",()=>{currentPage=1;renderCategories();});
-    btnSave?.addEventListener("click",async()=>{const payload=buildPayload();if(!payload.nombre){Modal.error("Error","El nombre de la categoría es obligatorio");return;}try{if(formMode==="edit"){const catId=Number(currentCategoryIdEl?.value||0);if(!catId){Modal.error("Error","Selecciona una categoría para editar");return;}Modal.loading("Actualizando categoría","Guardando cambios...");const r=await fetch(`/api/admin/categorias/${catId}`,{method:"PUT",credentials:"include",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload)});const d=await r.json().catch(()=>({}));Modal.hideLoading();if(!r.ok||!d?.success)throw new Error(d?.error||"No se pudo actualizar");Modal.success("¡Listo!","Categoría actualizada correctamente",{autoClose:2500});}else{Modal.loading("Creando categoría","Por favor espera...");const r=await fetch("/api/admin/categorias/crear",{method:"POST",credentials:"include",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload)});const d=await r.json().catch(()=>({}));Modal.hideLoading();if(!r.ok||!d?.success)throw new Error(d?.error||"No se pudo crear");Modal.success("¡Categoría creada!","Fue agregada exitosamente",{autoClose:2500});}closeForm();await fetchCategories();}catch(err){Modal.hideLoading();Modal.error("Error",err.message||"Error guardando categoría");}});
-    btnCancelEdit?.addEventListener("click",closeForm);btnFormReset?.addEventListener("click",resetForm);
-    rowsEl?.addEventListener("click",async(event)=>{const target=event.target;if(!(target instanceof Element))return;const thumbWrap=target.closest(".ca-thumb-wrap");if(thumbWrap){const catId=thumbWrap.dataset.catId;if(catId)openCatImageViewer(catId);return;}const button=target.closest("button[data-action]");if(!(button instanceof HTMLButtonElement))return;const action=button.dataset.action,catId=Number(button.dataset.id||0);if(!catId)return;if(action==="edit"){const cat=categories.find(c=>Number(c.id)===catId);if(cat)fillForm(cat);return;}if(action==="delete"){const ok=await Modal.confirm("¿Eliminar categoría?","Esta acción es permanente y no se puede deshacer.",{confirmText:"Sí, eliminar",cancelText:"Cancelar"});if(!ok)return;try{Modal.loading("Eliminando categoría","Por favor espera...");const r=await fetch(`/api/admin/categorias/${catId}`,{method:"DELETE",credentials:"include"});const d=await r.json().catch(()=>({}));Modal.hideLoading();if(!r.ok||!d?.success)throw new Error(d?.error||"No se pudo eliminar");Modal.success("Eliminada","La categoría fue eliminada correctamente",{autoClose:2000});closeForm();await fetchCategories();}catch(err){Modal.hideLoading();Modal.error("Error",err.message||"Error eliminando categoría");}}});
-    btnCopy?.addEventListener("click",async()=>{try{const rows=filteredCategories.map(c=>`${c.id}\t${c.nombre}\t${c.descripcion}\t${c.productCount}`).join("\n");await navigator.clipboard.writeText(`ID\tNOMBRE\tDESCRIPCION\tPRODUCTOS\n${rows}`);Modal.success("Copiado","Datos copiados al portapapeles",{autoClose:1800});}catch{Modal.error("Error","No se pudo copiar al portapapeles");}});
-    btnCsv?.addEventListener("click",()=>{const rows=filteredCategories.map(c=>`${c.id},"${String(c.nombre||"").replaceAll('"','""')}","${String(c.descripcion||"").replaceAll('"','""')}",${c.productCount}`).join("\n");const blob=new Blob([`id,nombre,descripcion,productos\n${rows}`],{type:"text/csv;charset=utf-8;"});const url=URL.createObjectURL(blob);const a=document.createElement("a");a.href=url;a.download="categorias.csv";document.body.appendChild(a);a.click();a.remove();URL.revokeObjectURL(url);Modal.success("CSV","Archivo descargado",{autoClose:1800});});
-
-    /* Image Viewer */
-    const catImgModal=document.getElementById("catImageViewerModal");const catImgPanel=document.getElementById("catImageViewerPanel");const catImgCloseBtn=document.getElementById("catImageViewerClose");const catImgPreviewEl=document.getElementById("catImageViewerImg");const catImgEmptyEl=document.getElementById("catImageViewerEmpty");const catImgListEl=document.getElementById("catImageViewerList");const catImgNewUrlEl=document.getElementById("catImageViewerNewUrl");const catImgAddBtn=document.getElementById("catImageViewerAddBtn");const catImgSaveBtn=document.getElementById("catImageViewerSave");const catImgNameEl=document.getElementById("catImageViewerName");const catImgCancelBtn=document.getElementById("catImageViewerCancelBtn");let catImgViewerCatId=null,catImgViewerUrls=[],catImgViewerSelectedIdx=0,catImgViewerMode="category",catDragSrcIdx=null;
-    function showCatImgModal(){if(!catImgModal||!catImgPanel)return;catImgModal.hidden=false;requestAnimationFrame(()=>{catImgModal.classList.add("is-open");catImgPanel.classList.add("is-open");});}
-    function closeCatImageViewer(){if(!catImgModal||!catImgPanel)return;catImgModal.classList.remove("is-open");catImgPanel.classList.remove("is-open");setTimeout(()=>{catImgModal.hidden=true;},200);}
-    function openCatImageViewer(catId){const cat=categories.find(c=>Number(c.id)===Number(catId));if(!cat)return;catImgViewerMode="category";catImgViewerCatId=cat.id;catImgViewerUrls=cat.imagenUrl?[cat.imagenUrl]:[];catImgViewerSelectedIdx=0;if(catImgNameEl)catImgNameEl.textContent=cat.nombre||"Categoría";renderCatImageViewer();showCatImgModal();}
-    function openCatImageViewerForForm(){catImgViewerMode="form";catImgViewerCatId=null;const url=imagenUrlEl?.value?.trim();catImgViewerUrls=url?[url]:[];catImgViewerSelectedIdx=0;if(catImgNameEl)catImgNameEl.textContent=nombreEl?.value?.trim()||"Nueva categoría";renderCatImageViewer();showCatImgModal();}
-    function renderCatImageViewer(){const has=catImgViewerUrls.length>0;if(catImgPreviewEl){catImgPreviewEl.style.display=has?"block":"none";catImgPreviewEl.src=has?(catImgViewerUrls[catImgViewerSelectedIdx]||""):"";}if(catImgEmptyEl)catImgEmptyEl.style.display=has?"none":"flex";const counterEl=document.getElementById("catImageViewerCounter");if(counterEl)counterEl.textContent=has?`Imagen ${catImgViewerSelectedIdx+1} de ${catImgViewerUrls.length}`:"";if(!catImgListEl)return;catImgListEl.innerHTML="";catImgViewerUrls.forEach((url,idx)=>{const row=document.createElement("div");row.className="ca-img-row"+(idx===catImgViewerSelectedIdx?" is-selected":"");row.draggable=true;row.dataset.idx=String(idx);row.innerHTML=`<div class="ca-img-row-drag" title="Arrastrar"><svg viewBox="0 0 24 24"><path d="M8 6h.01M8 12h.01M8 18h.01M16 6h.01M16 12h.01M16 18h.01"></path></svg></div><img class="ca-img-row-thumb" src="${url}" alt="img ${idx+1}" /><input class="ca-img-row-url" type="text" value="${url}" data-idx="${idx}" /><button class="ca-img-row-del" type="button"><svg viewBox="0 0 24 24"><path d="M6 7h12m-9 0V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2m-8 0l1 13h8l1-13M10 11v6M14 11v6"></path></svg></button>`;row.addEventListener("dragstart",e=>{catDragSrcIdx=idx;row.classList.add("is-dragging");e.dataTransfer.effectAllowed="move";});row.addEventListener("dragend",()=>{row.classList.remove("is-dragging");catDragSrcIdx=null;catImgListEl.querySelectorAll(".ca-img-row").forEach(r=>r.classList.remove("drag-over"));});row.addEventListener("dragover",e=>{e.preventDefault();row.classList.add("drag-over");});row.addEventListener("dragleave",()=>row.classList.remove("drag-over"));row.addEventListener("drop",e=>{e.preventDefault();row.classList.remove("drag-over");if(catDragSrcIdx!==null&&catDragSrcIdx!==idx){const moved=catImgViewerUrls.splice(catDragSrcIdx,1)[0];catImgViewerUrls.splice(idx,0,moved);catImgViewerSelectedIdx=idx;renderCatImageViewer();}catDragSrcIdx=null;});row.querySelector(".ca-img-row-thumb")?.addEventListener("click",()=>{catImgViewerSelectedIdx=idx;renderCatImageViewer();});row.querySelector(".ca-img-row-url")?.addEventListener("input",e=>{catImgViewerUrls[idx]=e.target.value.trim();if(catImgPreviewEl&&idx===catImgViewerSelectedIdx)catImgPreviewEl.src=catImgViewerUrls[idx];});row.querySelector(".ca-img-row-del")?.addEventListener("click",()=>{catImgViewerUrls.splice(idx,1);catImgViewerSelectedIdx=Math.max(0,catImgViewerUrls.length-1);renderCatImageViewer();});catImgListEl.appendChild(row);});}
-    catImgAddBtn?.addEventListener("click",()=>{const u=catImgNewUrlEl?.value?.trim();if(!u)return;catImgViewerUrls.push(u);catImgViewerSelectedIdx=catImgViewerUrls.length-1;if(catImgNewUrlEl)catImgNewUrlEl.value="";renderCatImageViewer();});
-    catImgCloseBtn?.addEventListener("click",closeCatImageViewer);catImgCancelBtn?.addEventListener("click",closeCatImageViewer);catImgModal?.addEventListener("click",e=>{if(e.target===catImgModal)closeCatImageViewer();});
-    catImgSaveBtn?.addEventListener("click",async()=>{const cleanUrls=catImgViewerUrls.filter(u=>u.trim());const firstUrl=cleanUrls[0]||"";if(catImgViewerMode==="form"){if(imagenUrlEl)imagenUrlEl.value=firstUrl;closeCatImageViewer();return;}if(!catImgViewerCatId)return;const cat=categories.find(c=>Number(c.id)===Number(catImgViewerCatId));if(!cat)return;try{Modal.loading("Guardando imagen","Actualizando categoría...");const res=await fetch(`/api/admin/categorias/${catImgViewerCatId}`,{method:"PUT",credentials:"include",headers:{"Content-Type":"application/json"},body:JSON.stringify({nombre:cat.nombre||"",descripcion:cat.descripcion||"",imagenUrl:firstUrl})});const data=await res.json().catch(()=>({}));Modal.hideLoading();if(!res.ok||!data?.success)throw new Error(data?.error||"No se pudo guardar la imagen");closeCatImageViewer();Modal.success("¡Listo!","Imagen actualizada correctamente",{autoClose:2200});await fetchCategories();}catch(err){Modal.hideLoading();Modal.error("Error",err.message||"Error guardando imagen");}});
-    document.getElementById("btnCatOpenGallery")?.addEventListener("click",()=>openCatImageViewerForForm());
-    fetchCategories().catch(err=>Modal.error("Error",err.message||"No se pudieron cargar categorías"));
-  </script>
-
-  <script nonce={cspNonce} is:inline>
-    (function(){
-      const uploadFile = document.getElementById("catImageUploadFile");
-      const uploadBtn = document.getElementById("catImageUploadBtn");
-      const newUrlInput = document.getElementById("catImageViewerNewUrl");
-      const addBtn = document.getElementById("catImageViewerAddBtn");
-
-      if (!(uploadBtn instanceof HTMLButtonElement)) return;
-
-      uploadBtn.addEventListener("click", async () => {
-        if (!(uploadFile instanceof HTMLInputElement) || !uploadFile.files || !uploadFile.files[0]) {
-          if (window.Modal?.warning) window.Modal.warning("Sin archivo", "Selecciona una imagen primero");
-          return;
-        }
-
-        const fd = new FormData();
-        fd.append("file", uploadFile.files[0]);
+    /* fetch */
+    async function fetchCategories() {
+      try {
+        const r = await fetch('/api/categorias', { credentials: 'include' });
+        const d = await r.json().catch(() => ({}));
+        if (!r.ok || !d?.success) throw new Error(d?.error || 'No se pudieron cargar categorías');
+        
+        categories = (Array.isArray(d.categorias)?d.categorias:[]).map(c=>({
+          id: c.Id_Categoria ?? c.id,
+          nombre: c.Nombre ?? c.nombre ?? "",
+          descripcion: c.Descripcion ?? c.descripcion ?? "",
+          imagenUrl: c.Imagen_URL ?? c.imagenUrl ?? c.imagen ?? "",
+          productCount: c.productCount ?? 0,
+        }));
 
         try {
-          if (window.Modal?.loading) window.Modal.loading("Subiendo imagen", "Enviando a Cloudinary...");
-          const res = await fetch("/api/admin/categorias/imagenes/upload", {
-            method: "POST",
-            credentials: "include",
-            body: fd,
-          });
-          const data = await res.json().catch(() => ({}));
-          if (window.Modal?.hideLoading) window.Modal.hideLoading();
-
-          if (!res.ok || !data?.success || !data?.url) {
-            throw new Error(data?.error || "No se pudo subir la imagen");
+          const pr = await fetch("/api/productos", {credentials:"include"});
+          const pd = await pr.json().catch(()=>({}));
+          if(pr.ok && pd?.success) {
+            const countMap = {};
+            (Array.isArray(pd.productos)?pd.productos:[]).forEach(p=>{
+              const id = Number(p.categoriaId||0);
+              if(id) countMap[id] = (countMap[id]||0) + 1;
+            });
+            categories.forEach(c => { c.productCount = countMap[c.id] || 0; });
           }
+        } catch{}
 
-          if (newUrlInput instanceof HTMLInputElement) {
-            newUrlInput.value = String(data.url);
-          }
-          if (addBtn instanceof HTMLButtonElement) {
-            addBtn.click();
-          }
-          uploadFile.value = "";
+        renderCategories();
+      } catch (err) {
+        if(window.Modal) Modal.error('Error', err.message);
+      }
+    }
 
-          if (window.Modal?.success) window.Modal.success("Imagen lista", "Se subió correctamente", { autoClose: 1800 });
-        } catch (error) {
-          if (window.Modal?.hideLoading) window.Modal.hideLoading();
-          if (window.Modal?.error) window.Modal.error("Error", String(error?.message || "Error subiendo imagen"));
-        }
+    /* events */
+    btnAddCategory?.addEventListener('click', () => { resetForm(); openForm('create'); });
+    searchCategoriesEl?.addEventListener('input', () => { currentPage = 1; renderCategories(); });
+    rowsPerPageEl?.addEventListener('change', () => { currentPage = 1; renderCategories(); });
+    btnCancelEdit?.addEventListener('click', closeForm);
+    btnFormReset?.addEventListener('click', resetForm);
+
+    btnCopy?.addEventListener('click', async () => {
+      try { 
+        const rows=filteredCategories.map(c=>`${c.id}\t${c.nombre}\t${c.descripcion}\t${c.productCount}`).join("\n");
+        await navigator.clipboard.writeText(`ID\tNOMBRE\tDESCRIPCION\tPRODUCTOS\n${rows}`); 
+        Modal.success('Copiado', 'Datos copiados al portapapeles', { autoClose: 1800 }); 
+      }
+      catch { Modal.error('Error', 'No se pudo copiar al portapapeles'); }
+    });
+    btnCsv?.addEventListener('click', () => {
+      const rows=filteredCategories.map(c=>`${c.id},"${String(c.nombre||"").replaceAll('"','""')}","${String(c.descripcion||"").replaceAll('"','""')}",${c.productCount}`).join("\n");
+      const blob=new Blob([`id,nombre,descripcion,productos\n${rows}`],{type:"text/csv;charset=utf-8;"});
+      const url=URL.createObjectURL(blob); const a=document.createElement("a"); a.href=url; a.download="categorias.csv"; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+      Modal.success('CSV descargado', 'Archivo listo', { autoClose: 1800 });
+    });
+
+    const handleSave = async (isEdit) => {
+      const p = buildPayload();
+      if (!p.nombre) { Modal.error('Error', 'El nombre de la categoría es obligatorio'); return; }
+      try {
+        Modal.loading(isEdit ? 'Actualizando...' : 'Creando categoría', 'Por favor espera…');
+        const url = isEdit ? `/api/admin/categorias/${currentCategoryIdEl.value}` : '/api/admin/categorias/crear';
+        const method = isEdit ? 'PUT' : 'POST';
+        const r = await fetch(url, { method, credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(p) });
+        const d = await r.json().catch(() => ({}));
+        Modal.hideLoading();
+        if (!r.ok || !d?.success) throw new Error(d?.error || 'No se pudo procesar la solicitud');
+        Modal.success('¡Hecho!', isEdit ? 'Categoría actualizada' : 'Categoría creada', { autoClose: 2500 });
+        closeForm(); await fetchCategories();
+      } catch (err) { Modal.hideLoading(); Modal.error('Error', err.message); }
+    };
+
+    btnCreate?.addEventListener('click', () => handleSave(false));
+    btnUpdate?.addEventListener('click', () => handleSave(true));
+
+    rowsEl?.addEventListener('click', async event => {
+      const btn = event.target?.closest('button[data-action]');
+      if (!(btn instanceof HTMLButtonElement)) return;
+      const action = btn.dataset.action, catId = btn.dataset.id;
+      if (!catId) return;
+      
+      if (action === 'edit') { const cat = categories.find(c => String(c.id) === String(catId)); if (cat) fillForm(cat); return; }
+      if (action === 'delete') {
+        if (!isSuperusuario) { Modal.error('Sin permiso', 'Solo superusuario puede eliminar'); return; }
+        const ok = await Modal.confirm('¿Eliminar categoría?', 'Esta acción es permanente y no se puede deshacer.', { confirmText: 'Sí, eliminar', cancelText: 'Cancelar' });
+        if (!ok) return;
+        try {
+          Modal.loading('Eliminando', 'Por favor espera…');
+          const r = await fetch(`/api/admin/categorias/${catId}`, { method: 'DELETE', credentials: 'include' });
+          const d = await r.json().catch(() => ({}));
+          Modal.hideLoading();
+          if (!r.ok || !d?.success) throw new Error(d?.error || 'No se pudo eliminar');
+          Modal.success('Eliminado', 'La categoría fue eliminada correctamente', { autoClose: 2000 });
+          closeForm(); await fetchCategories();
+        } catch (err) { Modal.hideLoading(); Modal.error('Error al eliminar', err.message); }
+      }
+    });
+
+    /* ── IMAGE VIEWER MODAL LOGIC ── */
+    const catImgModal = document.getElementById("catImageViewerModal");
+    const catImgPreviewEl = document.getElementById("catImageViewerImg");
+    const catImgEmptyEl = document.getElementById("catImageViewerEmpty");
+    const catImgListEl = document.getElementById("catImageViewerList");
+    const catImgNewUrlEl = document.getElementById("catImageViewerNewUrl");
+    let catImgViewerCatId=null, catImgViewerUrls=[], catImgViewerSelectedIdx=0, catImgViewerMode="category";
+
+    function showCatImgModal(){ 
+      catImgModal.hidden = false; 
+      requestAnimationFrame(()=>catImgModal.classList.add("is-open")); 
+    }
+    function closeCatImageViewer(){ 
+      catImgModal.classList.remove("is-open"); 
+      setTimeout(()=>catImgModal.hidden = true, 250); 
+    }
+    
+    function openCatImageViewer(catId){
+      const cat = categories.find(c=>Number(c.id)===Number(catId));
+      if(!cat) return;
+      catImgViewerMode="category"; catImgViewerCatId=cat.id;
+      catImgViewerUrls=cat.imagenUrl?[cat.imagenUrl]:[];
+      catImgViewerSelectedIdx=0;
+      document.getElementById("catImageViewerName").textContent=cat.nombre;
+      renderCatImageViewer(); showCatImgModal();
+    }
+
+    function openCatImageViewerForForm(){
+      catImgViewerMode="form"; catImgViewerCatId=null;
+      const url=imagenUrlEl?.value?.trim();
+      catImgViewerUrls=url?[url]:[]; catImgViewerSelectedIdx=0;
+      document.getElementById("catImageViewerName").textContent=nombreEl?.value?.trim()||"Nueva categoría";
+      renderCatImageViewer(); showCatImgModal();
+    }
+
+    function renderCatImageViewer(){
+      const has = catImgViewerUrls.length > 0;
+      if(catImgPreviewEl) { 
+        catImgPreviewEl.style.display = has ? "block" : "none"; 
+        catImgPreviewEl.src = has ? catImgViewerUrls[catImgViewerSelectedIdx] : ""; 
+      }
+      if(catImgEmptyEl) catImgEmptyEl.style.display = has ? "none" : "flex";
+      
+      const c = document.getElementById("catImageViewerCounter");
+      if(c) c.textContent = has ? `Mostrando 1 de ${catImgViewerUrls.length}` : "";
+      
+      if(!catImgListEl) return;
+      catImgListEl.innerHTML = "";
+      catImgViewerUrls.forEach((url, idx) => {
+        const row = document.createElement("div");
+        row.className = "ux-img-row" + (idx === catImgViewerSelectedIdx ? " is-selected" : "");
+        row.innerHTML = `
+          <img src="${url}" class="ux-img-row-thumb" />
+          <input type="text" class="ux-img-input" style="padding:4px 8px; font-size:0.75rem; flex:1;" value="${url}" readonly />
+          <button type="button" class="ux-icon-btn" style="color:var(--ux-bad);"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+        `;
+        row.querySelector('button').onclick = () => {
+          catImgViewerUrls.splice(idx,1);
+          catImgViewerSelectedIdx = Math.max(0, catImgViewerUrls.length-1);
+          renderCatImageViewer();
+        };
+        row.onclick = (e) => { 
+          if(e.target.tagName !== 'BUTTON' && e.target.tagName !== 'svg') { 
+            catImgViewerSelectedIdx = idx; renderCatImageViewer(); 
+          } 
+        };
+        catImgListEl.appendChild(row);
       });
+    }
+
+    document.getElementById("catImageViewerAddBtn")?.addEventListener("click", () => {
+      const u = catImgNewUrlEl?.value?.trim();
+      if(!u) return;
+      catImgViewerUrls.push(u); 
+      catImgViewerSelectedIdx = catImgViewerUrls.length - 1;
+      if(catImgNewUrlEl) catImgNewUrlEl.value = "";
+      renderCatImageViewer();
+    });
+
+    document.getElementById("catImageViewerClose")?.addEventListener("click", closeCatImageViewer);
+    document.getElementById("catImageViewerCancelBtn")?.addEventListener("click", closeCatImageViewer);
+    document.getElementById("catImageViewerModal")?.addEventListener("click", e => { if(e.target === document.getElementById("catImageViewerModal")) closeCatImageViewer(); });
+
+    document.getElementById("catImageViewerSave")?.addEventListener("click", async () => {
+      const cleanUrls = catImgViewerUrls.filter(u=>u.trim());
+      const firstUrl = cleanUrls[0] || "";
+      
+      if(catImgViewerMode === "form"){
+        if(imagenUrlEl) imagenUrlEl.value = firstUrl;
+        closeCatImageViewer(); return;
+      }
+      
+      if(!catImgViewerCatId) return;
+      const cat = categories.find(c=>Number(c.id)===Number(catImgViewerCatId));
+      if(!cat) return;
+      
+      try {
+        Modal.loading("Guardando","Actualizando imagen...");
+        const res = await fetch(`/api/admin/categorias/${catImgViewerCatId}`,{
+          method:"PUT", credentials:"include", headers:{"Content-Type":"application/json"},
+          body:JSON.stringify({nombre:cat.nombre, descripcion:cat.descripcion, imagenUrl:firstUrl})
+        });
+        const data = await res.json().catch(()=>({}));
+        Modal.hideLoading();
+        if(!res.ok||!data?.success) throw new Error(data?.error||"Error al guardar");
+        closeCatImageViewer(); 
+        Modal.success("¡Listo!","Imagen actualizada",{autoClose:2200});
+        await fetchCategories();
+      } catch(err){ Modal.hideLoading(); Modal.error("Error",err.message); }
+    });
+
+    document.getElementById("btnCatOpenGallery")?.addEventListener("click", openCatImageViewerForForm);
+
+    /* Cloudinary Logic */
+    const uploadFile = document.getElementById("catImageUploadFile");
+    const uploadBtn = document.getElementById("catImageUploadBtn");
+    if(uploadBtn) {
+      uploadBtn.addEventListener("click", async () => {
+        if (!uploadFile.files || !uploadFile.files[0]) { Modal.warning("Sin archivo", "Selecciona una imagen primero"); return; }
+        const fd = new FormData(); fd.append("file", uploadFile.files[0]);
+        try {
+          Modal.loading("Subiendo", "Enviando a Cloudinary...");
+          const res = await fetch("/api/admin/categorias/imagenes/upload", { method: "POST", credentials: "include", body: fd });
+          const data = await res.json().catch(() => ({}));
+          Modal.hideLoading();
+          if (!res.ok || !data?.success || !data?.url) throw new Error(data?.error || "Error al subir");
+          catImgViewerUrls.push(String(data.url));
+          catImgViewerSelectedIdx = catImgViewerUrls.length - 1;
+          uploadFile.value = ""; renderCatImageViewer();
+          Modal.success("Listo", "Imagen subida", { autoClose: 1500 });
+        } catch (error) { Modal.hideLoading(); Modal.error("Error", error.message); }
+      });
+    }
+
+    fetchCategories().catch(err => Modal.error('Error', err.message || 'No se pudieron cargar categorías'));
+  })();
+  </script>
+
+  <script>
+    (function(){
+      try{const t=localStorage.getItem('theme');if(t==='dark')document.documentElement.classList.add('dark');else document.documentElement.classList.remove('dark');}catch(e){}
+      window.addEventListener('storage',(e)=>{if(e.key==='theme')document.documentElement.classList.toggle('dark',e.newValue==='dark');});
     })();
   </script>
 
   <style is:global>
-    /* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-       ADMIN CATEGORÃAS â€” PREMIUM DARK (Admin = Purple #a855f7)
-       Glassmorphism design system â€” go-platform
-       â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
-    :root{--ca-bg:#0b0e14;--ca-surface:rgba(18,22,31,.8);--ca-surface-solid:#12161f;--ca-surface-2:#181d28;--ca-border:rgba(255,255,255,.07);--ca-border-hover:rgba(255,255,255,.14);--ca-text:#f0f2f5;--ca-text-2:#8b95a5;--ca-text-3:#5a6478;--ca-accent:#a855f7;--ca-accent-hover:#c084fc;--ca-accent-glow:rgba(168,85,247,.15);--ca-accent-glow-s:rgba(168,85,247,.3);--ca-accent-border:rgba(168,85,247,.3);--ca-green:#22c55e;--ca-green-bg:rgba(34,197,94,.1);--ca-green-border:rgba(34,197,94,.25);--ca-red:#ef4444;--ca-red-bg:rgba(239,68,68,.08);--ca-red-border:rgba(239,68,68,.2);--ca-blue:#60a5fa;--ca-blue-bg:rgba(96,165,250,.1);--ca-blue-border:rgba(96,165,250,.25);--ca-radius:16px;--ca-radius-sm:10px;--ca-shadow:0 2px 8px rgba(0,0,0,.2),0 0 0 1px rgba(255,255,255,.04);--ca-shadow-lg:0 8px 32px rgba(0,0,0,.35),0 0 0 1px rgba(255,255,255,.05)}
+  /* ════════════════════════════════════════════════════════
+     GESTIÓN DE CATEGORÍAS — Diseño UX Aislado y Optimizado
+     ════════════════════════════════════════════════════════ */
 
-    .ca-page{min-height:100vh;padding:40px 20px 60px;background:var(--ca-bg);position:relative;}
-    .ca-page::before{content:'';position:fixed;top:-200px;right:-200px;width:600px;height:600px;background:radial-gradient(circle,rgba(168,85,247,.06) 0%,transparent 70%);pointer-events:none;z-index:0;}
+  .ux-root {
+    --ux-bg:        transparent; /* Transparent so BaseLayout background flows through */
+    --ux-s1:        #0c1322;
+    --ux-s2:        #111a2e;
+    --ux-line:      rgba(148,163,184,0.14);
+    --ux-line-h:    rgba(148,163,184,0.26);
+    --ux-t1:        #eef2fa;
+    --ux-t2:        #94a3b8;
+    --ux-t3:        #475569;
+    
+    --ux-vi:        #8b5cf6;
+    --ux-vi-soft:   rgba(139,92,246,0.12);
+    --ux-vi-glow:   rgba(139,92,246,0.22);
+    --ux-vi-dim:    rgba(139,92,246,0.08);
+    
+    --ux-good:      #34d399;
+    --ux-bad:       #fb7185;
+    --ux-warn:      #fbbf24;
+    
+    --ux-r:         18px;
+    --ux-r-sm:      12px;
+    --ux-r-xs:      8px;
+    --ux-t-fast:    0.15s ease;
+    --ux-t-med:     0.22s ease;
 
-    .ca-shell{width:100%;max-width:1400px;margin:0 auto;background:var(--ca-surface);backdrop-filter:blur(20px);border:1px solid var(--ca-border);border-radius:var(--ca-radius);box-shadow:var(--ca-shadow-lg);padding:24px;position:relative;z-index:1;}
+    width: 100%;
+    min-height: 100vh;
+    font-family: 'Inter', -apple-system, 'SF Pro Text', system-ui, sans-serif;
+  }
 
-    /* â”€â”€ Header â”€â”€ */
-    .ca-header{display:flex;justify-content:space-between;gap:16px;align-items:flex-start;border-bottom:1px solid var(--ca-border);padding-bottom:20px;margin-bottom:20px;flex-wrap:wrap;}
-    .ca-kicker{display:inline-flex;align-items:center;gap:6px;margin:0 0 8px;font-size:10px;text-transform:uppercase;letter-spacing:.12em;color:var(--ca-accent-hover);font-weight:800;padding:5px 12px;background:var(--ca-accent-glow);border:1px solid var(--ca-accent-border);border-radius:24px;width:fit-content;}
-    .ca-title{margin:4px 0 4px;font-size:clamp(1.6rem,3vw,2.2rem);font-weight:800;letter-spacing:-.02em;line-height:1.1;background:linear-gradient(135deg,#fff 0%,#c4b5fd 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
-    .ca-subtitle{margin:0;color:var(--ca-text-2);font-size:13px;}
-    .ca-top-actions{display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
-    .ca-add-btn{border:none;background:linear-gradient(135deg,var(--ca-accent),#7c3aed);color:#fff;border-radius:12px;padding:11px 18px;font-size:13px;font-weight:700;display:inline-flex;align-items:center;gap:7px;cursor:pointer;box-shadow:0 4px 16px rgba(168,85,247,.3);transition:all .2s ease;font-family:inherit;}
-    .ca-add-btn:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(168,85,247,.4);}
-    .ca-back{text-decoration:none;color:var(--ca-text-2);border:1px solid var(--ca-border);background:rgba(255,255,255,.03);border-radius:12px;padding:10px 14px;font-size:12px;font-weight:600;transition:all .2s ease;display:inline-flex;align-items:center;gap:6px;}
-    .ca-back:hover{background:var(--ca-accent-glow);color:var(--ca-accent-hover);border-color:var(--ca-accent-border);}
+  /* Reset nuclear pero SÓLO DENTRO de .ux-root. ¡Cero pos:fixed! */
+  .ux-root .ux *,
+  .ux-root .ux *::before,
+  .ux-root .ux *::after {
+    font-family: 'Inter', -apple-system, system-ui, sans-serif !important;
+    text-transform: none !important;
+    letter-spacing: normal !important;
+    text-shadow: none !important;
+    -webkit-text-fill-color: unset !important;
+    -webkit-text-stroke: 0 !important;
+    background-clip: unset !important;
+    -webkit-background-clip: unset !important;
+    box-sizing: border-box;
+  }
 
-    /* â”€â”€ Stats â”€â”€ */
-    .ca-stats{display:flex;gap:8px;flex-wrap:wrap;}
-    .ca-stat-chip{font-size:11px;font-weight:700;padding:4px 12px;border-radius:20px;background:rgba(255,255,255,.05);color:var(--ca-text-2);border:1px solid var(--ca-border);}
-    .ca-stat-chip--green{background:var(--ca-green-bg);color:var(--ca-green);border-color:var(--ca-green-border);}
-    .ca-stat-chip--purple{background:var(--ca-accent-glow);color:var(--ca-accent-hover);border-color:var(--ca-accent-border);}
+  /* Reemplazamos h1, h2, p y svgs sueltos por clases fuertes para evitar a BaseLayout */
+  .ux-root .ux .ux-hero__title { font-size: clamp(1.4rem, 2.4vw, 2rem) !important; line-height: 1.1 !important; margin: 0 !important; padding: 0 !important; background: none !important; color: var(--ux-t1) !important; font-weight: 800 !important; }
+  .ux-root .ux .ux-form-titlebar__title { font-size: 1rem !important; line-height: 1.3 !important; margin: 0 !important; padding: 0 !important; background: none !important; color: var(--ux-t1) !important; font-weight: 700 !important;}
+  .ux-root .ux p, .ux-root .ux span, .ux-root .ux label, .ux-root .ux div { font-size: 0.85rem; line-height: 1.5; margin: 0; }
+  .ux-root .ux svg { width: 16px !important; height: 16px !important; display: inline-block; flex-shrink: 0; }
 
-    /* â”€â”€ Form â”€â”€ */
-    .ca-form-panel{margin-bottom:16px;}
-    .ca-card{background:rgba(255,255,255,.02);border:1px solid var(--ca-border);border-radius:14px;padding:20px;}
-    .ca-card--form{border-left:3px solid var(--ca-accent);}
-    .ca-form-header{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:8px;}
-    .ca-form-header h2{margin:0;color:var(--ca-text);font-size:16px;font-weight:700;}
-    .ca-note{margin:0 0 16px;font-size:12px;color:var(--ca-text-2);background:var(--ca-accent-glow);border:1px solid var(--ca-accent-border);border-radius:var(--ca-radius-sm);padding:10px 14px;}
-    .ca-form-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;}
-    .ca-field{display:flex;flex-direction:column;gap:5px;}
-    .ca-field label{font-size:10px;font-weight:800;color:var(--ca-text-3);text-transform:uppercase;letter-spacing:.07em;}
+  .ux-root .ux {
+    max-width: 1340px;
+    margin: 0 auto;
+    padding: 30px 24px 64px;
+    display: grid;
+    gap: 14px;
+  }
 
-    /* â”€â”€ Inputs â”€â”€ */
-    .ca-page input:not([type=hidden]),.ca-page select{width:100%;border:1.5px solid var(--ca-border);border-radius:var(--ca-radius-sm);padding:10px 12px;background:rgba(255,255,255,.03);color:var(--ca-text);font-size:13px;margin-bottom:0;transition:border-color .2s,box-shadow .2s;box-sizing:border-box;font-family:inherit;outline:none;}
-    .ca-page input:focus,.ca-page select:focus{border-color:rgba(168,85,247,.5);box-shadow:0 0 0 3px rgba(168,85,247,.1);}
-    .ca-page input::placeholder{color:var(--ca-text-3);}
+  /* ── Hero ── */
+  .ux-root .ux-hero {
+    position: relative;
+    border: 1px solid var(--ux-line);
+    border-radius: var(--ux-r);
+    padding: 28px 28px 22px;
+    overflow: hidden;
+    background: linear-gradient(150deg, var(--ux-s2), var(--ux-s1));
+    box-shadow: 0 20px 50px rgba(0,0,0,0.3);
+  }
 
-    /* â”€â”€ Buttons â”€â”€ */
-    .ca-form-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px;}
-    .ca-btn-save{display:inline-flex;align-items:center;gap:7px;border:none;background:linear-gradient(135deg,var(--ca-accent),#7c3aed);color:#fff;border-radius:12px;padding:11px 22px;font-size:13px;font-weight:700;cursor:pointer;box-shadow:0 4px 16px rgba(168,85,247,.3);transition:all .2s;font-family:inherit;}
-    .ca-btn-save:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(168,85,247,.4);}
-    .ca-btn-save svg{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round;}
-    .ca-btn-ghost,.ca-btn-close{border:1px solid var(--ca-border);border-radius:12px;padding:10px 16px;font-size:12px;background:rgba(255,255,255,.03);color:var(--ca-text-2);cursor:pointer;font-weight:600;transition:all .15s;font-family:inherit;}
-    .ca-btn-ghost:hover,.ca-btn-close:hover{background:rgba(255,255,255,.06);color:var(--ca-text);}
-    .ca-btn-gallery{display:inline-flex;align-items:center;gap:8px;width:100%;padding:12px 16px;border:1px dashed var(--ca-border);border-radius:14px;background:rgba(255,255,255,.02);color:var(--ca-text-3);font-size:13px;font-weight:600;cursor:pointer;transition:all .2s;justify-content:center;font-family:inherit;}
-    .ca-btn-gallery:hover{border-color:var(--ca-accent-border);background:var(--ca-accent-glow);color:var(--ca-accent-hover);}
-    .ca-btn-gallery svg{width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round;}
+  .ux-root .ux-hero__glow {
+    position: absolute;
+    inset: 0;
+    background:
+      radial-gradient(ellipse at 5% -15%, rgba(139,92,246,0.22), transparent 48%),
+      radial-gradient(ellipse at 92% 0%, rgba(34,211,238,0.09), transparent 42%);
+    pointer-events: none;
+  }
 
-    /* â”€â”€ Toolbar â”€â”€ */
-    .ca-list-section{margin-top:16px;}
-    .ca-toolbar{display:grid;grid-template-columns:1fr auto 1fr;gap:10px;align-items:center;border:1px solid var(--ca-border);background:rgba(255,255,255,.02);border-radius:12px;padding:12px 14px;margin-bottom:14px;}
-    .ca-toolbar__left,.ca-toolbar__right{display:inline-flex;align-items:center;gap:6px;font-size:11px;color:var(--ca-text-3);}
-    .ca-toolbar__right{justify-self:end;}
-    .ca-toolbar__center{display:inline-flex;gap:5px;justify-self:center;}
-    .ca-toolbar-select{margin:0;padding:7px 10px;font-size:12px;border-radius:8px;min-width:64px;}
-    .ca-toolbar-search{width:220px;margin:0;padding:7px 10px;font-size:12px;border-radius:8px;}
-    .ca-mini-btn{border:1px solid var(--ca-border);background:rgba(255,255,255,.03);color:var(--ca-text-2);border-radius:8px;padding:6px 12px;font-size:11px;font-weight:700;cursor:pointer;transition:all .15s;font-family:inherit;}
-    .ca-mini-btn:hover{background:rgba(255,255,255,.06);border-color:var(--ca-border-hover);}
-    .ca-mini-btn--blue{color:var(--ca-blue);border-color:var(--ca-blue-border);}
+  .ux-root .ux-hero__body {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
 
-    /* â”€â”€ List Header â”€â”€ */
-    .ca-list-header{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:12px;flex-wrap:wrap;}
-    .ca-list-header h2{margin:0;font-size:16px;font-weight:700;color:var(--ca-text);}
+  .ux-root .ux-hero__kicker { margin: 0 !important; font-size: 0.66rem !important; font-weight: 700 !important; text-transform: uppercase !important; letter-spacing: 0.14em !important; color: #c4b5fd !important; }
+  .ux-root .ux-hero__sub { margin: 5px 0 0 !important; font-size: 0.85rem !important; color: var(--ux-t2) !important; }
+  .ux-root .ux-hero__right { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 
-    .ca-img-upload-row{display:flex;gap:8px;align-items:center;margin-top:10px;flex-wrap:wrap}
-    .ca-img-upload-file{flex:1;min-width:220px}
-    .ca-img-upload-btn{border:1px solid var(--ca-accent-border);background:var(--ca-accent-glow);color:var(--ca-accent-hover);border-radius:10px;padding:9px 12px;font-size:12px;font-weight:700;cursor:pointer;transition:all .2s ease;font-family:inherit}
-    .ca-img-upload-btn:hover{filter:brightness(1.12);transform:translateY(-1px)}
+  .ux-root .ux-hero__stats {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-top: 16px;
+    padding-top: 14px;
+    border-top: 1px solid var(--ux-line);
+    font-size: 0.8rem;
+    color: var(--ux-t2);
+  }
 
-    /* â”€â”€ Table â”€â”€ */
-    .ca-table-wrap{overflow:auto;max-height:62vh;border:1px solid var(--ca-border);border-radius:12px;}
-    .ca-table{width:100%;border-collapse:collapse;min-width:700px;font-size:13px;background:var(--ca-surface-solid);}
-    .ca-table th,.ca-table td{border-bottom:1px solid rgba(255,255,255,.05);padding:10px 12px;text-align:left;color:var(--ca-text);}
-    .ca-table th{position:sticky;top:0;background:var(--ca-surface-2);color:var(--ca-text-3);font-size:10px;text-transform:uppercase;letter-spacing:.07em;font-weight:800;z-index:2;}
-    .ca-table tr:hover td{background:rgba(168,85,247,.03);}
-    .ca-th-actions{width:100px;text-align:center;}
-    .ca-td-id{color:var(--ca-text-3);font-size:11px;}
-    .ca-nombre{color:var(--ca-text);display:block;}
-    .ca-td-desc{max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--ca-text-2);}
+  .ux-root .ux-stat strong { color: var(--ux-t1); font-weight: 700; margin-right: 3px; }
+  .ux-root .ux-stat--violet strong { color: #c4b5fd; }
+  .ux-root .ux-stat--green strong { color: var(--ux-good); }
+  .ux-root .ux-stat-sep { color: var(--ux-t3); user-select: none; }
 
-    /* â”€â”€ Thumbs â”€â”€ */
-    .ca-thumb-wrap{cursor:pointer;display:inline-block;}
-    .ca-thumb{width:48px;height:48px;object-fit:cover;border-radius:10px;border:1px solid var(--ca-border);transition:all .2s;}
-    .ca-thumb:hover{transform:scale(1.08);border-color:var(--ca-accent-border);}
-    .ca-no-img{font-size:11px;color:var(--ca-text-3);}
+  /* CTA buttons */
+  .ux-root .ux-cta {
+    display: inline-flex; align-items: center; justify-content: center; gap: 7px;
+    padding: 9px 18px !important; border-radius: 99px !important; font-size: 0.8rem !important; font-weight: 700 !important;
+    cursor: pointer; transition: transform var(--ux-t-fast), box-shadow var(--ux-t-fast);
+    text-decoration: none !important; border: none !important; white-space: nowrap; outline: none;
+  }
+  .ux-root .ux-cta:not(.ux-cta--ghost) { background: linear-gradient(135deg, var(--ux-vi), #6d28d9) !important; color: #fff !important; box-shadow: 0 4px 18px var(--ux-vi-glow) !important; }
+  .ux-root .ux-cta--ghost { background: rgba(255,255,255,0.05) !important; border: 1px solid var(--ux-line-h) !important; color: var(--ux-t2) !important; box-shadow: none !important; }
+  .ux-root .ux-cta:hover { transform: translateY(-2px); }
+  .ux-root .ux-cta:not(.ux-cta--ghost):hover { box-shadow: 0 8px 26px var(--ux-vi-glow) !important; }
+  .ux-root .ux-cta--ghost:hover { color: var(--ux-t1) !important; border-color: var(--ux-vi) !important; }
 
-    /* â”€â”€ Row Actions & Pagination & Badges: styles injected via runtime script â”€â”€ */
-    .ca-pagination{
-      display:flex;align-items:center;justify-content:space-between;
-      flex-wrap:wrap;gap:12px;
-      padding:16px 4px 4px;
-      border-top:1px solid var(--ca-border);
-      margin-top:8px;
-    }
-    .ca-pagination__info{font-size:12px;color:var(--ca-text-2);font-weight:500;}
-    .ca-pagination__controls{display:flex;align-items:center;gap:4px;}
+  .ux-root .ux-icon-btn {
+    width: 34px !important; height: 34px !important; display: inline-flex !important; align-items: center !important; justify-content: center !important;
+    border-radius: var(--ux-r-xs) !important; border: 1px solid var(--ux-line) !important; background: rgba(255,255,255,0.04) !important;
+    color: var(--ux-t3) !important; cursor: pointer; transition: all var(--ux-t-fast); padding: 0 !important;
+  }
+  .ux-root .ux-icon-btn svg { width: 15px !important; height: 15px !important; stroke: currentColor; }
+  .ux-root .ux-icon-btn:hover { border-color: var(--ux-bad) !important; color: var(--ux-bad) !important; background: rgba(251,113,133,0.08) !important; }
 
-    /* â•â•â•â•â•â•â•â•â•â•â• IMAGE VIEWER MODAL â•â•â•â•â•â•â•â•â•â•â• */
-    .ca-img-modal{position:fixed;inset:0;z-index:10000;background:rgba(0,0,0,.6);backdrop-filter:blur(12px);display:grid;place-items:center;opacity:0;pointer-events:none;transition:opacity .22s ease;}
-    .ca-img-modal.is-open{opacity:1;pointer-events:auto;}
-    .ca-img-modal[hidden]{display:none!important;}
-    .ca-img-panel{width:calc(100vw - 40px);max-width:520px;max-height:calc(100vh - 60px);overflow-y:auto;border-radius:24px;background:var(--ca-surface-solid);border:1px solid var(--ca-border);box-shadow:var(--ca-shadow-lg);padding:0;position:relative;color:var(--ca-text);transform:translateY(16px) scale(.96);opacity:0;transition:transform .28s cubic-bezier(.16,1,.3,1),opacity .22s ease;}
-    .ca-img-panel.is-open{transform:translateY(0) scale(1);opacity:1;}
-    .ca-img-panel::-webkit-scrollbar{width:6px}.ca-img-panel::-webkit-scrollbar-thumb{background:rgba(255,255,255,.12);border-radius:10px;}
-    .ca-img-head{display:flex;align-items:center;justify-content:space-between;padding:20px 24px 14px;border-bottom:1px solid var(--ca-border);}
-    .ca-img-head-text{display:flex;flex-direction:column;gap:4px;}
-    .ca-img-badge{display:inline-block;width:fit-content;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.1em;padding:3px 12px;border-radius:20px;background:linear-gradient(135deg,var(--ca-accent),#7c3aed);color:#fff;}
-    .ca-img-title{margin:0;font-size:16px;font-weight:800;color:var(--ca-text);}
-    .ca-img-close{width:36px;height:36px;border-radius:12px;border:1px solid var(--ca-border);background:rgba(255,255,255,.03);color:var(--ca-text-2);cursor:pointer;display:grid;place-items:center;transition:all .15s;}
-    .ca-img-close:hover{background:var(--ca-accent-glow);color:var(--ca-accent-hover);border-color:var(--ca-accent-border);}
-    .ca-img-close svg{width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;}
-    .ca-img-preview-card{padding:16px 24px 0;}
-    .ca-img-preview{width:100%;aspect-ratio:4/3;border-radius:16px;background:var(--ca-surface-2);border:1px solid var(--ca-border);overflow:hidden;display:grid;place-items:center;}
-    .ca-img-preview-img{width:100%;height:100%;object-fit:contain;display:block;}
-    .ca-img-empty{display:flex;flex-direction:column;align-items:center;gap:8px;color:var(--ca-text-3);font-size:13px;}
-    .ca-img-empty svg{width:40px;height:40px;stroke:currentColor;fill:none;stroke-width:1.2;opacity:.5;}
-    .ca-img-counter{margin:8px 0 0;text-align:center;font-size:11px;color:var(--ca-text-3);font-weight:600;}
-    .ca-img-section{padding:14px 24px 0;}
-    .ca-img-section-label{margin:0 0 10px;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:var(--ca-text-3);}
-    .ca-img-list{display:flex;flex-direction:column;gap:6px;}
-    .ca-img-row{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:14px;border:1px solid var(--ca-border);background:rgba(255,255,255,.02);transition:all .18s;}
-    .ca-img-row:hover{background:rgba(255,255,255,.04);}
-    .ca-img-row.is-selected{border-color:var(--ca-accent-border);background:var(--ca-accent-glow);}
-    .ca-img-row-thumb{width:48px;height:48px;border-radius:10px;object-fit:cover;cursor:pointer;flex-shrink:0;border:2px solid var(--ca-border);transition:all .15s;}
-    .ca-img-row-thumb:hover{border-color:var(--ca-accent-border);transform:scale(1.05);}
-    .ca-img-row.is-selected .ca-img-row-thumb{border-color:var(--ca-accent);}
-    .ca-img-row-url{flex:1;min-width:0;background:rgba(255,255,255,.03);border:1px solid var(--ca-border);border-radius:var(--ca-radius-sm);padding:10px 12px;color:var(--ca-text-2);font-size:12px;font-family:'SF Mono',monospace;}
-    .ca-img-row-url:focus{border-color:rgba(168,85,247,.5);}
-    .ca-img-row-del{width:34px;height:34px;flex-shrink:0;border-radius:10px;border:1px solid var(--ca-border);background:rgba(255,255,255,.02);color:var(--ca-text-3);cursor:pointer;display:inline-flex;align-items:center;justify-content:center;transition:all .15s;}
-    .ca-img-row-del:hover{background:var(--ca-red-bg);border-color:var(--ca-red-border);color:var(--ca-red);}
-    .ca-img-row-del svg{width:15px;height:15px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;}
-    .ca-img-row-drag{width:24px;flex-shrink:0;cursor:grab;display:grid;place-items:center;color:var(--ca-text-3);transition:color .15s;}
-    .ca-img-row-drag:hover{color:var(--ca-text-2);}
-    .ca-img-row-drag svg{width:18px;height:18px;stroke:currentColor;fill:currentColor;stroke-width:3;}
-    .ca-img-row.is-dragging{opacity:.4;transform:scale(.97);}
-    .ca-img-row.drag-over{border-color:var(--ca-accent-border);background:var(--ca-accent-glow);}
-    .ca-img-add-row{display:flex;gap:10px;}
-    .ca-img-input-wrap{flex:1;min-width:0;position:relative;}
-    .ca-img-input-icon{position:absolute;left:12px;top:50%;transform:translateY(-50%);width:16px;height:16px;stroke:var(--ca-text-3);fill:none;stroke-width:2;pointer-events:none;}
-    .ca-img-input{width:100%;box-sizing:border-box;background:rgba(255,255,255,.03);border:1px solid var(--ca-border);border-radius:12px;padding:11px 14px 11px 36px;color:var(--ca-text);font-size:13px;}
-    .ca-img-input:focus{border-color:rgba(168,85,247,.5);}
-    .ca-img-input::placeholder{color:var(--ca-text-3);}
-    .ca-img-add-btn{display:inline-flex;align-items:center;gap:6px;border:none;background:linear-gradient(135deg,#22c55e,#16a34a);color:#fff;border-radius:12px;padding:10px 18px;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;transition:all .15s;font-family:inherit;}
-    .ca-img-add-btn:hover{transform:translateY(-1px);box-shadow:0 4px 12px rgba(34,197,94,.25);}
-    .ca-img-add-btn svg{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:2.5;}
-    .ca-img-footer{display:flex;justify-content:flex-end;gap:10px;padding:18px 24px 22px;border-top:1px solid var(--ca-border);margin-top:18px;}
-    .ca-img-cancel{border-radius:12px;border:1px solid var(--ca-border);background:rgba(255,255,255,.03);color:var(--ca-text-2);font-size:13px;font-weight:600;padding:10px 20px;cursor:pointer;transition:all .15s;font-family:inherit;}
-    .ca-img-cancel:hover{background:rgba(255,255,255,.06);color:var(--ca-text);}
-    .ca-img-save{display:inline-flex;align-items:center;gap:7px;border-radius:12px;border:none;background:linear-gradient(135deg,var(--ca-accent),#7c3aed);color:#fff;font-size:13px;font-weight:700;padding:10px 24px;cursor:pointer;box-shadow:0 2px 12px rgba(168,85,247,.3);transition:all .15s;font-family:inherit;}
-    .ca-img-save:hover{transform:translateY(-1px);box-shadow:0 6px 20px rgba(168,85,247,.4);}
-    .ca-img-save svg{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:2.5;}
+  /* ── Cards ── */
+  .ux-root .ux-card { border: 1px solid var(--ux-line); border-radius: var(--ux-r); background: linear-gradient(155deg, var(--ux-s2), var(--ux-s1)); box-shadow: 0 8px 28px rgba(0,0,0,0.2); transition: border-color var(--ux-t-med); overflow: hidden; }
+  .ux-root .ux-card:hover { border-color: var(--ux-line-h); }
+  .ux-root .ux-card--form { border-left: 2px solid var(--ux-vi); padding: 24px; }
+  .ux-root .ux-card--table { padding: 0; }
 
-    /* â”€â”€ Responsive â”€â”€ */
-    @media(max-width:1100px){.ca-header{flex-direction:column;}.ca-top-actions{width:100%;}.ca-toolbar{grid-template-columns:1fr;}.ca-toolbar__center,.ca-toolbar__right{justify-self:start;}}
-    @media(max-width:820px){.ca-form-grid{grid-template-columns:1fr;}.ca-toolbar-search{width:100%;}.ca-pagination{flex-direction:column;align-items:flex-start;}}
+  /* ── Form Panel (slide-in) ── */
+  .ux-root .ux-form-panel { display: grid; grid-template-rows: 0fr; opacity: 0; transition: grid-template-rows 0.32s cubic-bezier(0.4,0,0.2,1), opacity 0.22s ease; pointer-events: none; }
+  .ux-root .ux-form-panel.is-open { grid-template-rows: 1fr; opacity: 1; pointer-events: auto; }
+  .ux-root .ux-form-panel > * { overflow: hidden; }
+  .ux-root .ux-form-panel.is-open > * { overflow: visible; }
+
+  .ux-root .ux-form-titlebar { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
+  .ux-root .ux-form-titlebar__left { display: flex; align-items: center; gap: 10px; }
+  .ux-root .ux-form-titlebar__title em { font-style: normal; color: #c4b5fd; }
+
+  .ux-root .ux-form-badge { display: inline-flex; padding: 3px 10px; border-radius: 999px; font-size: 0.65rem; font-weight: 800; text-transform: uppercase !important; letter-spacing: 0.1em !important; background: var(--ux-vi-soft); color: #c4b5fd; border: 1px solid rgba(139,92,246,0.3); }
+  .ux-root .ux-form-badge--edit { background: rgba(251,191,36,0.1); color: #fbbf24; border-color: rgba(251,191,36,0.3); }
+
+  .ux-root .ux-hint { display: flex; align-items: flex-start; gap: 7px; margin: 0 0 18px !important; padding: 10px 14px !important; border-radius: var(--ux-r-xs); background: var(--ux-vi-dim) !important; border: 1px solid rgba(139,92,246,0.2) !important; font-size: 0.75rem !important; color: var(--ux-t2) !important; line-height: 1.5 !important; }
+  .ux-root .ux-hint svg { flex-shrink: 0; margin-top: 1px; color: #c4b5fd; }
+
+  /* Sections inside form */
+  .ux-root .ux-sections { display: flex; flex-direction: column; gap: 14px; }
+  .ux-root .ux-section { border: 1px solid var(--ux-line); border-radius: var(--ux-r-sm); padding: 16px 18px 18px; background: rgba(6,10,20,0.3); margin: 0; }
+  .ux-root .ux-section__legend { display: inline-flex; align-items: center; gap: 7px; padding: 0 8px; font-size: 0.7rem !important; font-weight: 700 !important; text-transform: uppercase !important; letter-spacing: 0.1em !important; color: var(--ux-t3) !important; background: transparent; float: none; margin-bottom:0 !important; }
+  .ux-root .ux-section__legend svg { width: 13px !important; height: 13px !important; stroke: var(--ux-vi); flex-shrink: 0; }
+
+  /* Grid */
+  .ux-root .ux-grid { display: grid; gap: 12px; margin-top: 12px; }
+  .ux-root .ux-grid--3 { grid-template-columns: repeat(3, 1fr); }
+  .ux-root .ux-field--full { grid-column: 1 / -1; }
+
+  /* Fields */
+  .ux-root .ux-field { display: flex; flex-direction: column; gap: 5px; }
+  .ux-root .ux-field label { font-size: 0.67rem !important; font-weight: 700 !important; text-transform: uppercase !important; letter-spacing: 0.08em !important; color: var(--ux-t3) !important; margin:0 !important;}
+  .ux-root .req { color: #fb7185; font-size: 0.7rem; }
+
+  /* Inputs & selects */
+  .ux-root input:not([type=hidden]), .ux-root select { width: 100% !important; border: 1px solid var(--ux-line) !important; border-radius: var(--ux-r-xs) !important; padding: 9px 12px !important; background: rgba(6,10,20,0.5) !important; color: var(--ux-t1) !important; font-size: 0.82rem !important; transition: border-color var(--ux-t-fast), background var(--ux-t-fast) !important; outline: none !important; }
+  .ux-root input:focus:not([type=hidden]), .ux-root select:focus { border-color: var(--ux-vi) !important; background: rgba(6,10,20,0.7) !important; box-shadow: 0 0 0 3px var(--ux-vi-dim) !important; }
+  .ux-root input::placeholder { color: var(--ux-t3); }
+
+  /* Form action buttons */
+  .ux-root .ux-form-actions { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--ux-line); }
+  .ux-root .ux-form-actions__primary { display: flex; gap: 10px; flex-wrap: wrap; }
+
+  /* ── Toolbar ── */
+  .ux-root .ux-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; padding: 16px 20px; border-bottom: 1px solid var(--ux-line); }
+  .ux-root .ux-toolbar__search { position: relative; flex: 1; min-width: 220px; max-width: 360px; }
+  .ux-root .ux-toolbar__search-icon { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); width: 14px !important; height: 14px !important; stroke: var(--ux-t3); pointer-events: none; }
+  .ux-root .ux-search { width: 100% !important; padding: 9px 12px 9px 36px !important; border: 1px solid var(--ux-line) !important; border-radius: var(--ux-r-xs) !important; background: rgba(6,10,20,0.5) !important; color: var(--ux-t1) !important; font-size: 0.82rem !important; }
+  .ux-root .ux-search:focus { border-color: var(--ux-vi) !important; box-shadow: 0 0 0 3px var(--ux-vi-dim) !important; }
+
+  .ux-root .ux-toolbar__controls { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .ux-root .ux-export-group { display: inline-flex; border: 1px solid var(--ux-line); border-radius: var(--ux-r-xs); overflow: hidden; }
+  .ux-root .ux-export-btn { padding: 7px 13px !important; background: rgba(255,255,255,0.03) !important; border: none !important; border-right: 1px solid var(--ux-line) !important; color: var(--ux-t3) !important; font-size: 0.72rem !important; font-weight: 700 !important; cursor: pointer !important; transition: all var(--ux-t-fast) !important; margin:0 !important;}
+  .ux-root .ux-export-btn:last-child { border-right: none !important; }
+  .ux-root .ux-export-btn:hover { background: var(--ux-vi-dim) !important; color: #c4b5fd !important; }
+  
+  .ux-root .ux-rows-label { display: inline-flex; align-items: center; gap: 7px; font-size: 0.75rem !important; color: var(--ux-t3) !important; white-space: nowrap; margin:0 !important; }
+  .ux-root .ux-rows-select { padding: 6px 10px !important; border-radius: var(--ux-r-xs) !important; font-size: 0.75rem !important; min-width: 0 !important; width: auto !important; }
+
+  /* ── Table ── */
+  .ux-root .ux-table-scroll { overflow-x: auto; max-height: 58vh; }
+  .ux-root .ux-table { width: 100%; border-collapse: collapse; min-width: 760px; font-size: 0.82rem; }
+  .ux-root .ux-table thead th { position: sticky; top: 0; z-index: 2; padding: 11px 14px !important; text-align: left; font-size: 0.67rem !important; font-weight: 700 !important; text-transform: uppercase !important; letter-spacing: 0.08em !important; color: var(--ux-t3) !important; background: rgba(9,14,25,0.96) !important; border-bottom: 1px solid var(--ux-line) !important; white-space: nowrap; user-select: none; margin:0 !important;}
+  .ux-root .ux-table tbody tr { transition: background var(--ux-t-fast); border-bottom: 1px solid rgba(148,163,184,0.07); }
+  .ux-root .ux-table tbody tr:last-child { border-bottom: none; }
+  .ux-root .ux-table tbody tr:hover { background: var(--ux-vi-dim); }
+  .ux-root .ux-table td { padding: 11px 14px !important; color: var(--ux-t2) !important; vertical-align: middle; margin:0 !important;}
+
+  .ux-root .col-id      { width: 64px; }
+  .ux-root .col-img     { width: 80px; text-align: center; }
+  .ux-root .col-cat     { width: 25%; }
+  .ux-root .col-desc    { width: 35%; }
+  .ux-root .col-prods   { text-align: center; }
+  .ux-root .col-actions { width: 100px; text-align: center; }
+
+  .ux-root .ux-id { font-size: 0.72rem !important; color: var(--ux-t3) !important; font-variant-numeric: tabular-nums; }
+  .ux-root .ux-user-name { color: var(--ux-t1) !important; font-weight: 600 !important; display: block !important; }
+  .ux-root .ux-email { color: var(--ux-t2) !important; display: block !important; white-space: nowrap !important; overflow: hidden !important; text-overflow: ellipsis !important; max-width: 300px !important;}
+  .ux-root .ux-muted { color: var(--ux-t3) !important; font-size: 0.72rem !important; }
+
+  /* Categoría Image Thumbnails */
+  .ux-root .ux-cat-thumb { width: 44px !important; height: 44px !important; border-radius: 8px !important; object-fit: cover !important; display: inline-block; border: 1px solid transparent; transition: 0.2s; cursor: pointer; }
+  .ux-root .ux-cat-thumb:hover { border-color: var(--ux-vi); transform: scale(1.05); }
+  .ux-root .ux-cat-noimg { display: inline-flex; align-items: center; justify-content: center; width: 44px !important; height: 44px !important; border-radius: 8px !important; border: 1px dashed var(--ux-line); font-size: 0.65rem !important; color: var(--ux-t3) !important; cursor: pointer; transition: 0.2s; }
+  .ux-root .ux-cat-noimg:hover { color: var(--ux-vi) !important; border-color: var(--ux-vi) !important; background: var(--ux-vi-dim) !important; }
+
+  /* Prod Badges */
+  .ux-root .ux-badge-prod { display: inline-flex; align-items: center; padding: 3px 10px; border-radius: 999px; font-size: 0.66rem !important; font-weight: 700 !important; text-transform: uppercase !important; letter-spacing: 0.07em !important; white-space: nowrap; background: rgba(96,165,250,0.14) !important; color: #93c5fd !important; border: 1px solid rgba(96,165,250,0.3) !important; }
+
+  /* Row action buttons */
+  .ux-root .ux-row-actions { display: flex; align-items: center; gap: 6px; justify-content: center; }
+  .ux-root .ux-action-btn { width: 30px !important; height: 30px !important; display: inline-flex !important; align-items: center !important; justify-content: center !important; border-radius: var(--ux-r-xs) !important; border: 1px solid var(--ux-line) !important; background: rgba(255,255,255,0.03) !important; cursor: pointer !important; transition: all var(--ux-t-fast) !important; padding: 0 !important; margin:0 !important;}
+  .ux-root .ux-action-btn svg { width: 13px !important; height: 13px !important; stroke: currentColor !important; display: block !important; }
+  .ux-root .ux-action-btn:disabled { opacity: 0.25 !important; cursor: not-allowed !important; pointer-events: none !important; }
+  .ux-root .ux-action-btn:hover:not(:disabled) { transform: translateY(-1px) !important; }
+  .ux-root .ux-action-btn--edit { color: #c4b5fd !important; border-color: rgba(139,92,246,0.3) !important; }
+  .ux-root .ux-action-btn--edit:hover:not(:disabled) { background: var(--ux-vi-soft) !important; border-color: rgba(139,92,246,0.5) !important; }
+  .ux-root .ux-action-btn--delete { color: #fda4af !important; border-color: rgba(251,113,133,0.3) !important; }
+  .ux-root .ux-action-btn--delete:hover:not(:disabled) { background: rgba(251,113,133,0.1) !important; border-color: rgba(251,113,133,0.5) !important; }
+
+  /* Empty state */
+  .ux-root .ux-empty { text-align: center !important; padding: 48px 24px !important; color: var(--ux-t3) !important; }
+  .ux-root .ux-empty svg { display: block; margin: 0 auto 12px; stroke: var(--ux-t3); opacity: 0.4; width: 32px !important; height: 32px !important;}
+  .ux-root .ux-empty span { font-size: 0.85rem !important; }
+
+  /* Skeleton loading */
+  .ux-root .ux-skel { display: inline-block; height: 12px; width: 60px; border-radius: 6px; background: linear-gradient(90deg, rgba(255,255,255,0.04) 30%, rgba(255,255,255,0.08) 50%, rgba(255,255,255,0.04) 70%); background-size: 220% 100%; animation: ux-shimmer 1.3s linear infinite; }
+  .ux-root .ux-skel-img { width: 44px; height: 44px; border-radius: 8px; margin: 0 auto; background: linear-gradient(90deg, rgba(255,255,255,0.04) 30%, rgba(255,255,255,0.08) 50%, rgba(255,255,255,0.04) 70%); background-size: 220% 100%; animation: ux-shimmer 1.3s linear infinite; }
+  .ux-root .ux-skel--sm  { width: 44px; }
+  .ux-root .ux-skel--wide { width: 100px; }
+  .ux-root .ux-skel--wider{ width: 140px; }
+  @keyframes ux-shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+
+  /* ── Pagination ── */
+  .ux-root .ux-pagination { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; padding: 14px 20px; border-top: 1px solid var(--ux-line); }
+  .ux-root .ux-pagination__info { font-size: 0.74rem !important; color: var(--ux-t3) !important; }
+  .ux-root .ux-pagination__controls { display: flex; align-items: center; gap: 4px; }
+  .ux-root .ux-page-btn { min-width: 32px !important; height: 32px !important; padding: 0 6px !important; border-radius: var(--ux-r-xs) !important; border: 1px solid var(--ux-line) !important; background: rgba(255,255,255,0.03) !important; color: var(--ux-t2) !important; font-size: 0.78rem !important; font-weight: 600 !important; cursor: pointer !important; display: inline-flex !important; align-items: center !important; justify-content: center !important; transition: all var(--ux-t-fast) !important; margin:0 !important;}
+  .ux-root .ux-page-btn:hover:not(.is-disabled):not(.is-active) { background: rgba(255,255,255,0.08) !important; color: var(--ux-t1) !important; border-color: var(--ux-line-h) !important; }
+  .ux-root .ux-page-btn.is-active { background: linear-gradient(135deg, var(--ux-vi), #6d28d9) !important; border-color: transparent !important; color: #fff !important; box-shadow: 0 2px 10px var(--ux-vi-glow) !important; }
+  .ux-root .ux-page-btn.is-disabled { opacity: 0.25 !important; cursor: not-allowed !important; }
+  .ux-root .ux-page-ellipsis { color: var(--ux-t3) !important; font-size: 0.78rem !important; padding: 0 3px !important; user-select: none !important; }
+
+  /* ── Image Viewer Modal (Evita position fixed global) ── */
+  .ux-img-modal-backdrop { position: fixed !important; inset: 0 !important; z-index: 105000 !important; background: rgba(0,0,0,0.7) !important; backdrop-filter: blur(8px) !important; display: flex !important; align-items: center !important; justify-content: center !important; padding: 1rem !important; opacity: 0; transition: opacity 220ms ease !important; pointer-events: none; }
+  .ux-img-modal-backdrop.is-open { opacity: 1 !important; pointer-events: auto; }
+  .ux-img-modal-panel { background: #0d1117 !important; border: 1px solid rgba(139,92,246,0.25) !important; border-radius: var(--ux-r) !important; box-shadow: 0 32px 80px rgba(0,0,0,0.6) !important; width: 100% !important; max-width: 480px !important; transform: scale(0.92) translateY(15px); transition: transform 260ms cubic-bezier(0.34,1.56,0.64,1) !important; display: flex !important; flex-direction: column !important; max-height: calc(100vh - 40px) !important; overflow: hidden !important;}
+  .ux-img-modal-backdrop.is-open .ux-img-modal-panel { transform: scale(1) translateY(0); }
+  
+  .ux-img-header { display: flex !important; justify-content: space-between !important; align-items: flex-start !important; padding: 20px 24px 16px !important; border-bottom: 1px solid var(--ux-line) !important; background: rgba(0,0,0,0.2) !important;}
+  .ux-img-title { font-size: 1.1rem !important; color: var(--ux-t1) !important; font-weight: 700 !important; margin: 4px 0 0 0 !important; }
+  .ux-img-body { padding: 24px !important; overflow-y: auto !important; flex: 1 !important; }
+  
+  .ux-img-preview-card { border: 1px solid var(--ux-line) !important; border-radius: var(--ux-r-sm) !important; background: rgba(6,10,20,0.3) !important; overflow: hidden !important; padding: 16px !important; text-align: center !important; }
+  .ux-img-preview-img { width: 100% !important; max-height: 200px !important; object-fit: contain !important; border-radius: 8px !important; }
+  .ux-img-empty { display: flex !important; flex-direction: column !important; align-items: center !important; gap: 8px !important; color: var(--ux-t3) !important; font-size: 0.8rem !important; padding: 40px 0 !important; }
+  .ux-img-empty svg { width: 32px !important; height: 32px !important; color: var(--ux-t3) !important;}
+
+  .ux-img-section { margin-top: 20px !important; }
+  .ux-img-section-label { font-size: 0.7rem !important; font-weight: 700 !important; text-transform: uppercase !important; color: var(--ux-t3) !important; margin: 0 0 8px 0 !important; }
+  .ux-img-list { display: flex !important; flex-direction: column !important; gap: 6px !important; max-height: 120px !important; overflow-y: auto !important; }
+  .ux-img-row { display: flex !important; align-items: center !important; gap: 10px !important; padding: 6px 10px !important; border: 1px solid var(--ux-line) !important; border-radius: 8px !important; background: rgba(255,255,255,0.03) !important; cursor: pointer;}
+  .ux-img-row.is-selected { border-color: var(--ux-purple) !important; background: var(--ux-vi-soft) !important; }
+  .ux-img-row img { width: 32px !important; height: 32px !important; border-radius: 6px !important; object-fit: cover !important; }
+  .ux-img-input { width: 100% !important; padding: 8px 12px 8px 32px !important; border: 1px solid var(--ux-line) !important; border-radius: 8px !important; background: rgba(6,10,20,0.5) !important; color: var(--ux-t1) !important; font-size: 0.8rem !important; outline: none !important;}
+  .ux-img-input:focus { border-color: var(--ux-vi) !important; }
+  .ux-img-input-wrap { position: relative !important; flex: 1 !important; }
+  .ux-img-input-icon { position: absolute !important; left: 10px !important; top: 50% !important; transform: translateY(-50%) !important; width: 14px !important; height: 14px !important; stroke: var(--ux-t3) !important; }
+  
+  .ux-img-add-row { display: flex !important; gap: 8px !important; margin-bottom: 10px !important; }
+  .ux-img-upload-row { display: flex !important; gap: 8px !important; align-items: center !important; }
+  .ux-img-upload-file { flex: 1 !important; font-size: 0.75rem !important; color: var(--ux-t2) !important; }
+  
+  .ux-img-footer { padding: 16px 24px !important; border-top: 1px solid var(--ux-line) !important; display: flex !important; justify-content: flex-end !important; gap: 10px !important; background: rgba(0,0,0,0.2) !important; }
+
+  /* ── Responsive ── */
+  @media (max-width: 980px) {
+    .ux-root .ux { padding: 40px 16px 48px; }
+    .ux-root .ux-grid--3 { grid-template-columns: repeat(2, 1fr); }
+    .ux-root .ux-field--wide { grid-column: span 1; }
+    .ux-root .ux-hero__body { flex-direction: column; align-items: flex-start; }
+  }
+
+  @media (max-width: 640px) {
+    .ux-root .ux { padding: 40px 12px 40px; }
+    .ux-root .ux-grid--3 { grid-template-columns: 1fr; }
+    .ux-root .ux-toolbar { flex-direction: column; align-items: stretch; }
+    .ux-root .ux-toolbar__search { max-width: 100%; }
+    .ux-root .ux-toolbar__controls { justify-content: space-between; }
+    .ux-root .ux-form-actions { flex-direction: column; }
+    .ux-root .ux-form-actions__primary { width: 100%; }
+    .ux-root .ux-btn { width: 100%; justify-content: center; }
+    .ux-root .ux-pagination { flex-direction: column; align-items: flex-start; }
+  }
+
+  /* ── Light mode overrides ── */
+  html:not(.dark) .ux-root {
+    --ux-bg:      transparent;
+    --ux-s1:      #ffffff;
+    --ux-s2:      #f8fafc;
+    --ux-s3:      #e2e8f0;
+    --ux-line:    rgba(15,23,42,0.1);
+    --ux-line-h:  rgba(15,23,42,0.18);
+    --ux-t1:      #0f172a;
+    --ux-t2:      #475569;
+    --ux-t3:      #94a3b8;
+    --ux-vi-dim:  rgba(139,92,246,0.06);
+    --ux-good:    #059669;
+    --ux-bad:     #dc2626;
+  }
+  html:not(.dark) .ux-root .ux-hero__glow { background: radial-gradient(ellipse at 5% -15%, rgba(139,92,246,0.1), transparent 48%), radial-gradient(ellipse at 92% 0%, rgba(34,211,238,0.05), transparent 42%); }
+  html:not(.dark) .ux-root input:not([type=hidden]), html:not(.dark) .ux-root select { background: #fff !important; color: #0f172a !important; border-color: rgba(15,23,42,0.15) !important;}
+  html:not(.dark) .ux-root .ux-section { background: rgba(241,245,249,0.6); }
+  html:not(.dark) .ux-root .ux-table thead th { background: rgba(248,250,252,0.98) !important; color: var(--ux-t2) !important;}
+  html:not(.dark) .ux-root .ux-table tbody tr:hover { background: rgba(139,92,246,0.04); }
+  html:not(.dark) .ux-root .ux-skel { background: linear-gradient(90deg, rgba(0,0,0,0.04) 30%, rgba(0,0,0,0.09) 50%, rgba(0,0,0,0.04) 70%); background-size: 220% 100%; }
+  html:not(.dark) .ux-root .ux-skel-img { background: linear-gradient(90deg, rgba(0,0,0,0.04) 30%, rgba(0,0,0,0.09) 50%, rgba(0,0,0,0.04) 70%); background-size: 220% 100%; }
+  html:not(.dark) .ux-root .ux-hint { background: rgba(139,92,246,0.06); color: #475569; }
+  html:not(.dark) .ux-root .ux-hero__kicker { color: #7c3aed !important; }
+  html:not(.dark) .go-modal { background: #ffffff; border-color: rgba(15,23,42,0.1); }
+  html:not(.dark) .go-modal-title { color: #0f172a; }
+  html:not(.dark) .ux-img-modal-panel { background: #fff !important; border-color: rgba(15,23,42,0.1) !important; }
+  html:not(.dark) .ux-img-preview-card { background: #f8fafc !important; border-color: rgba(15,23,42,0.1) !important;}
+  html:not(.dark) .ux-img-header { background: #f1f5f9 !important; border-color: rgba(15,23,42,0.1) !important;}
+  html:not(.dark) .ux-img-footer { background: #f1f5f9 !important; border-color: rgba(15,23,42,0.1) !important;}
   </style>
+
 </BaseLayout>
-
-

@@ -1,4 +1,4 @@
-﻿---
+---
 import LoginLogoutButton from "./LoginLogoutButton.jsx";
 
 export interface Props {
@@ -603,14 +603,47 @@ const isRouteActive = (route: string) => {
   .premium-navbar__mobile-menu-btn:hover { background: rgba(255, 255, 255, 0.08); }
 
   .premium-navbar__cart-btn {
-    height: 36px; padding: 0 12px; border-radius: 10px;
-    border: 1px solid rgba(255, 255, 255, 0.12); color: var(--header-text);
-    text-decoration: none; display: inline-flex; align-items: center; gap: 6px;
-    font-size: 0.78rem; font-weight: 600; background: rgba(255, 255, 255, 0.04);
-    transition: background 150ms ease, border-color 150ms ease;
+    height: 46px; padding: 0 18px; border-radius: 16px;
+    border: 1px solid rgba(255, 255, 255, 0.05); color: var(--header-text);
+    text-decoration: none; display: inline-flex; align-items: center; gap: 10px;
+    font-size: 0.9rem; font-weight: 800; 
+    background: rgba(255,255,255,0.02);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05), 0 8px 16px rgba(0,0,0,0.3);
+    transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+    position: relative; overflow: hidden;
+    z-index: 1;
   }
-  .premium-navbar__cart-btn:hover { background: rgba(255, 255, 255, 0.08); border-color: rgba(255, 255, 255, 0.18); }
-  .premium-navbar__cart-count { font-size: 0.72rem; font-weight: 700; min-width: 16px; text-align: center; }
+  .premium-navbar__cart-btn::before {
+    content: ""; position: absolute; inset: 0;
+    background: linear-gradient(120deg, transparent, rgba(168, 85, 247, 0.4), transparent);
+    transform: translateX(-100%) skewX(-15deg);
+    transition: transform 0.6s ease;
+    z-index: -1;
+  }
+  .premium-navbar__cart-btn:hover {
+    border-color: #a855f7;
+    box-shadow: 0 0 25px rgba(168, 85, 247, 0.4), inset 0 0 10px rgba(168, 85, 247, 0.2);
+    color: #fff; transform: translateY(-3px) scale(1.05);
+    background: rgba(168, 85, 247, 0.1);
+  }
+  .premium-navbar__cart-btn:hover::before { transform: translateX(100%) skewX(-15deg); }
+  .premium-navbar__cart-btn:hover svg {
+    filter: drop-shadow(0 0 8px #a855f7);
+    transform: scale(1.1) rotate(-5deg);
+    transition: all 0.3s ease;
+  }
+  
+  .premium-navbar__cart-count { 
+    font-size: 0.8rem; font-weight: 900; min-width: 24px; text-align: center; 
+    background: linear-gradient(135deg, #a855f7, #d946ef);
+    color: #000; padding: 4px 8px; border-radius: 12px;
+    box-shadow: 0 0 15px rgba(168, 85, 247, 0.8);
+    transition: transform 0.3s ease;
+  }
+  .premium-navbar__cart-btn:hover .premium-navbar__cart-count {
+    transform: scale(1.15);
+    background: linear-gradient(135deg, #fff, #a855f7);
+  }
 
   .premium-navbar__theme-toggle {
     cursor: pointer; display: inline-flex; align-items: center; justify-content: center;
@@ -626,13 +659,20 @@ const isRouteActive = (route: string) => {
 
   .premium-navbar__nav-link {
     display: inline-flex; align-items: center; justify-content: center;
-    height: 34px; padding: 0 14px; border-radius: 8px;
+    height: 36px; padding: 0 16px; border-radius: 10px;
     color: var(--header-text-soft); text-decoration: none;
-    font-size: 0.8rem; font-weight: 500; letter-spacing: 0.005em;
-    transition: color 160ms ease, background 160ms ease;
+    font-size: 0.85rem; font-weight: 600; letter-spacing: 0.01em;
+    transition: color 250ms ease, background 250ms ease, transform 250ms ease, text-shadow 250ms ease;
   }
-  .premium-navbar__nav-link:hover { color: var(--header-text); background: rgba(255, 255, 255, 0.06); }
-  .premium-navbar__nav-link.active { color: #fff; background: rgba(255, 255, 255, 0.10); }
+  .premium-navbar__nav-link:hover { 
+    color: #fff; background: rgba(255, 255, 255, 0.08); 
+    transform: translateY(-1px);
+    text-shadow: 0 0 8px rgba(255,255,255,0.4);
+  }
+  .premium-navbar__nav-link.active { 
+    color: #a855f7; background: rgba(168, 85, 247, 0.1); 
+    text-shadow: 0 0 10px rgba(168, 85, 247, 0.6);
+  }
 
   .nav-item-group { position: relative; list-style: none; }
   .nav-dropdown {
@@ -655,19 +695,28 @@ const isRouteActive = (route: string) => {
   .gs { position: relative; width: 100%; }
   .gs__bar {
     position: relative; display: flex; align-items: center; gap: 0;
-    height: 40px; padding: 0 6px 0 14px; border-radius: 12px;
-    border: 1px solid rgba(255, 255, 255, 0.10); background: rgba(255, 255, 255, 0.06);
-    transition: background 180ms ease, border-color 180ms ease, box-shadow 180ms ease;
+    height: 48px; padding: 0 6px 0 18px; border-radius: 24px;
+    background: rgba(12, 12, 16, 0.65);
+    border: 1px solid rgba(255,255,255,0.08);
+    backdrop-filter: blur(24px) saturate(1.5);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.05), 0 8px 24px rgba(0,0,0,0.3);
+    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
   }
-  .gs__bar:hover { background: rgba(255, 255, 255, 0.09); border-color: rgba(255, 255, 255, 0.14); }
+  .gs__bar:hover {
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.1), 0 12px 32px rgba(168, 85, 247, 0.15);
+    border-color: rgba(168, 85, 247, 0.4);
+    transform: translateY(-1px);
+  }
   .gs:focus-within .gs__bar, .gs--open .gs__bar {
-    background: rgba(255, 255, 255, 0.10); border-color: rgba(255, 255, 255, 0.22);
-    box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.04);
+    background: linear-gradient(to right, rgba(168, 85, 247, 0.05), rgba(12, 12, 16, 0.9), rgba(217, 70, 239, 0.05));
+    border: 1px solid transparent;
+    box-shadow: 0 0 0 2px #a855f7, 0 16px 40px rgba(168, 85, 247, 0.3);
+    transform: translateY(-2px) scale(1.01);
   }
-  .gs--open .gs__bar { border-radius: 12px 12px 0 0; border-bottom-color: transparent; }
-
-  .gs__icon { width: 16px; height: 16px; color: rgba(200, 200, 210, 0.68); flex-shrink: 0; margin-right: 10px; transition: color 180ms ease; }
-  .gs:focus-within .gs__icon { color: rgba(248, 248, 250, 0.94); }
+  .gs--open .gs__bar { border-radius: 24px 24px 0 0; }
+  
+  .gs__icon { width: 16px; height: 16px; color: rgba(200, 200, 210, 0.68); flex-shrink: 0; margin-right: 10px; transition: all 0.3s ease; }
+  .gs:focus-within .gs__icon { color: #a855f7; filter: drop-shadow(0 0 5px #a855f7); transform: scale(1.1); }
 
   .gs__input {
     flex: 1; min-width: 0; border: none; outline: none; background: transparent;

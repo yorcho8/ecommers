@@ -296,63 +296,6 @@
 
 
 /* ============================================================================
-   BASE GLOBAL
-   ============================================================================ */
-
-body {
-  font-family             : var(--font-body);
-  font-weight             : var(--fw-body);
-  font-size               : var(--fs-body-md);
-  line-height             : var(--lh-body);
-  -webkit-font-smoothing  : antialiased;
-  -moz-osx-font-smoothing : grayscale;
-  text-rendering          : optimizeLegibility;
-}
-
-/* ─────────────────────────────────────────────────────────────────────────────
-   HEADINGS GLOBALES
-   h1 → tracking hero (-0.02em), escala XL
-   h2 → tracking display (-0.01em), escala LG
-   h3 → tracking display-md (0em), escala MD
-   h4-h6 → tracking display-sm (0.01em), escala SM/XS
-   ───────────────────────────────────────────────────────────────────────────── */
-h1, h2, h3, h4, h5, h6 {
-  font-family    : var(--font-display);
-  font-weight    : var(--fw-display);
-  font-synthesis : none;
-  margin         : 0;
-}
-
-h1 {
-  font-size      : var(--fs-display-xl);
-  line-height    : var(--lh-display);
-  letter-spacing : var(--ls-display-hero);  /* -0.02em — respira en tamaños grandes */
-  text-transform : uppercase;
-}
-
-h2 {
-  font-size      : var(--fs-display-lg);
-  line-height    : var(--lh-display);
-  letter-spacing : var(--ls-display);       /* -0.01em — limpio y simétrico */
-  text-transform : uppercase;
-}
-
-h3 {
-  font-size      : var(--fs-display-md);
-  line-height    : var(--lh-display-md);
-  letter-spacing : var(--ls-display-md);    /* 0em — neutro para cards */
-  text-transform : uppercase;
-}
-
-h4, h5, h6 {
-  font-size      : var(--fs-display-sm);
-  line-height    : var(--lh-display-md);
-  letter-spacing : var(--ls-display-sm);    /* 0.01em — levemente abierto */
-  text-transform : uppercase;
-}
-
-
-/* ============================================================================
    CLASES TIPOGRÁFICAS BASE
    ============================================================================ */
 
@@ -526,7 +469,6 @@ html.dark {
    ============================================================================ */
 
 img { display: block; max-width: 100%; }
-a   { text-decoration: none; }
 
 
 /* ============================================================================

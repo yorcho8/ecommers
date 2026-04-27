@@ -14,21 +14,25 @@ if (!role) return Astro.redirect(`/${currentLang}/login`);
 if (role !== "admin" && role !== "superusuario") return Astro.redirect(`/${currentLang}`);
 ---
 
-<BaseLayout title="FacturaciÃ³n | Admin" currentLang={currentLang}>
+<BaseLayout title="Facturación | Admin" currentLang={currentLang}>
 <div class="fac-root">
 <main class="fac">
 
   <!-- Hero -->
   <header class="fac-hero">
     <div class="fac-hero__glow" aria-hidden="true"></div>
+    <div class="fac-hero__dots" aria-hidden="true"></div>
     <div class="fac-hero__content">
       <div>
-        <span class="fac-hero__badge">Admin Â· FacturaciÃ³n</span>
-        <h1 class="fac-hero__title">FacturaciÃ³n</h1>
-        <p class="fac-hero__sub">Emitir y cancelar CFDI 4.0 Â· Nexus â†’ Empresa por servicios de publicidad</p>
+        <span class="fac-hero__badge">Admin · Facturación</span>
+        <h1 class="fac-hero__title">Facturación</h1>
+        <p class="fac-hero__sub">Emitir y cancelar CFDI 4.0 · Nexus → Empresa por servicios de publicidad</p>
       </div>
       <div class="fac-hero__actions">
-        <a class="fac-back" href={`/${currentLang}/admin/dashboard`}>â† Volver</a>
+        <a class="fac-back" href={`/${currentLang}/admin/dashboard`}>
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
+          Volver
+        </a>
       </div>
     </div>
   </header>
@@ -40,8 +44,8 @@ if (role !== "admin" && role !== "superusuario") return Astro.redirect(`/${curre
   <div class="fac-toolbar">
     <div class="fac-toolbar__left">
       <div class="fac-search-bar">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
-        <input id="facSearch" type="search" placeholder="Buscar empresa, RFC, productoâ€¦" autocomplete="off" />
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+        <input id="facSearch" type="search" placeholder="Buscar empresa, RFC, producto…" autocomplete="off" />
       </div>
       <select id="facEstado" class="fac-select">
         <option value="">Todos los estados</option>
@@ -49,7 +53,7 @@ if (role !== "admin" && role !== "superusuario") return Astro.redirect(`/${curre
         <option value="vencida">Vencida</option>
       </select>
       <select id="facFactura" class="fac-select">
-        <option value="">Toda facturaciÃ³n</option>
+        <option value="">Toda facturación</option>
         <option value="pendiente">Sin factura</option>
         <option value="vigente">Factura vigente</option>
         <option value="cancelada">Factura cancelada</option>
@@ -58,9 +62,9 @@ if (role !== "admin" && role !== "superusuario") return Astro.redirect(`/${curre
     <div class="fac-toolbar__right">
       <span id="facCount" class="fac-count"></span>
       <select id="facPerPage" class="fac-select">
-        <option value="20">20 / pÃ¡g</option>
-        <option value="50">50 / pÃ¡g</option>
-        <option value="100">100 / pÃ¡g</option>
+        <option value="20">20 / pág</option>
+        <option value="50">50 / pág</option>
+        <option value="100">100 / pág</option>
       </select>
     </div>
   </div>
@@ -70,20 +74,23 @@ if (role !== "admin" && role !== "superusuario") return Astro.redirect(`/${curre
     <table class="fac-table">
       <thead>
         <tr>
-          <th>#</th>
+          <th style="width:48px">#</th>
           <th>Empresa</th>
           <th>Producto</th>
-          <th>PosiciÃ³n</th>
-          <th>DÃ­as</th>
-          <th>Monto</th>
-          <th>CampaÃ±a</th>
-          <th>Fecha</th>
-          <th>Factura</th>
-          <th>Acciones</th>
+          <th style="width:90px">Posición</th>
+          <th style="width:60px">Días</th>
+          <th style="width:140px">Monto</th>
+          <th style="width:90px">Campaña</th>
+          <th style="width:110px">Fecha</th>
+          <th style="width:110px">Factura</th>
+          <th style="width:220px">Acciones</th>
         </tr>
       </thead>
       <tbody id="facTableBody">
-        <tr><td colspan="10" class="fac-loading-cell">Cargandoâ€¦</td></tr>
+        <tr><td colspan="10" class="fac-loading-cell">
+          <div class="fac-spinner"></div>
+          Cargando…
+        </td></tr>
       </tbody>
     </table>
   </div>
@@ -97,40 +104,47 @@ if (role !== "admin" && role !== "superusuario") return Astro.redirect(`/${curre
 </main>
 </div>
 
-<!-- â”€â”€ Modal emitir factura â”€â”€ -->
+<!-- Modal emitir factura -->
 <div id="facModal" class="fac-overlay" hidden>
   <div class="fac-overlay__bg" id="facModalBg"></div>
   <article class="fac-dialog" role="dialog" aria-modal="true" aria-labelledby="facModalTitle">
     <button id="facModalClose" class="fac-dialog__close" type="button" aria-label="Cerrar">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
     </button>
-    <h3 id="facModalTitle" class="fac-dialog__title">Emitir Factura de Publicidad</h3>
-    <p id="facModalSubtitle" class="fac-dialog__sub"></p>
+    <div class="fac-dialog__head">
+      <div class="fac-dialog__icon fac-dialog__icon--primary">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+      </div>
+      <div>
+        <h3 id="facModalTitle" class="fac-dialog__title">Emitir Factura de Publicidad</h3>
+        <p id="facModalSubtitle" class="fac-dialog__sub"></p>
+      </div>
+    </div>
 
     <form id="facFacturaForm" autocomplete="off" novalidate>
       <input type="hidden" id="facCampanaId" value="" />
 
       <div class="fac-field">
         <label for="facRfc">RFC Receptor *</label>
-        <input id="facRfc" name="rfc" type="text" placeholder="RFC12 Ã³ RFC123456789" maxlength="13" required />
-        <p class="fac-field__hint">12 chars = Persona Moral Â· 13 chars = Persona FÃ­sica</p>
+        <input id="facRfc" name="rfc" type="text" placeholder="RFC12 ó RFC123456789" maxlength="13" required />
+        <p class="fac-field__hint">12 chars = Persona Moral · 13 chars = Persona Física</p>
       </div>
 
       <div class="fac-field">
-        <label for="facNombre">RazÃ³n social / Nombre *</label>
+        <label for="facNombre">Razón social / Nombre *</label>
         <input id="facNombre" name="nombre" type="text" placeholder="Nombre exacto en SAT" required />
       </div>
 
       <div class="fac-field">
-        <label for="facRegimen">RÃ©gimen Fiscal *</label>
+        <label for="facRegimen">Régimen Fiscal *</label>
         <select id="facRegimen" name="regimenFiscal">
           <option value="601">601 - General de Ley Personas Morales</option>
           <option value="603">603 - Personas Morales con Fines No Lucrativos</option>
           <option value="605">605 - Sueldos y Salarios e Ingresos Asimilados</option>
           <option value="606">606 - Arrendamiento</option>
-          <option value="612">612 - Personas FÃ­sicas con Act. Empresariales</option>
-          <option value="616">616 - Sin Obligaciones Fiscales (â†’ UsoCFDI S01)</option>
-          <option value="626">626 - RÃ©gimen Simplificado de Confianza</option>
+          <option value="612">612 - Personas Físicas con Act. Empresariales</option>
+          <option value="616">616 - Sin Obligaciones Fiscales (→ UsoCFDI S01)</option>
+          <option value="626">626 - Régimen Simplificado de Confianza</option>
         </select>
       </div>
 
@@ -139,7 +153,7 @@ if (role !== "admin" && role !== "superusuario") return Astro.redirect(`/${curre
           <label for="facUsoCfdi">Uso CFDI *</label>
           <select id="facUsoCfdi" name="usoCfdi">
             <option value="G03">G03 - Gastos en General</option>
-            <option value="G01">G01 - AdquisiciÃ³n de Mercancias</option>
+            <option value="G01">G01 - Adquisición de Mercancias</option>
             <option value="G02">G02 - Devoluciones, Descuentos o Bonificaciones</option>
             <option value="S01">S01 - Sin efectos fiscales</option>
           </select>
@@ -155,7 +169,7 @@ if (role !== "admin" && role !== "superusuario") return Astro.redirect(`/${curre
       <div class="fac-dialog__actions">
         <button type="button" id="facModalCancelBtn" class="fac-btn fac-btn--ghost">Cancelar</button>
         <button type="submit" id="facFormSubmit" class="fac-btn fac-btn--primary">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/></svg>
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/></svg>
           Generar Factura
         </button>
       </div>
@@ -163,15 +177,22 @@ if (role !== "admin" && role !== "superusuario") return Astro.redirect(`/${curre
   </article>
 </div>
 
-<!-- â”€â”€ Modal cancelar factura â”€â”€ -->
+<!-- Modal cancelar factura -->
 <div id="facCancelModal" class="fac-overlay" hidden>
   <div class="fac-overlay__bg" id="facCancelModalBg"></div>
   <article class="fac-dialog fac-dialog--sm" role="dialog" aria-modal="true">
     <button id="facCancelModalClose" class="fac-dialog__close" type="button" aria-label="Cerrar">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
     </button>
-    <h3 class="fac-dialog__title fac-dialog__title--danger">Cancelar Factura</h3>
-    <p class="fac-dialog__sub">Selecciona el motivo de cancelaciÃ³n SAT. Esta acciÃ³n no se puede deshacer.</p>
+    <div class="fac-dialog__head">
+      <div class="fac-dialog__icon fac-dialog__icon--danger">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#fb7185" stroke-width="2.2" stroke-linecap="round"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+      </div>
+      <div>
+        <h3 class="fac-dialog__title fac-dialog__title--danger">Cancelar Factura</h3>
+        <p class="fac-dialog__sub">Selecciona el motivo SAT. Esta acción no se puede deshacer.</p>
+      </div>
+    </div>
 
     <form id="facCancelForm" autocomplete="off">
       <input type="hidden" id="facCancelCampanaId" value="" />
@@ -179,10 +200,10 @@ if (role !== "admin" && role !== "superusuario") return Astro.redirect(`/${curre
       <div class="fac-field">
         <label for="facCancelMotivo">Motivo SAT *</label>
         <select id="facCancelMotivo" name="motivo">
-          <option value="02">02 - Comprobante emitido con errores sin relaciÃ³n</option>
-          <option value="01">01 - Comprobante emitido con errores con relaciÃ³n</option>
-          <option value="03">03 - No se llevÃ³ a cabo la operaciÃ³n</option>
-          <option value="04">04 - OperaciÃ³n nominativa en factura global</option>
+          <option value="02">02 - Comprobante emitido con errores sin relación</option>
+          <option value="01">01 - Comprobante emitido con errores con relación</option>
+          <option value="03">03 - No se llevó a cabo la operación</option>
+          <option value="04">04 - Operación nominativa en factura global</option>
         </select>
       </div>
 
@@ -195,147 +216,484 @@ if (role !== "admin" && role !== "superusuario") return Astro.redirect(`/${curre
 
       <div class="fac-dialog__actions">
         <button type="button" id="facCancelCancelBtn" class="fac-btn fac-btn--ghost">Volver</button>
-        <button type="submit" id="facCancelSubmit" class="fac-btn fac-btn--danger">Cancelar Factura</button>
+        <button type="submit" id="facCancelSubmit" class="fac-btn fac-btn--danger">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+          Cancelar Factura
+        </button>
       </div>
     </form>
   </article>
 </div>
 
 <style>
-.fac-root { min-height: 100vh; }
-.fac { max-width: 1440px; margin: 0 auto; padding: 2rem 1.5rem 4rem; }
+/* ═══════════════════════════════════════════
+   FACTURACIÓN ADMIN — v3 polished
+   ═══════════════════════════════════════════ */
 
-/* â”€â”€ Hero â”€â”€ */
-.fac-hero { position: relative; overflow: hidden; border-radius: 1.25rem; background: linear-gradient(135deg, #0a1628 0%, #0d0d0d 60%); border: 1px solid rgba(14,165,233,.22); padding: 2.5rem 2rem; margin-bottom: 1.75rem; }
-.fac-hero__glow { position: absolute; inset: 0; background: radial-gradient(ellipse 60% 55% at 10% 50%, rgba(14,165,233,.13) 0%, transparent 70%); pointer-events: none; }
-.fac-hero__content { position: relative; display: flex; justify-content: space-between; align-items: center; gap: 1rem; flex-wrap: wrap; }
-.fac-hero__badge { display: inline-block; padding: .25rem .75rem; background: rgba(14,165,233,.15); border: 1px solid rgba(14,165,233,.35); border-radius: 2rem; font-size: .72rem; font-weight: 600; color: #7dd3fc; letter-spacing: .06em; text-transform: uppercase; margin-bottom: .5rem; }
-.fac-hero__title { font-size: clamp(1.4rem,3vw,2rem); font-weight: 700; color: #fff; margin: 0 0 .3rem; }
-.fac-hero__sub { font-size: .85rem; color: #888; margin: 0; }
+.fac-root {
+  min-height: 100vh;
+  background: #07090f;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+.fac {
+  max-width: 1500px;
+  margin: 0 auto;
+  padding: 2rem 1.75rem 4rem;
+}
+
+/* Hero */
+.fac-hero {
+  position: relative; overflow: hidden; border-radius: 1.25rem;
+  background: linear-gradient(135deg, #0c1024 0%, #111827 60%, #0e1520 100%);
+  border: 1px solid rgba(99,102,241,.2);
+  padding: 2.25rem 2.25rem; margin-bottom: 1.5rem;
+  box-shadow: 0 24px 60px rgba(0,0,0,.45), inset 0 1px 0 rgba(255,255,255,.03);
+}
+
+.fac-hero__glow {
+  position: absolute; inset: 0; pointer-events: none;
+  background:
+    radial-gradient(ellipse 60% 70% at -5% 50%, rgba(99,102,241,.18) 0%, transparent 65%),
+    radial-gradient(ellipse 35% 45% at 105% 0%, rgba(139,92,246,.12) 0%, transparent 60%);
+}
+
+.fac-hero__dots {
+  position: absolute; inset: 0; pointer-events: none; opacity: .4;
+  background-image: radial-gradient(rgba(99,102,241,.12) 1px, transparent 1px);
+  background-size: 26px 26px;
+}
+
+.fac-hero__content {
+  position: relative; display: flex; justify-content: space-between;
+  align-items: center; gap: 1rem; flex-wrap: wrap;
+}
+
+.fac-hero__badge {
+  display: inline-flex; align-items: center; gap: .4rem;
+  padding: .22rem .85rem;
+  background: rgba(99,102,241,.14); border: 1px solid rgba(99,102,241,.32);
+  border-radius: 999px; font-size: .68rem; font-weight: 700; color: #818cf8;
+  letter-spacing: .1em; text-transform: uppercase; margin-bottom: .65rem;
+}
+.fac-hero__badge::before {
+  content: ''; width: 6px; height: 6px; border-radius: 50%;
+  background: #6366f1; box-shadow: 0 0 6px rgba(99,102,241,.8); flex-shrink: 0;
+}
+
+.fac-hero__title {
+  font-size: clamp(1.5rem, 3vw, 2.1rem); font-weight: 800; color: #f1f5f9;
+  margin: 0 0 .3rem; line-height: 1.1; letter-spacing: -.02em;
+}
+
+.fac-hero__sub { font-size: .83rem; color: #64748b; margin: 0; }
+
 .fac-hero__actions { display: flex; gap: .75rem; align-items: center; }
-.fac-back { padding: .5rem 1.25rem; border-radius: .6rem; border: 1px solid rgba(255,255,255,.12); color: #ccc; font-size: .82rem; text-decoration: none; transition: background .15s; }
-.fac-back:hover { background: rgba(255,255,255,.06); }
 
-/* â”€â”€ Status â”€â”€ */
-.fac-status { padding: .75rem 1.25rem; border-radius: .6rem; margin-bottom: 1rem; font-size: .85rem; }
-.fac-status--ok  { background: rgba(40,170,80,.12); border: 1px solid rgba(40,170,80,.3); color: #5d9; }
-.fac-status--err { background: rgba(200,50,80,.12); border: 1px solid rgba(200,50,80,.3); color: #e87; }
+.fac-back {
+  display: inline-flex; align-items: center; gap: .45rem;
+  padding: .55rem 1.2rem; border-radius: .65rem;
+  border: 1px solid rgba(99,102,241,.22); color: #94a3b8;
+  font-size: .82rem; font-weight: 600; text-decoration: none;
+  background: rgba(99,102,241,.07); transition: all .15s;
+}
+.fac-back:hover {
+  background: rgba(99,102,241,.16); color: #a5b4fc;
+  border-color: rgba(99,102,241,.42); transform: translateX(-2px);
+}
 
-/* â”€â”€ Toolbar â”€â”€ */
-.fac-toolbar { display: flex; justify-content: space-between; align-items: center; gap: 1rem; flex-wrap: wrap; margin-bottom: 1.25rem; }
-.fac-toolbar__left, .fac-toolbar__right { display: flex; gap: .75rem; align-items: center; flex-wrap: wrap; }
-.fac-search-bar { display: flex; align-items: center; gap: .5rem; background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.1); border-radius: .6rem; padding: .45rem .85rem; min-width: 260px; }
-.fac-search-bar svg { flex-shrink: 0; color: #666; }
-.fac-search-bar input { background: none; border: none; outline: none; color: #f0f0f0; font-size: .85rem; width: 100%; }
-.fac-search-bar input::placeholder { color: #555; }
-.fac-select { background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.1); border-radius: .6rem; color: #ccc; font-size: .82rem; padding: .45rem .75rem; cursor: pointer; }
-.fac-select option { background: #1e1e1e; }
-.fac-count { font-size: .8rem; color: #666; }
+/* Status */
+.fac-status {
+  display: flex; align-items: center; gap: .6rem;
+  padding: .75rem 1.1rem; border-radius: .65rem;
+  margin-bottom: 1rem; font-size: .83rem; font-weight: 500;
+}
+.fac-status::before {
+  content: ''; width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0;
+}
+.fac-status--ok  { background: rgba(52,211,153,.07); border: 1px solid rgba(52,211,153,.28); color: #34d399; }
+.fac-status--ok::before  { background: #34d399; box-shadow: 0 0 6px rgba(52,211,153,.6); }
+.fac-status--err { background: rgba(244,63,94,.07); border: 1px solid rgba(244,63,94,.28); color: #fb7185; }
+.fac-status--err::before { background: #fb7185; }
 
-/* â”€â”€ Table â”€â”€ */
-.fac-table-wrap { overflow-x: auto; border-radius: .75rem; border: 1px solid rgba(14,165,233,.12); }
-.fac-table { width: 100%; border-collapse: collapse; font-size: .83rem; }
-.fac-table thead th { padding: .75rem 1rem; text-align: left; font-weight: 600; color: #888; font-size: .75rem; letter-spacing: .04em; text-transform: uppercase; border-bottom: 1px solid rgba(14,165,233,.1); white-space: nowrap; background: rgba(14,165,233,.04); }
-.fac-table tbody tr { border-bottom: 1px solid rgba(255,255,255,.04); transition: background .1s; }
-.fac-table tbody tr:hover { background: rgba(14,165,233,.04); }
-.fac-table tbody td { padding: .7rem 1rem; color: #ccc; vertical-align: middle; }
-.fac-loading-cell { text-align: center; padding: 2rem; color: #555; }
+/* Toolbar */
+.fac-toolbar {
+  display: flex; justify-content: space-between; align-items: center;
+  gap: .75rem; flex-wrap: wrap; margin-bottom: 1rem;
+}
+.fac-toolbar__left, .fac-toolbar__right {
+  display: flex; gap: .55rem; align-items: center; flex-wrap: wrap;
+}
 
-/* â”€â”€ Badges â”€â”€ */
-.fac-badge { display: inline-block; padding: .2rem .6rem; border-radius: 2rem; font-size: .72rem; font-weight: 600; letter-spacing: .04em; }
-.fac-badge--activa  { background: rgba(40,170,80,.15); color: #5d9; border: 1px solid rgba(40,170,80,.3); }
-.fac-badge--vencida { background: rgba(120,120,120,.15); color: #888; border: 1px solid rgba(120,120,120,.3); }
-.fac-badge--vigente { background: rgba(14,165,233,.15); color: #7dd3fc; border: 1px solid rgba(14,165,233,.3); }
-.fac-badge--cancelada { background: rgba(200,50,80,.12); color: #e87; border: 1px solid rgba(200,50,80,.3); }
-.fac-badge--sin { background: rgba(255,255,255,.05); color: #666; border: 1px solid rgba(255,255,255,.08); }
-.fac-badge--pos { background: rgba(255,170,60,.12); color: #fa6; border: 1px solid rgba(255,170,60,.3); }
+.fac-search-bar {
+  display: flex; align-items: center; gap: .5rem;
+  background: rgba(15,23,42,.6); border: 1px solid rgba(99,102,241,.16);
+  border-radius: .65rem; padding: .52rem 1rem; min-width: 270px;
+  transition: border-color .15s, box-shadow .15s;
+}
+.fac-search-bar:focus-within {
+  border-color: rgba(99,102,241,.5); box-shadow: 0 0 0 3px rgba(99,102,241,.08);
+}
+.fac-search-bar svg { flex-shrink: 0; color: #475569; }
+.fac-search-bar input {
+  background: none; border: none; outline: none;
+  color: #e2e8f0; font-size: .83rem; width: 100%; font-family: inherit;
+}
+.fac-search-bar input::placeholder { color: #334155; }
 
-/* â”€â”€ Actions â”€â”€ */
-.fac-action-group { display: flex; gap: .4rem; align-items: center; flex-wrap: nowrap; }
-.fac-act { display: inline-flex; align-items: center; gap: .3rem; padding: .3rem .65rem; border-radius: .45rem; font-size: .75rem; font-weight: 600; border: none; cursor: pointer; transition: opacity .15s; white-space: nowrap; }
-.fac-act--emit   { background: rgba(14,165,233,.15); color: #7dd3fc; border: 1px solid rgba(14,165,233,.3); }
-.fac-act--emit:hover   { background: rgba(14,165,233,.28); }
-.fac-act--pdf    { background: rgba(80,140,240,.12); color: #8af; border: 1px solid rgba(80,140,240,.25); }
-.fac-act--pdf:hover    { background: rgba(80,140,240,.22); }
-.fac-act--xml    { background: rgba(255,200,60,.1); color: #fc6; border: 1px solid rgba(255,200,60,.25); }
-.fac-act--xml:hover    { background: rgba(255,200,60,.2); }
-.fac-act--cancel { background: rgba(200,50,80,.08); color: #e66; border: 1px solid rgba(200,50,80,.2); }
-.fac-act--cancel:hover { background: rgba(200,50,80,.2); }
-.fac-act:disabled { opacity: .4; cursor: not-allowed; }
+.fac-select {
+  background: rgba(15,23,42,.6); border: 1px solid rgba(99,102,241,.16);
+  border-radius: .65rem; color: #94a3b8; font-size: .81rem;
+  padding: .52rem .85rem; cursor: pointer; font-family: inherit;
+  transition: border-color .15s; appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' fill='none'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%2364748b' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat; background-position: right .7rem center; padding-right: 2rem;
+}
+.fac-select:hover, .fac-select:focus { border-color: rgba(99,102,241,.4); outline: none; }
+.fac-select option { background: #0f172a; color: #e2e8f0; }
 
-/* â”€â”€ Pagination â”€â”€ */
-.fac-pagination { display: flex; justify-content: space-between; align-items: center; margin-top: 1.25rem; flex-wrap: wrap; gap: .75rem; }
-.fac-page-info { font-size: .8rem; color: #666; }
-.fac-page-controls { display: flex; gap: .4rem; }
-.fac-page-btn { padding: .4rem .7rem; border-radius: .45rem; border: 1px solid rgba(255,255,255,.1); background: rgba(255,255,255,.03); color: #ccc; font-size: .8rem; cursor: pointer; transition: background .15s; }
-.fac-page-btn:hover { background: rgba(255,255,255,.08); }
-.fac-page-btn.is-active { background: rgba(14,165,233,.2); border-color: rgba(14,165,233,.4); color: #7dd3fc; }
-.fac-page-btn:disabled { opacity: .35; cursor: not-allowed; }
+.fac-count { font-size: .78rem; color: #475569; font-weight: 500; }
 
-/* â”€â”€ Overlay â”€â”€ */
+/* Table */
+.fac-table-wrap {
+  overflow-x: auto; border-radius: 1rem;
+  border: 1px solid rgba(99,102,241,.14);
+  box-shadow: 0 8px 32px rgba(0,0,0,.35);
+  background: rgba(10,14,26,.5);
+}
+
+.fac-table { width: 100%; border-collapse: collapse; font-size: .82rem; }
+
+.fac-table thead th {
+  padding: .75rem 1rem; text-align: left; font-weight: 700;
+  color: #3d4f66; font-size: .69rem; letter-spacing: .09em; text-transform: uppercase;
+  border-bottom: 1px solid rgba(99,102,241,.1); white-space: nowrap;
+  background: rgba(99,102,241,.04);
+}
+.fac-table thead th:first-child { padding-left: 1.25rem; }
+.fac-table tbody td:first-child { padding-left: 1.25rem; }
+
+.fac-table tbody tr { border-bottom: 1px solid rgba(255,255,255,.028); transition: background .12s; }
+.fac-table tbody tr:last-child { border-bottom: none; }
+.fac-table tbody tr:hover { background: rgba(99,102,241,.045); }
+.fac-table tbody td { padding: .75rem 1rem; color: #94a3b8; vertical-align: middle; }
+
+.fac-loading-cell {
+  text-align: center; padding: 3rem; color: #334155;
+  display: flex; align-items: center; justify-content: center;
+  gap: .6rem; font-size: .83rem;
+}
+
+.fac-spinner {
+  width: 16px; height: 16px;
+  border: 2px solid rgba(99,102,241,.2); border-top-color: #6366f1;
+  border-radius: 50%; animation: fac-spin .7s linear infinite; flex-shrink: 0;
+}
+@keyframes fac-spin { to { transform: rotate(360deg); } }
+
+/* Badges */
+.fac-badge {
+  display: inline-flex; align-items: center; gap: .3rem;
+  padding: .22rem .7rem; border-radius: 999px;
+  font-size: .69rem; font-weight: 700; letter-spacing: .04em; white-space: nowrap;
+}
+.fac-badge--activa    { background: rgba(52,211,153,.1);   color: #34d399; border: 1px solid rgba(52,211,153,.25); }
+.fac-badge--vencida   { background: rgba(100,116,139,.1);  color: #94a3b8; border: 1px solid rgba(100,116,139,.22); }
+.fac-badge--vigente   { background: rgba(99,102,241,.12);  color: #a5b4fc; border: 1px solid rgba(99,102,241,.28); }
+.fac-badge--cancelada { background: rgba(244,63,94,.09);   color: #fb7185; border: 1px solid rgba(244,63,94,.25); }
+.fac-badge--sin       { background: rgba(255,255,255,.04); color: #475569; border: 1px solid rgba(255,255,255,.06); }
+.fac-badge--pos       { background: rgba(251,191,36,.1);   color: #fbbf24; border: 1px solid rgba(251,191,36,.25); }
+.fac-badge--activa::before    { content:''; width:5px; height:5px; border-radius:50%; background:#34d399; box-shadow:0 0 5px rgba(52,211,153,.7); }
+.fac-badge--vencida::before   { content:''; width:5px; height:5px; border-radius:50%; background:#94a3b8; }
+.fac-badge--vigente::before   { content:''; width:5px; height:5px; border-radius:50%; background:#818cf8; box-shadow:0 0 5px rgba(99,102,241,.7); }
+.fac-badge--cancelada::before { content:''; width:5px; height:5px; border-radius:50%; background:#fb7185; }
+
+/* Action buttons — the main upgrade */
+.fac-action-group { display: flex; align-items: center; gap: .35rem; }
+
+.fac-act {
+  display: inline-flex; align-items: center; gap: .4rem;
+  padding: .38rem .85rem; border-radius: .5rem;
+  font-size: .75rem; font-weight: 600; cursor: pointer;
+  transition: all .15s; white-space: nowrap;
+  font-family: inherit; line-height: 1; letter-spacing: .01em;
+}
+
+.fac-act--emit {
+  background: linear-gradient(135deg, rgba(79,70,229,.22) 0%, rgba(124,58,237,.18) 100%);
+  color: #a5b4fc; border: 1px solid rgba(99,102,241,.35);
+  box-shadow: 0 1px 3px rgba(99,102,241,.15);
+}
+.fac-act--emit:hover {
+  background: linear-gradient(135deg, rgba(79,70,229,.38) 0%, rgba(124,58,237,.32) 100%);
+  border-color: rgba(99,102,241,.55); color: #c7d2fe;
+  box-shadow: 0 4px 14px rgba(99,102,241,.25); transform: translateY(-1px);
+}
+
+.fac-act--pdf {
+  background: rgba(14,165,233,.1); color: #38bdf8; border: 1px solid rgba(14,165,233,.25);
+}
+.fac-act--pdf:hover {
+  background: rgba(14,165,233,.2); color: #7dd3fc; border-color: rgba(14,165,233,.45);
+  box-shadow: 0 3px 10px rgba(14,165,233,.18); transform: translateY(-1px);
+}
+
+.fac-act--xml {
+  background: rgba(245,158,11,.1); color: #fbbf24; border: 1px solid rgba(245,158,11,.25);
+}
+.fac-act--xml:hover {
+  background: rgba(245,158,11,.2); color: #fde68a; border-color: rgba(245,158,11,.45);
+  box-shadow: 0 3px 10px rgba(245,158,11,.18); transform: translateY(-1px);
+}
+
+.fac-act--cancel {
+  background: rgba(244,63,94,.09); color: #fb7185; border: 1px solid rgba(244,63,94,.22);
+}
+.fac-act--cancel:hover {
+  background: rgba(244,63,94,.2); color: #fda4af; border-color: rgba(244,63,94,.42);
+  box-shadow: 0 3px 10px rgba(244,63,94,.18); transform: translateY(-1px);
+}
+
+.fac-act:disabled { opacity: .3; cursor: not-allowed; transform: none !important; }
+
+.fac-act-divider { width: 1px; height: 18px; background: rgba(255,255,255,.07); flex-shrink: 0; }
+
+/* Pagination */
+.fac-pagination {
+  display: flex; justify-content: space-between; align-items: center;
+  margin-top: 1.25rem; flex-wrap: wrap; gap: .75rem;
+}
+.fac-page-info { font-size: .78rem; color: #475569; }
+.fac-page-controls { display: flex; gap: .3rem; }
+.fac-page-btn {
+  padding: .42rem .8rem; border-radius: .5rem;
+  border: 1px solid rgba(255,255,255,.07); background: rgba(255,255,255,.02);
+  color: #94a3b8; font-size: .78rem; font-weight: 600; cursor: pointer;
+  transition: all .12s; font-family: inherit;
+}
+.fac-page-btn:hover { background: rgba(99,102,241,.1); border-color: rgba(99,102,241,.3); color: #c7d2fe; }
+.fac-page-btn.is-active {
+  background: linear-gradient(135deg, rgba(79,70,229,.3), rgba(124,58,237,.2));
+  border-color: rgba(99,102,241,.5); color: #a5b4fc;
+  box-shadow: 0 2px 8px rgba(99,102,241,.2);
+}
+.fac-page-btn:disabled { opacity: .25; cursor: not-allowed; }
+
+/* Overlay */
 .fac-overlay { position: fixed; inset: 0; z-index: 900; display: flex; align-items: center; justify-content: center; padding: 1rem; }
 .fac-overlay[hidden] { display: none; }
-.fac-overlay__bg { position: absolute; inset: 0; background: rgba(0,0,0,.7); backdrop-filter: blur(4px); }
-.fac-dialog { position: relative; background: #161616; border: 1px solid rgba(255,255,255,.1); border-radius: 1rem; padding: 2rem; width: 100%; max-width: 520px; max-height: 90vh; overflow-y: auto; z-index: 1; box-shadow: 0 24px 80px rgba(0,0,0,.5); }
-.fac-dialog--sm { max-width: 420px; }
-.fac-dialog__close { position: absolute; top: 1rem; right: 1rem; background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.1); color: #ccc; border-radius: .4rem; padding: .35rem; cursor: pointer; line-height: 0; }
-.fac-dialog__close:hover { background: rgba(255,255,255,.12); }
-.fac-dialog__title { font-size: 1.05rem; font-weight: 700; color: #fff; margin: 0 0 .3rem; }
-.fac-dialog__title--danger { color: #e87; }
-.fac-dialog__sub { font-size: .82rem; color: #888; margin: 0 0 1.4rem; }
-.fac-dialog__actions { display: flex; gap: .75rem; justify-content: flex-end; margin-top: 1.4rem; flex-wrap: wrap; }
+.fac-overlay__bg { position: absolute; inset: 0; background: rgba(0,0,0,.75); backdrop-filter: blur(6px); }
 
-/* â”€â”€ Form â”€â”€ */
-.fac-field { margin-bottom: 1rem; }
-.fac-field label { display: block; font-size: .78rem; font-weight: 600; color: #aaa; margin-bottom: .35rem; }
-.fac-field input, .fac-field select {
-  width: 100%; padding: .55rem .85rem; background: rgba(255,255,255,.05);
-  border: 1px solid rgba(255,255,255,.12); border-radius: .55rem; color: #f0f0f0;
-  font-size: .85rem; box-sizing: border-box; transition: border-color .15s;
+.fac-dialog {
+  position: relative;
+  background: linear-gradient(150deg, #111827 0%, #0f172a 100%);
+  border: 1px solid rgba(99,102,241,.2); border-radius: 1.15rem;
+  padding: 1.75rem 2rem; width: 100%; max-width: 520px;
+  max-height: 90vh; overflow-y: auto; z-index: 1;
+  box-shadow: 0 32px 80px rgba(0,0,0,.65), 0 0 0 1px rgba(99,102,241,.07), inset 0 1px 0 rgba(255,255,255,.03);
 }
-.fac-field input:focus, .fac-field select:focus { outline: none; border-color: rgba(14,165,233,.5); }
-.fac-field select option { background: #1e1e1e; }
-.fac-field__hint { font-size: .72rem; color: #666; margin: .25rem 0 0; }
-.fac-grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
-.fac-form-error { background: rgba(200,50,80,.12); border: 1px solid rgba(200,50,80,.3); border-radius: .55rem; padding: .65rem .9rem; font-size: .82rem; color: #e87; margin-top: .5rem; }
+.fac-dialog--sm { max-width: 440px; border-color: rgba(244,63,94,.18); }
 
-/* â”€â”€ Buttons â”€â”€ */
-.fac-btn { display: inline-flex; align-items: center; gap: .4rem; padding: .55rem 1.2rem; border-radius: .6rem; font-size: .85rem; font-weight: 600; border: none; cursor: pointer; transition: opacity .15s, background .15s; }
-.fac-btn--primary { background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%); color: #fff; }
-.fac-btn--primary:hover { opacity: .88; }
-.fac-btn--ghost { background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.12); color: #ccc; }
-.fac-btn--ghost:hover { background: rgba(255,255,255,.1); }
-.fac-btn--danger { background: rgba(200,50,80,.2); border: 1px solid rgba(200,50,80,.4); color: #e87; }
-.fac-btn--danger:hover { background: rgba(200,50,80,.35); }
-.fac-btn:disabled { opacity: .4; cursor: not-allowed; }
+.fac-dialog__close {
+  position: absolute; top: 1rem; right: 1rem;
+  width: 28px; height: 28px; display: flex; align-items: center; justify-content: center;
+  background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.09);
+  color: #475569; border-radius: .45rem; cursor: pointer; transition: all .12s;
+}
+.fac-dialog__close:hover { background: rgba(255,255,255,.1); color: #94a3b8; }
+
+.fac-dialog__head { display: flex; align-items: flex-start; gap: .85rem; margin-bottom: 1.25rem; }
+
+.fac-dialog__icon {
+  width: 38px; height: 38px; border-radius: 10px;
+  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+}
+.fac-dialog__icon--primary { background: linear-gradient(135deg, #4f46e5, #7c3aed); box-shadow: 0 4px 14px rgba(79,70,229,.35); }
+.fac-dialog__icon--danger  { background: rgba(244,63,94,.12); border: 1px solid rgba(244,63,94,.25); }
+
+.fac-dialog__title { font-size: 1rem; font-weight: 700; color: #e2e8f0; margin: 0 0 .25rem; line-height: 1.2; }
+.fac-dialog__title--danger { color: #fb7185; }
+.fac-dialog__sub { font-size: .79rem; color: #64748b; margin: 0; line-height: 1.5; }
+
+.fac-dialog__actions { display: flex; gap: .65rem; justify-content: flex-end; margin-top: 1.35rem; flex-wrap: wrap; }
+
+/* Form */
+.fac-field { margin-bottom: .95rem; }
+.fac-field label {
+  display: block; font-size: .69rem; font-weight: 700; color: #64748b;
+  margin-bottom: .38rem; text-transform: uppercase; letter-spacing: .08em;
+}
+.fac-field input, .fac-field select {
+  width: 100%; padding: .58rem .9rem;
+  background: rgba(15,23,42,.8); border: 1px solid rgba(99,102,241,.16);
+  border-radius: .6rem; color: #e2e8f0; font-size: .83rem;
+  box-sizing: border-box; transition: border-color .15s, box-shadow .15s; font-family: inherit;
+}
+.fac-field input:focus, .fac-field select:focus {
+  outline: none; border-color: rgba(99,102,241,.55); box-shadow: 0 0 0 3px rgba(99,102,241,.1);
+}
+.fac-field input::placeholder { color: #334155; }
+.fac-field select option { background: #0f172a; color: #e2e8f0; }
+.fac-field__hint { font-size: .69rem; color: #475569; margin: .28rem 0 0; }
+
+.fac-grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: .85rem; }
+
+.fac-form-error {
+  display: flex; align-items: center; gap: .5rem;
+  background: rgba(244,63,94,.08); border: 1px solid rgba(244,63,94,.25);
+  border-radius: .6rem; padding: .6rem .9rem; font-size: .8rem; color: #fb7185; margin-top: .5rem;
+}
+.fac-form-error::before {
+  content: '!'; display: inline-flex; align-items: center; justify-content: center;
+  width: 16px; height: 16px; border-radius: 50%; background: rgba(244,63,94,.25);
+  font-size: .68rem; font-weight: 800; flex-shrink: 0;
+}
+
+/* Buttons */
+.fac-btn {
+  display: inline-flex; align-items: center; gap: .45rem;
+  padding: .58rem 1.3rem; border-radius: .65rem; font-size: .83rem;
+  font-weight: 700; border: none; cursor: pointer; transition: all .15s;
+  font-family: inherit; letter-spacing: .01em;
+}
+.fac-btn--primary {
+  background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+  color: #fff; box-shadow: 0 4px 16px rgba(79,70,229,.38);
+}
+.fac-btn--primary:hover { box-shadow: 0 6px 22px rgba(79,70,229,.5); transform: translateY(-1px); }
+.fac-btn--ghost { background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.1); color: #94a3b8; }
+.fac-btn--ghost:hover { background: rgba(255,255,255,.09); color: #cbd5e1; }
+.fac-btn--danger { background: rgba(244,63,94,.13); border: 1px solid rgba(244,63,94,.32); color: #fb7185; }
+.fac-btn--danger:hover { background: rgba(244,63,94,.24); box-shadow: 0 4px 14px rgba(244,63,94,.2); transform: translateY(-1px); }
+.fac-btn:disabled { opacity: .35; cursor: not-allowed; transform: none !important; }
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(99,102,241,.2); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(99,102,241,.36); }
 
 @media (max-width: 640px) {
   .fac-grid2 { grid-template-columns: 1fr; }
   .fac-dialog { padding: 1.25rem; }
+  .fac { padding: 1.25rem 1rem 3rem; }
+  .fac-search-bar { min-width: 200px; }
 }
 </style>
 
 <script nonce={cspNonce} is:inline>
+// @ts-nocheck
 (function () {
   const $ = id => document.getElementById(id);
-  const money = v => '$' + Number(v || 0).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' MXN';
-  const dateStr = v => v ? new Date(v).toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric' }) : 'â€”';
-  const posLabel = p => ({ hero: 'Hero', top1: 'Top 1', grid: 'Grid' })[p] || (p || 'â€”');
-  const esc = s => String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  const money   = v => '$' + Number(v||0).toLocaleString('es-MX',{minimumFractionDigits:2,maximumFractionDigits:2}) + ' MXN';
+  const dateStr = v => v ? new Date(v).toLocaleDateString('es-MX',{day:'2-digit',month:'short',year:'numeric'}) : '—';
+  const posLabel = p => ({hero:'Hero',top1:'Top 1',grid:'Grid'})[p] || (p||'—');
+  const esc = s => String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+
+  /* SVG icons */
+  const iDoc = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>';
+  const iDl  = '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>';
+  const iX   = '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>';
+
+  /* Inline styles (Astro scoped CSS no alcanza elementos de innerHTML) */
+  const AB = 'display:inline-flex;align-items:center;gap:.4rem;padding:.38rem .85rem;border-radius:.5rem;font-size:.75rem;font-weight:600;cursor:pointer;white-space:nowrap;font-family:inherit;line-height:1;';
+  const ST = {
+    emit:    AB + 'background:linear-gradient(135deg,rgba(79,70,229,.22),rgba(124,58,237,.18));color:#a5b4fc;border:1px solid rgba(99,102,241,.38);box-shadow:0 1px 4px rgba(99,102,241,.18);',
+    pdf:     AB + 'background:rgba(14,165,233,.12);color:#38bdf8;border:1px solid rgba(14,165,233,.3);',
+    xml:     AB + 'background:rgba(245,158,11,.12);color:#fbbf24;border:1px solid rgba(245,158,11,.3);',
+    cancel:  AB + 'background:rgba(244,63,94,.1);color:#fb7185;border:1px solid rgba(244,63,94,.28);',
+    divider: 'width:1px;height:18px;background:rgba(255,255,255,.08);flex-shrink:0;display:inline-block;',
+    group:   'display:flex;align-items:center;gap:.35rem;',
+  };
+  const BB = 'display:inline-flex;align-items:center;gap:.3rem;padding:.22rem .7rem;border-radius:999px;font-size:.69rem;font-weight:700;letter-spacing:.04em;white-space:nowrap;';
+  const DS = 'width:5px;height:5px;border-radius:50%;flex-shrink:0;display:inline-block;';
+  const BADGE = {
+    activa:    BB+'background:rgba(52,211,153,.1);color:#34d399;border:1px solid rgba(52,211,153,.28);',
+    vencida:   BB+'background:rgba(100,116,139,.1);color:#94a3b8;border:1px solid rgba(100,116,139,.22);',
+    vigente:   BB+'background:rgba(99,102,241,.12);color:#a5b4fc;border:1px solid rgba(99,102,241,.3);',
+    cancelada: BB+'background:rgba(244,63,94,.09);color:#fb7185;border:1px solid rgba(244,63,94,.26);',
+    sin:       BB+'background:rgba(255,255,255,.04);color:#475569;border:1px solid rgba(255,255,255,.07);',
+    pos:       BB+'background:rgba(251,191,36,.1);color:#fbbf24;border:1px solid rgba(251,191,36,.28);',
+  };
+  const BDOT = {
+    activa:    '<span style="'+DS+'background:#34d399;box-shadow:0 0 5px rgba(52,211,153,.7);"></span>',
+    vencida:   '<span style="'+DS+'background:#94a3b8;"></span>',
+    vigente:   '<span style="'+DS+'background:#818cf8;box-shadow:0 0 5px rgba(99,102,241,.7);"></span>',
+    cancelada: '<span style="'+DS+'background:#fb7185;"></span>',
+  };
+  function mkBadge(type, label) {
+    return '<span style="'+(BADGE[type]||BADGE.sin)+'">'+(BDOT[type]||'')+label+'</span>';
+  }
+  const PB  = 'padding:.42rem .8rem;border-radius:.5rem;border:1px solid rgba(255,255,255,.08);background:rgba(255,255,255,.03);color:#94a3b8;font-size:.78rem;font-weight:600;cursor:pointer;font-family:inherit;';
+  const PBA = 'padding:.42rem .8rem;border-radius:.5rem;border:1px solid rgba(99,102,241,.5);background:rgba(79,70,229,.22);color:#a5b4fc;font-size:.78rem;font-weight:600;cursor:pointer;font-family:inherit;box-shadow:0 2px 8px rgba(99,102,241,.2);';
 
   let allPagos = [], page = 1, totalPages = 1, totalCount = 0;
   const perPageSel = () => Number($('facPerPage')?.value || 20);
 
-  /* â”€â”€ status â”€â”€ */
+  /* ── status ── */
   function showStatus(msg, isErr) {
     const el = $('facStatus');
     el.textContent = msg;
     el.className = 'fac-status ' + (isErr ? 'fac-status--err' : 'fac-status--ok');
     el.hidden = false;
-    setTimeout(() => { el.hidden = true; }, 5000);
+    setTimeout(function(){ el.hidden = true; }, 5000);
   }
 
-  /* â”€â”€ load â”€â”€ */
+  /* ── modal helpers ── */
+  function openEmitModal(campanaId, empresa, rfc, regimen, monto, cp) {
+    $('facCampanaId').value      = campanaId;
+    $('facModalSubtitle').textContent = 'Campaña #' + campanaId + ' · ' + empresa + ' · ' + money(monto);
+    $('facRfc').value            = rfc || '';
+    $('facNombre').value         = empresa || '';
+    const regimenSel             = $('facRegimen');
+    if      (rfc && rfc.length === 12) regimenSel.value = regimen || '601';
+    else if (rfc && rfc.length === 13) regimenSel.value = regimen || '612';
+    else                               regimenSel.value = regimen || '601';
+    $('facCp').value             = cp || '';
+    $('facFormError').hidden     = true;
+    $('facModal').hidden         = false;
+  }
+  function closeEmitModal()   { $('facModal').hidden = true; }
+
+  function openCancelModal(campanaId) {
+    $('facCancelCampanaId').value = campanaId;
+    $('facCancelMotivo').value    = '02';
+    $('facFolioSustField').hidden = true;
+    $('facFolioSust').value       = '';
+    $('facCancelError').hidden    = true;
+    $('facCancelModal').hidden    = false;
+  }
+  function closeCancelModal() { $('facCancelModal').hidden = true; }
+
+  function dlFactura(campanaId, tipo) {
+    const a = document.createElement('a');
+    a.href = '/api/admin/publicidad/pagos/' + campanaId + '/factura?download=' + tipo;
+    a.rel = 'noopener'; a.style.display = 'none';
+    document.body.appendChild(a); a.click(); a.remove();
+  }
+
+  /* ── EVENT DELEGATION — cero inline onclick, funciona con cualquier CSP ── */
+  document.addEventListener('click', function(e) {
+    const btn = e.target.closest('button[data-fac-action]');
+    if (!btn) return;
+    const action = btn.getAttribute('data-fac-action');
+    const id     = Number(btn.getAttribute('data-fac-id'));
+    if      (action === 'emit')   openEmitModal(id, btn.getAttribute('data-fac-nombre'), btn.getAttribute('data-fac-rfc'), btn.getAttribute('data-fac-regimen'), Number(btn.getAttribute('data-fac-monto')), btn.getAttribute('data-fac-cp'));
+    else if (action === 'pdf')    dlFactura(id, 'pdf');
+    else if (action === 'xml')    dlFactura(id, 'xml');
+    else if (action === 'cancel') openCancelModal(id);
+  });
+
+  /* Pagination delegation */
+  document.addEventListener('click', function(e) {
+    const btn = e.target.closest('button[data-fac-page]');
+    if (!btn) return;
+    page = Number(btn.getAttribute('data-fac-page'));
+    loadPagos();
+  });
+
+  /* ── load ── */
   async function loadPagos() {
     const q       = $('facSearch')?.value.trim() || '';
     const estado  = $('facEstado')?.value || '';
@@ -346,7 +704,7 @@ if (role !== "admin" && role !== "superusuario") return Astro.redirect(`/${curre
     if (estado) params.set('estado', estado);
 
     const tbody = $('facTableBody');
-    tbody.innerHTML = '<tr><td colspan="10" class="fac-loading-cell">Cargandoâ€¦</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="10" style="text-align:center;padding:2.5rem;color:#475569;"><div style="display:inline-flex;align-items:center;gap:.6rem;font-size:.83rem;"><span style="width:16px;height:16px;border:2px solid rgba(99,102,241,.2);border-top-color:#6366f1;border-radius:50%;animation:fac-spin .7s linear infinite;display:inline-block;"></span>Cargando…</div></td></tr>';
 
     try {
       const res  = await fetch('/api/admin/publicidad/pagos?' + params.toString());
@@ -354,121 +712,95 @@ if (role !== "admin" && role !== "superusuario") return Astro.redirect(`/${curre
       if (!data.success) throw new Error(data.error || 'Error al cargar');
 
       let pagos = data.pagos || [];
+      if      (facFilt === 'pendiente')  pagos = pagos.filter(function(p){ return !p.factura; });
+      else if (facFilt === 'vigente')    pagos = pagos.filter(function(p){ return p.factura && p.factura.estado === 'vigente'; });
+      else if (facFilt === 'cancelada')  pagos = pagos.filter(function(p){ return p.factura && p.factura.estado === 'cancelada'; });
 
-      // Client-side filter by factura status
-      if (facFilt === 'pendiente') {
-        pagos = pagos.filter(p => !p.factura);
-      } else if (facFilt === 'vigente') {
-        pagos = pagos.filter(p => p.factura?.estado === 'vigente');
-      } else if (facFilt === 'cancelada') {
-        pagos = pagos.filter(p => p.factura?.estado === 'cancelada');
-      }
-
-      allPagos    = pagos;
-      totalCount  = data.pagination?.total || 0;
-      totalPages  = data.pagination?.pages || 1;
-
+      allPagos   = pagos;
+      totalCount = data.pagination?.total || 0;
+      totalPages = data.pagination?.pages || 1;
       $('facCount').textContent = totalCount + ' registros';
       renderTable();
       renderPagination();
     } catch (err) {
-      tbody.innerHTML = '<tr><td colspan="10" class="fac-loading-cell" style="color:#e87">Error: ' + esc(err.message) + '</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="10" style="text-align:center;padding:2.5rem;color:#fb7185;">Error: ' + esc(err.message) + '</td></tr>';
     }
   }
 
-  /* â”€â”€ render table â”€â”€ */
+  /* ── render table ── */
   function renderTable() {
     const tbody = $('facTableBody');
     if (!allPagos.length) {
-      tbody.innerHTML = '<tr><td colspan="10" class="fac-loading-cell">Sin resultados</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="10" style="text-align:center;padding:2.5rem;color:#475569;">Sin resultados</td></tr>';
       return;
     }
+    tbody.innerHTML = allPagos.map(function(p) {
+      const facBadge = mkBadge(p.factura ? p.factura.estado : 'sin', p.factura ? p.factura.estado : 'Sin factura');
 
-    tbody.innerHTML = allPagos.map(p => {
-      const facBadge = p.factura
-        ? `<span class="fac-badge fac-badge--${p.factura.estado}">${p.factura.estado}</span>`
-        : `<span class="fac-badge fac-badge--sin">Sin factura</span>`;
+      var actions;
+      if (p.factura && p.factura.estado === 'vigente') {
+        actions = '<div style="'+ST.group+'">'
+          + '<button style="'+ST.pdf+'"    data-fac-action="pdf"    data-fac-id="'+p.id+'">'+iDl+' PDF</button>'
+          + '<button style="'+ST.xml+'"    data-fac-action="xml"    data-fac-id="'+p.id+'">'+iDl+' XML</button>'
+          + '<span   style="'+ST.divider+'"></span>'
+          + '<button style="'+ST.cancel+'" data-fac-action="cancel" data-fac-id="'+p.id+'">'+iX+' Cancelar</button>'
+          + '</div>';
+      } else if (p.factura && p.factura.estado === 'cancelada') {
+        actions = '<span style="font-size:.75rem;color:#334155;font-style:italic;">Factura cancelada</span>';
+      } else {
+        actions = '<button style="'+ST.emit+'" data-fac-action="emit" data-fac-id="'+p.id+'"'
+          + ' data-fac-nombre="'+esc(p.empresa.nombre)+'"'
+          + ' data-fac-rfc="'+esc(p.empresa.rfc||'')+'"'
+          + ' data-fac-regimen="'+esc(p.empresa.regimenFiscal||'601')+'"'
+          + ' data-fac-monto="'+p.monto+'"'
+          + ' data-fac-cp="'+esc(p.empresa.cp||'')+'">'
+          + iDoc+' Emitir CFDI</button>';
+      }
 
-      const actions = p.factura?.estado === 'vigente'
-        ? `<div class="fac-action-group">
-             <button class="fac-act fac-act--pdf"    onclick="dlFactura(${p.id},'pdf')">â¬‡ PDF</button>
-             <button class="fac-act fac-act--xml"    onclick="dlFactura(${p.id},'xml')">â¬‡ XML</button>
-             <button class="fac-act fac-act--cancel" onclick="openCancelModal(${p.id})">âœ• Cancelar</button>
-           </div>`
-        : p.factura?.estado === 'cancelada'
-          ? `<span style="font-size:.75rem;color:#666">Factura cancelada</span>`
-          : `<button class="fac-act fac-act--emit" onclick="openEmitModal(${p.id},'${esc(p.empresa.nombre)}','${esc(p.empresa.rfc||'')}','${esc(p.empresa.regimenFiscal||'601')}',${p.monto},'${esc(p.empresa.cp||'')}')">
-               ðŸ“„ Emitir CFDI
-             </button>`;
-
-      return `<tr>
-        <td style="color:#666;font-size:.75rem">${p.id}</td>
-        <td>
-          <div style="font-weight:600;color:#f0f0f0">${esc(p.empresa.nombre)}</div>
-          <div style="font-size:.72rem;color:#666">${p.empresa.rfc ? esc(p.empresa.rfc) : 'Sin RFC'}</div>
-        </td>
-        <td style="max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${esc(p.producto)}">${esc(p.producto)}</td>
-        <td><span class="fac-badge fac-badge--pos">${posLabel(p.posicion)}</span></td>
-        <td style="color:#888">${p.duracionDias}d</td>
-        <td style="font-weight:600;color:#f0f0f0">${money(p.monto)}</td>
-        <td><span class="fac-badge fac-badge--${p.estado}">${p.estado}</span></td>
-        <td style="font-size:.78rem;color:#888">${dateStr(p.fechaCreacion)}</td>
-        <td>${facBadge}</td>
-        <td>${actions}</td>
-      </tr>`;
+      return '<tr style="border-bottom:1px solid rgba(255,255,255,.028);" '
+        + 'onmouseover="this.style.background=\'rgba(99,102,241,.045)\'" '
+        + 'onmouseout="this.style.background=\'\'">'
+        + '<td style="padding:.75rem 1rem .75rem 1.25rem;color:#334155;font-size:.75rem;font-weight:600;">'+p.id+'</td>'
+        + '<td style="padding:.75rem 1rem;">'
+          + '<div style="font-weight:700;color:#e2e8f0;font-size:.83rem;line-height:1.3;">'+esc(p.empresa.nombre)+'</div>'
+          + '<div style="font-size:.71rem;color:#3d4f66;margin-top:2px;font-family:monospace;">'+(p.empresa.rfc ? esc(p.empresa.rfc) : 'Sin RFC')+'</div>'
+          + '</td>'
+        + '<td style="padding:.75rem 1rem;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#8899b0;" title="'+esc(p.producto)+'">'+esc(p.producto)+'</td>'
+        + '<td style="padding:.75rem 1rem;">'+mkBadge('pos', posLabel(p.posicion))+'</td>'
+        + '<td style="padding:.75rem 1rem;color:#475569;font-weight:600;">'+p.duracionDias+'<span style="font-size:.7rem;color:#334155;">d</span></td>'
+        + '<td style="padding:.75rem 1rem;font-weight:700;color:#e2e8f0;">'+money(p.monto)+'</td>'
+        + '<td style="padding:.75rem 1rem;">'+mkBadge(p.estado, p.estado)+'</td>'
+        + '<td style="padding:.75rem 1rem;font-size:.78rem;color:#4b5e73;">'+dateStr(p.fechaCreacion)+'</td>'
+        + '<td style="padding:.75rem 1rem;">'+facBadge+'</td>'
+        + '<td style="padding:.75rem 1rem;">'+actions+'</td>'
+        + '</tr>';
     }).join('');
   }
 
-  /* â”€â”€ pagination â”€â”€ */
+  /* ── pagination ── */
   function renderPagination() {
-    $('facPageInfo').textContent = `PÃ¡gina ${page} de ${totalPages} Â· ${totalCount} total`;
+    $('facPageInfo').textContent = 'Página ' + page + ' de ' + totalPages + ' · ' + totalCount + ' total';
     const ctrl = $('facPageControls');
     const btns = [];
-    if (page > 1) btns.push(`<button class="fac-page-btn" onclick="goPage(${page-1})">â€¹ Ant</button>`);
+    if (page > 1) btns.push('<button style="'+PB+'" data-fac-page="'+(page-1)+'">← Ant</button>');
     const s = Math.max(1, page-2), e = Math.min(totalPages, page+2);
     for (let i = s; i <= e; i++) {
-      btns.push(`<button class="fac-page-btn ${i===page?'is-active':''}" onclick="goPage(${i})">${i}</button>`);
+      btns.push('<button style="'+(i===page ? PBA : PB)+'" data-fac-page="'+i+'">'+i+'</button>');
     }
-    if (page < totalPages) btns.push(`<button class="fac-page-btn" onclick="goPage(${page+1})">Sig â€º</button>`);
+    if (page < totalPages) btns.push('<button style="'+PB+'" data-fac-page="'+(page+1)+'">Sig →</button>');
     ctrl.innerHTML = btns.join('');
   }
 
-  window.goPage = p => { page = p; loadPagos(); };
-
-  /* â”€â”€ download â”€â”€ */
-  window.dlFactura = function(campanaId, tipo) {
-    const a = document.createElement('a');
-    a.href = '/api/admin/publicidad/pagos/' + campanaId + '/factura?download=' + tipo;
-    a.rel = 'noopener'; a.style.display = 'none';
-    document.body.appendChild(a); a.click(); a.remove();
-  };
-
-  /* â”€â”€â”€â”€â”€â”€ Emit Modal â”€â”€â”€â”€â”€â”€ */
-  window.openEmitModal = function(campanaId, empresa, rfc, regimen, monto, cp) {
-    $('facCampanaId').value = campanaId;
-    $('facModalSubtitle').textContent = 'CampaÃ±a #' + campanaId + ' Â· ' + empresa + ' Â· ' + money(monto);
-    $('facRfc').value = rfc || '';
-    $('facNombre').value = empresa || '';
-    const regimenSel = $('facRegimen');
-    if (rfc && rfc.length === 12) regimenSel.value = regimen || '601';
-    else if (rfc && rfc.length === 13) regimenSel.value = regimen || '612';
-    else regimenSel.value = regimen || '601';
-    $('facCp').value = cp || '';
-    $('facFormError').hidden = true;
-    $('facModal').hidden = false;
-  };
-
-  function closeEmitModal() { $('facModal').hidden = true; }
-  $('facModalClose').onclick = closeEmitModal;
+  /* ── modal form: emit ── */
+  $('facModalClose').onclick    = closeEmitModal;
   $('facModalCancelBtn').onclick = closeEmitModal;
-  $('facModalBg').onclick = closeEmitModal;
+  $('facModalBg').onclick        = closeEmitModal;
 
   $('facRfc').addEventListener('input', function() {
     const len = this.value.trim().replace(/\s+/g,'').length;
-    if (len === 12) $('facRegimen').value = '601';
+    if      (len === 12) $('facRegimen').value = '601';
     else if (len === 13) $('facRegimen').value = '612';
   });
-
   $('facRegimen').addEventListener('change', function() {
     if (this.value === '616') $('facUsoCfdi').value = 'S01';
   });
@@ -477,56 +809,36 @@ if (role !== "admin" && role !== "superusuario") return Astro.redirect(`/${curre
     e.preventDefault();
     const errEl = $('facFormError');
     errEl.hidden = true;
-
     const campanaId     = Number($('facCampanaId').value);
     const rfc           = $('facRfc').value.trim().toUpperCase();
     const nombre        = $('facNombre').value.trim();
     const regimenFiscal = $('facRegimen').value;
     const usoCfdi       = $('facUsoCfdi').value;
     const cpFiscal      = $('facCp').value.trim();
-
-    if (!rfc || rfc.length < 12)      { errEl.textContent = 'RFC invÃ¡lido';           errEl.hidden = false; return; }
-    if (!nombre || nombre.length < 3) { errEl.textContent = 'Nombre demasiado corto'; errEl.hidden = false; return; }
-    if (!cpFiscal || cpFiscal.length < 4) { errEl.textContent = 'Ingresa el CP Fiscal'; errEl.hidden = false; return; }
-
+    if (!rfc || rfc.length < 12)          { errEl.textContent = 'RFC inválido';           errEl.hidden = false; return; }
+    if (!nombre || nombre.length < 3)     { errEl.textContent = 'Nombre demasiado corto'; errEl.hidden = false; return; }
+    if (!cpFiscal || cpFiscal.length < 4) { errEl.textContent = 'Ingresa el CP Fiscal';   errEl.hidden = false; return; }
     const btn = $('facFormSubmit');
-    btn.disabled = true; btn.textContent = 'Generandoâ€¦';
-
+    btn.disabled = true; btn.textContent = 'Generando…';
     try {
       const res  = await fetch('/api/admin/publicidad/pagos/' + campanaId + '/factura', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ rfc, nombre, usoCfdi, regimenFiscal, cpFiscal }),
       });
       const data = await res.json();
-
       if (!data.success) { errEl.textContent = data.error || 'Error al generar'; errEl.hidden = false; return; }
-
       closeEmitModal();
-      showStatus('âœ“ Factura generada: UUID ' + (data.factura?.uuid || 'â€”'), false);
-      page = 1;
-      await loadPagos();
-      setTimeout(() => dlFactura(campanaId, 'pdf'), 400);
+      showStatus('✓ Factura generada: UUID ' + (data.factura?.uuid || '—'), false);
+      page = 1; await loadPagos();
+      setTimeout(function(){ dlFactura(campanaId, 'pdf'); }, 400);
     } catch (err) {
-      errEl.textContent = 'Error de red: ' + esc(err.message);
-      errEl.hidden = false;
+      errEl.textContent = 'Error de red: ' + esc(err.message); errEl.hidden = false;
     } finally {
-      btn.disabled = false;
-      btn.textContent = 'Generar Factura';
+      btn.disabled = false; btn.textContent = 'Generar Factura';
     }
   });
 
-  /* â”€â”€â”€â”€â”€â”€ Cancel Modal â”€â”€â”€â”€â”€â”€ */
-  window.openCancelModal = function(campanaId) {
-    $('facCancelCampanaId').value = campanaId;
-    $('facCancelMotivo').value = '02';
-    $('facFolioSustField').hidden = true;
-    $('facFolioSust').value = '';
-    $('facCancelError').hidden = true;
-    $('facCancelModal').hidden = false;
-  };
-
-  function closeCancelModal() { $('facCancelModal').hidden = true; }
+  /* ── modal form: cancel ── */
   $('facCancelModalClose').onclick = closeCancelModal;
   $('facCancelCancelBtn').onclick  = closeCancelModal;
   $('facCancelModalBg').onclick    = closeCancelModal;
@@ -539,55 +851,43 @@ if (role !== "admin" && role !== "superusuario") return Astro.redirect(`/${curre
     e.preventDefault();
     const errEl = $('facCancelError');
     errEl.hidden = true;
-
-    const campanaId       = Number($('facCancelCampanaId').value);
-    const motivo          = $('facCancelMotivo').value;
+    const campanaId        = Number($('facCancelCampanaId').value);
+    const motivo           = $('facCancelMotivo').value;
     const folioSustitucion = $('facFolioSust').value.trim() || null;
-
     if (motivo === '01' && !folioSustitucion) {
       errEl.textContent = 'El motivo 01 requiere el UUID del CFDI sustituto';
       errEl.hidden = false; return;
     }
-
     const btn = $('facCancelSubmit');
-    btn.disabled = true; btn.textContent = 'Cancelandoâ€¦';
-
+    btn.disabled = true; btn.textContent = 'Cancelando…';
     try {
       const res  = await fetch('/api/admin/publicidad/pagos/' + campanaId + '/factura', {
-        method: 'DELETE',
-        headers: { 'Content-Type': 'application/json' },
+        method: 'DELETE', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ motivo, folioSustitucion }),
       });
       const data = await res.json();
-
       if (!data.success) { errEl.textContent = data.error || 'Error al cancelar'; errEl.hidden = false; return; }
-
       closeCancelModal();
-      showStatus('âœ“ Factura cancelada exitosamente', false);
-      page = 1;
-      await loadPagos();
+      showStatus('✓ Factura cancelada exitosamente', false);
+      page = 1; await loadPagos();
     } catch (err) {
-      errEl.textContent = 'Error de red: ' + esc(err.message);
-      errEl.hidden = false;
+      errEl.textContent = 'Error de red: ' + esc(err.message); errEl.hidden = false;
     } finally {
-      btn.disabled = false;
-      btn.textContent = 'Cancelar Factura';
+      btn.disabled = false; btn.textContent = 'Cancelar Factura';
     }
   });
 
-  /* â”€â”€ search / filters â”€â”€ */
+  /* ── filters ── */
   let searchTimer;
-  $('facSearch').addEventListener('input', () => {
+  $('facSearch').addEventListener('input', function() {
     clearTimeout(searchTimer);
-    searchTimer = setTimeout(() => { page = 1; loadPagos(); }, 400);
+    searchTimer = setTimeout(function(){ page = 1; loadPagos(); }, 400);
   });
-  $('facEstado').addEventListener('change',  () => { page = 1; loadPagos(); });
-  $('facPerPage').addEventListener('change', () => { page = 1; loadPagos(); });
-  $('facFactura').addEventListener('change', () => { page = 1; loadPagos(); });
+  $('facEstado').addEventListener('change',  function(){ page = 1; loadPagos(); });
+  $('facPerPage').addEventListener('change', function(){ page = 1; loadPagos(); });
+  $('facFactura').addEventListener('change', function(){ page = 1; loadPagos(); });
 
-  /* â”€â”€ init â”€â”€ */
   loadPagos();
 })();
 </script>
 </BaseLayout>
-
