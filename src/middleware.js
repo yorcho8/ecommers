@@ -246,6 +246,12 @@ export var onRequest = defineMiddleware(async function (context, next) {
     var bypassProtectedForPublicCompany = isPublicCompanyRoute(pathname);
 
     if (!session && isProtected(pathname) && !bypassProtectedForPublicCompany) {
+      if (pathname.startsWith('/api/')) {
+        return new Response(
+          JSON.stringify({ success: false, error: 'No autenticado' }),
+          { status: 401, headers: { 'Content-Type': 'application/json' } }
+        );
+      }
       return context.redirect('/' + safeLang + '/login');
     }
 

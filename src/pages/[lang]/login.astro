@@ -1092,9 +1092,17 @@ function initLoginPage() {
         headers: { 'x-csrf-token': getCsrfToken() }
       });
 
-      var data = await response.json();
+      var responseType = String(response.headers.get('content-type') || '').toLowerCase();
+      var data = null;
+      var fallbackError = '';
+      if (responseType.includes('application/json')) {
+        data = await response.json().catch(function () { return null; });
+      } else {
+        var plain = await response.text().catch(function () { return ''; });
+        fallbackError = plain ? plain.slice(0, 220) : '';
+      }
 
-      if (response.ok && data.success) {
+      if (response.ok && data && data.success) {
         openModal({
           type: 'success',
           title: ('Bienvenido ' + (data.user.nombre || '')).trim(),
@@ -1108,7 +1116,7 @@ function initLoginPage() {
       openModal({
         type: 'error',
         title: 'No se pudo iniciar sesión',
-        message: data.error || 'Error al iniciar sesión',
+        message: (data && data.error) || fallbackError || 'Error al iniciar sesión',
       });
       if (submitBtn) submitBtn.disabled = false;
     } catch (error) {

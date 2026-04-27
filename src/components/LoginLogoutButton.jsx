@@ -17,11 +17,14 @@ export default function LoginLogoutButton({ currentLang = 'es', initialUser = nu
     const checkSession = async () => {
       try {
         const response = await fetch('/api/me', { credentials: 'include' });
-        const data = await response.json();
+        const contentType = String(response.headers.get('content-type') || '').toLowerCase();
+        const data = contentType.includes('application/json')
+          ? await response.json().catch(() => null)
+          : null;
 
         if (!isMounted) return;
 
-        if (response.ok && data.success && data.user) {
+        if (response.ok && data?.success && data?.user) {
           setIsLoggedIn(true);
           setUserName(data.user.nombre || '');
         } else {

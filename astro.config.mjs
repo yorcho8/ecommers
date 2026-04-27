@@ -8,6 +8,11 @@ import basicSsl from '@vitejs/plugin-basic-ssl';
 
 export default defineConfig({
   site: 'https://example.com',
+  security: {
+    // Custom CSRF middleware already protects mutating requests.
+    // Disable Astro origin check to avoid false 403 behind Vercel edge/proxy.
+    checkOrigin: false,
+  },
 
   // ✅ Server Rendered
   output: 'server',
